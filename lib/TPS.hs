@@ -126,3 +126,54 @@ findRoad b c p = go [p] [p]
 --------------------------
 createEmptyBoard :: Int -> Board
 createEmptyBoard size = matrix size size (const [])
+
+-------------------------
+-- | Print Functions | --
+-------------------------
+pieceString :: Piece -> String
+pieceString (Piece White Flat) = "1"
+pieceString (Piece White Standing) = "1S"
+pieceString (Piece White Cap) = "1C"
+pieceString (Piece Black Flat) = "2"
+pieceString (Piece Black Standing) = "2S"
+pieceString (Piece Black Cap) = "2C"
+
+stackString :: Stack -> String
+stackString [] = "[]"
+stackString xs = (concatMap (\x -> pieceString x ++ " ") . reverse) xs
+
+letterToCol :: Char -> Int
+letterToCol c = fromEnum c - fromEnum 'A' + 1
+
+colToLetter :: Int -> Char
+colToLetter n = toEnum (fromEnum 'A' + n - 1)
+
+showSquare :: Square -> (String, Maybe String)
+showSquare [] = ("_", Nothing)
+showSquare [p] = (pieceString p, Nothing)
+showSquare stack = 
+    let letter = [toEnum (fromEnum 'A' + stackCount)]
+        stackCount = stackCounter
+        stackCounter = length stack - 1
+    in (letter, Just $ letter ++ ": " ++ stackString stack)
+
+stacksWithKeys :: [(String, Stack)]
+stacksWithKeys = []
+
+boardString :: Board -> String
+boardString b = unlines $ 
+    [show (n - i) ++ " |" ++ row i | i <- [0..n-1]] ++
+    ["  " ++ concat ["  " ++ [colToLetter j] ++ "  " | j <- [1..m]]] ++
+    (if not (null keys) then "Key:" : keys else [])
+  where
+    n = nrows b
+    m = ncols b
+    row i = concat [" " ++ padSquare (square (i+1) j) ++ " |" | j <- [1..m]]
+    square i j = 
+        let (display, _) = showSquare (getElem i j b)
+        in display
+    padSquare s = let pad = (3 - length s) `div` 2
+                      extraPad = if even (length s) then 0 else 1
+                  in replicate pad ' ' ++ s ++ replicate (pad + extraPad) ' '
+    allSquares = [showSquare (getElem i j b) | i <- [1..n], j <- [1..m]]
+    keys = [k | (_, Just k) <- allSquares]
