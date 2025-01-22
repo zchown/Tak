@@ -67,24 +67,30 @@ data GameState = GameState
 --------------------------
 checkGameResult :: GameState -> Maybe Result
 checkGameResult gs =
-  case checkGameWin (board gs) of
+  case checkReservesDraw (player1 gs) (player2 gs) of
     Just r -> Just r
     Nothing ->
-      case checkFullDraw (board gs) of
+      case checkFullBoard (board gs) of
         Just r -> Just r
-        Nothing -> checkReservesDraw (player1 gs) (player2 gs)
+        Nothing -> checkGameWin (board gs)
 
-checkFullDraw :: Board -> Maybe Result
-checkFullDraw b = go 0 0
+checkFullBoard :: Board -> Maybe Result
+checkFullBoard b = go 0 0 (0, 0)
   where
     n = nrows b
     m = ncols b
-    go :: Int -> Int -> Maybe Result
-    go x y
-      | x >= n = go 0 (y + 1)
+    go :: Int -> Int -> (Int, Int) -> Maybe Result
+    go x y c
+      | x > n = go 0 (y + 1) c
       | y >= m = Just Draw
-      | null (getElem (x + 1) (y + 1) b) = Nothing
-      | otherwise = go (x + 1) y
+      | null (getElem x y b) = Nothing
+      | otherwise = go (x + 1) y $ addCount c
+      where
+        addCount :: (Int, Int) -> (Int, Int)
+        addCount (wc, bc)
+          | pc (head (getElem x y b)) == White = (wc + 1, bc)
+          | pc (head (getElem x y b)) == Black = (wc, bc + 1)
+          | otherwise = (wc, bc)
 
 checkReservesDraw :: Reserves -> Reserves -> Maybe Result
 checkReservesDraw (Reserves 0 0) _ = Just Draw
@@ -136,6 +142,12 @@ findRoad b c p = go [p] [p]
 --------------------------
 createEmptyBoard :: Int -> Board
 createEmptyBoard size = matrix size size (const [])
+
+getTopPiece :: Int -> Int -> Board -> Maybe Piece
+getTopPiece i j b =
+  case getElem i j b of
+    [] -> Nothing
+    x:_ -> Just x
 
 addToStack :: Stack -> Piece -> Maybe Stack
 addToStack [] p = Just [p]
