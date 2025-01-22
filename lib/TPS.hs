@@ -13,17 +13,7 @@ data Color
   | Black
   deriving (Show, Eq)
 
-newtype Piece =
-  Piece (Color, Stone)
-  deriving (Show, Eq)
-
-data Piece = Piece Color Stone
-
-getColor :: Piece -> Color
-getColor (Piece (c, _)) = c
-
-getStone :: Piece -> Stone
-getStone (Piece (_, s)) = s
+data Piece = Piece {pc :: Color, ps :: Stone }
 
 data Bag = Bag {stones :: Int, caps :: Int}
 
@@ -31,7 +21,7 @@ type Stack = [Piece]
 
 type Square = Stack
 
-type Position = (Int, Int)
+data Position = Position Int Int deriving (Show, Eq)
 
 type Board = Matrix Square
 
@@ -95,15 +85,29 @@ searchRoad b c p = go [p] [p]
     n = nrows b
     m = ncols b
     checkValid :: Position -> [Position] -> Bool
-    checkValid p@(x, y) xs
+    checkValid p@(Position x y) xs
+      | x < 0 || x > n || y > m = False
       | null (getElem x y b) = False
-      | getColor (head (getElem x y b)) /= c = False
-      | getStone (head (getElem x y b)) == Standing = False
+      | pc (head (getElem x y b)) /= c = False
+      | ps (head (getElem x y b)) == Standing = False
       | p `elem` xs = False
       | otherwise = True
     go :: [Position] -> [Position] -> Bool
-    go ((_, m):_) _ = True
-    go (x@(0, y):xs) ys = go (if (checkValid (Position (1, y)) ys) then (Position (1, y)) else []) : (if checkValid (Position (0, y - 1)) then (Position (0, y - 1)) else []) : ys
-
-     
+    go ((Position _ m):_) _ = True
+    go (x@(Position i j):xs) ys
+      | ab && bb && cb = go xs (a : b : c : ys)
+      | ab && bb = go xs (a : b : ys)
+      | ab && cb = go xs (a : c : ys)
+      | bb && cb = go xs (b : c : ys)
+      | ab = go xs (a : ys)
+      | bb = go xs (b : ys)
+      | cb = go xs (c : ys)
+      | otherwise = go xs ys
+      where
+        a = Position (i - 1) j
+        b = Position (i + 1) j
+        c = Position i (j + 1)
+        ab = checkValid a ys
+        bb = checkValid b ys
+        cb = checkValid c ys
 
