@@ -1,179 +1,77 @@
-module Board where
+{-# LANGUAGE OverloadedStrings #-}
 
+module TPS where
+
+import Board
 import Data.Matrix
+import Data.Text (Text)
+import qualified Data.Text as T
 
-data Stone
-  = Flat
-  | Standing
-  | Cap
-  deriving (Show, Eq)
-
-data Color
-  = White
-  | Black
-  deriving (Show, Eq)
-
-data Piece = Piece 
-  {pc :: Color, ps :: Stone} 
-  deriving (Show, Eq)
-
-data Bag = Bag 
-  {stones :: Int, caps :: Int} 
-  deriving (Show, Eq)
-
-type Stack = [Piece]
-
-type Square = Stack
-
-data Position = Position Int Int 
-  deriving (Show, Eq)
-
-type Board = Matrix Square
-
-data Direction
-  = Up
-  | Down
-  | Left
-  | Right
-  deriving (Show, Eq)
-
-data Result
-  = Win Color
-  | Draw
-  deriving (Show, Eq)
-
-data Move
-  = PlaceFlat (Position, Color)
-  | PlaceStanding (Position, Color)
-  | PlaceCap (Position, Color)
-  | Slide (Direction, [Int], Color)
-  deriving (Show, Eq)
-
-data GameState = GameState
-  { board :: Board
-  , turn :: Color
-  , player1 :: Bag
-  , player2 :: Bag
-  , result :: Maybe Result
-  , history :: [Move]
-  } deriving (Show, Eq)
-
---------------------------
--- | Check Game State | --
---------------------------
-
-checkGameResult :: GameState -> Maybe Result
-checkGameResult gs = case checkGameWin (board gs) of
-  Just r -> Just r
-  Nothing -> case checkFullDraw (board gs) of
-    Just r -> Just r
-    Nothing -> checkBagDraw (player1 gs) (player2 gs)
-
-checkFullDraw :: Board -> Maybe Result
-checkFullDraw b = go 0 0
+parseTPS :: Text -> GameState
+parseTPS t =
+  GameState
+    { board = b
+    , turn =
+        if turnStr == "1"
+          then White
+          else Black
+    , moveNumber = read (T.unpack moveNumberStr) :: Int
+    , player1 = getReserves b White
+    , player2 = getReserves b Black
+    , result = Nothing
+    , history = []
+    }
   where
-    n = nrows b
-    m = ncols b
-    go :: Int -> Int -> Maybe Result
-    go x y
-      | x >= n = go 0 (y + 1)
-      | y >= m = Just Draw
-      | null (getElem (x + 1) (y + 1) b) = Nothing
-      | otherwise = go (x + 1) y
+    [boardStr, turnStr, moveNumberStr] = T.splitOn " " t
+    n = length $ T.splitOn "/" boardStr
+    b = parseBoard boardStr n
 
-checkBagDraw :: Bag -> Bag -> Maybe Result
-checkBagDraw (Bag 0 0) _ = Just Draw
-checkBagDraw _ (Bag 0 0) = Just Draw
-checkBagDraw _ _ = Nothing
-
-checkGameWin :: Board -> Maybe Result
-checkGameWin b
-  | any (findRoad b White) [Position x y | x <- [1..nrows b], y <- [1..ncols b]] = Just (Win White)
-  | any (findRoad b Black) [Position x y | x <- [1..nrows b], y <- [1..ncols b]] = Just (Win Black)
-  | otherwise = Nothing
-
--- depth first search with memory of past nodes
-findRoad :: Board -> Color -> Position -> Bool
-findRoad b c p = go [p] [p]
+parseBoard :: Text -> Int -> Board
+parseBoard boardStr n =
+  fromList n n $ reverse $ concatMap parseRow $ T.splitOn "/" boardStr
   where
-    n = nrows b
-    m = ncols b
-    checkValid :: Position -> [Position] -> Bool
-    checkValid pos@(Position x y) visited
-      | x < 1 || x > n || y < 1 || y > m = False
-      | null (getElem x y b) = False
-      | pc (head (getElem x y b)) /= c = False
-      | ps (head (getElem x y b)) == Standing = False
-      | pos `elem` visited = False
-      | otherwise = True
-    go :: [Position] -> [Position] -> Bool
-    go [] _ = False
-    go ((Position i j):xs) visited
-      | (c == White && j == m) || (c == Black && i == n) = True
-      | otherwise = 
-          let neighbors = [
-                Position (i - 1) j,  -- Up
-                Position (i + 1) j,  -- Down
-                Position i (j - 1),  -- Left
-                Position i (j + 1)   -- Right
-                ]
-              validNeighbors = filter (`checkValid` visited) neighbors
-          in go (xs ++ validNeighbors) (visited ++ validNeighbors)
+    parseRow :: Text -> [Square]
+    parseRow row = concatMap parseSquare $ T.splitOn "," row
 
-
---------------------------
--- | Helper Functions | --
---------------------------
-createEmptyBoard :: Int -> Board
-createEmptyBoard size = matrix size size (const [])
-
--------------------------
--- | Print Functions | --
--------------------------
-pieceString :: Piece -> String
-pieceString (Piece White Flat) = "1"
-pieceString (Piece White Standing) = "1S"
-pieceString (Piece White Cap) = "1C"
-pieceString (Piece Black Flat) = "2"
-pieceString (Piece Black Standing) = "2S"
-pieceString (Piece Black Cap) = "2C"
-
-stackString :: Stack -> String
-stackString [] = "[]"
-stackString xs = (concatMap (\x -> pieceString x ++ " ") . reverse) xs
-
-letterToCol :: Char -> Int
-letterToCol c = fromEnum c - fromEnum 'A' + 1
-
-colToLetter :: Int -> Char
-colToLetter n = toEnum (fromEnum 'A' + n - 1)
-
-showSquare :: Square -> (String, Maybe String)
-showSquare [] = ("_", Nothing)
-showSquare [p] = (pieceString p, Nothing)
-showSquare stack = 
-    let letter = [toEnum (fromEnum 'A' + stackCount)]
-        stackCount = stackCounter
-        stackCounter = length stack - 1
-    in (letter, Just $ letter ++ ": " ++ stackString stack)
-
-stacksWithKeys :: [(String, Stack)]
-stacksWithKeys = []
-
-boardString :: Board -> String
-boardString b = unlines $ 
-    [show (n - i) ++ " |" ++ row i | i <- [0..n-1]] ++
-    ["  " ++ concat ["  " ++ [colToLetter j] ++ "  " | j <- [1..m]]] ++
-    (if not (null keys) then "Key:" : keys else [])
+parseSquare :: Text -> [Square]
+parseSquare square =
+  case T.unpack square of
+    [] -> []
+    'x':y -> replicate (read y :: Int) []
+    xs -> [parseSingleSquare xs []]
   where
-    n = nrows b
-    m = ncols b
-    row i = concat [" " ++ padSquare (square (i+1) j) ++ " |" | j <- [1..m]]
-    square i j = 
-        let (display, _) = showSquare (getElem i j b)
-        in display
-    padSquare s = let pad = (3 - length s) `div` 2
-                      extraPad = if even (length s) then 0 else 1
-                  in replicate pad ' ' ++ s ++ replicate (pad + extraPad) ' '
-    allSquares = [showSquare (getElem i j b) | i <- [1..n], j <- [1..m]]
-    keys = [k | (_, Just k) <- allSquares]
+    parseSingleSquare :: [Char] -> Stack -> Square
+    parseSingleSquare [] acc = acc
+    parseSingleSquare (x:xs) acc@(y:ys) =
+      case x of
+        '1' -> parseSingleSquare xs (Piece White Flat : acc)
+        '2' -> parseSingleSquare xs (Piece Black Flat : acc)
+        'S' ->
+          parseSingleSquare
+            xs
+            (if pc y == White
+               then Piece White Standing : ys
+               else Piece Black Standing : ys)
+        'C' ->
+          parseSingleSquare
+            xs
+            (if pc y == White
+               then Piece White Cap : ys
+               else Piece Black Cap : ys)
+        _ -> error "Invalid piece"
+    parseSingleSquare (x:xs) [] =
+      case x of
+        '1' -> parseSingleSquare xs [Piece White Flat]
+        '2' -> parseSingleSquare xs [Piece Black Flat]
+        _ -> error "Invalid piece"
+
+getReserves :: Board -> Color -> Reserves
+getReserves b c
+  | ncols b == 4 = Reserves (15 - x) 0
+  | ncols b == 5 = Reserves (21 - x) (1 - y)
+  | ncols b == 6 = Reserves (30 - x) (1 - y)
+  | ncols b == 7 = Reserves (40 - x) (2 - y)
+  | ncols b == 8 = Reserves (50 - x) (2 - y)
+  | otherwise = error "Invalid board size"
+  where
+    (Reserves x y) = getPlaced b c
