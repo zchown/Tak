@@ -64,6 +64,12 @@ runBoardTests =
                   , history = []
                   }
           checkGameResult gameState `shouldBe` Just Draw
+        it "detects non full board" $ do
+          let partialBoard = matrix 4 4 (const [])
+          checkFullBoard partialBoard `shouldBe` Nothing
+        it "detects full board" $ do
+          let partialBoard = matrix 4 4 (const [(Piece White Flat)])
+          checkFullBoard partialBoard `shouldBe` Just (Win White)
         it "detects when game is not over" $ do
           let partialBoard = matrix 4 4 (const [])
               gameState =

@@ -80,9 +80,14 @@ checkFullBoard b = go 1 1 (0, 0)
     n = nrows b
     m = ncols b
     go :: Int -> Int -> (Int, Int) -> Maybe Result
-    go x y c
+    go x y c@(wc, bc)
       | x > n = go 1 (y + 1) c
-      | y >= m = Just Draw
+      | y >= m =
+        if wc > bc
+          then Just (Win White)
+          else if bc > wc
+                 then Just (Win Black)
+                 else Just Draw
       | null (getElem x y b) = Nothing
       | otherwise = go (x + 1) y $ addCount c
       where
@@ -99,13 +104,13 @@ checkReservesDraw _ _ = Nothing
 
 checkGameWin :: Board -> Maybe Result
 checkGameWin b
-  | any
-      (findRoad b White)
-      [Position x y | x <- [1 .. nrows b], y <- [1 .. ncols b]] =
+  | any (findRoad b White) [Position x 1 | x <- [1 .. ncols b]] =
     Just (Win White)
-  | any
-      (findRoad b Black)
-      [Position x y | x <- [1 .. nrows b], y <- [1 .. ncols b]] =
+  | any (findRoad (transpose b) White) [Position x 1 | x <- [1 .. nrows b]] =
+    Just (Win White)
+  | any (findRoad b Black) [Position 1 x | x <- [1 .. nrows b]] =
+    Just (Win Black)
+  | any (findRoad (transpose b) Black) [Position 1 x | x <- [1 .. ncols b]] =
     Just (Win Black)
   | otherwise = Nothing
 
@@ -114,10 +119,9 @@ findRoad :: Board -> Color -> Position -> Bool
 findRoad b c p = go [p] [p]
   where
     n = nrows b
-    m = ncols b
     checkValid :: Position -> [Position] -> Bool
     checkValid pos@(Position x y) visited
-      | x < 1 || x > n || y < 1 || y > m = False
+      | x < 1 || x > n || y < 1 || y > n = False
       | null (getElem x y b) = False
       | pc (head (getElem x y b)) /= c = False
       | ps (head (getElem x y b)) == Standing = False
@@ -126,11 +130,10 @@ findRoad b c p = go [p] [p]
     go :: [Position] -> [Position] -> Bool
     go [] _ = False
     go ((Position i j):xs) visited
-      | (c == White && j == m) || (c == Black && i == n) = True
+      | i == n = True
       | otherwise =
         let neighbors =
-              [ Position (i - 1) j -- Up
-              , Position (i + 1) j -- Down
+              [ Position (i + 1) j -- Down
               , Position i (j - 1) -- Left
               , Position i (j + 1) -- Right
               ]
