@@ -104,19 +104,32 @@ checkReservesDraw _ _ = Nothing
 
 checkGameWin :: Board -> Maybe Result
 checkGameWin b
-  | any (findRoad b White) [Position x 1 | x <- [1 .. ncols b]] =
+  | any
+      (findRoad b White)
+      (filter (validPos White) [Position x 1 | x <- [1 .. ncols b]]) =
     Just (Win White)
-  | any (findRoad (transpose b) White) [Position x 1 | x <- [1 .. nrows b]] =
+  | any
+      (findRoad (transpose b) White)
+      (filter (validPos White) [Position x 1 | x <- [1 .. nrows b]]) =
     Just (Win White)
-  | any (findRoad b Black) [Position 1 x | x <- [1 .. nrows b]] =
+  | any
+      (findRoad b Black)
+      (filter (validPos Black) [Position 1 x | x <- [1 .. nrows b]]) =
     Just (Win Black)
-  | any (findRoad (transpose b) Black) [Position 1 x | x <- [1 .. ncols b]] =
+  | any
+      (findRoad (transpose b) Black)
+      (filter (validPos Black) [Position 1 x | x <- [1 .. ncols b]]) =
     Just (Win Black)
   | otherwise = Nothing
+  where
+    validPos :: Color -> Position -> Bool
+    validPos c (Position x y) =
+      case getElem x y b of
+        [] -> False
+        p:_ -> (pc p == c) && (ps p /= Standing)
 
--- depth first search with memory of past nodes
 findRoad :: Board -> Color -> Position -> Bool
-findRoad b c p = go [p] [p]
+findRoad b c startPos = go [startPos] []
   where
     n = nrows b
     checkValid :: Position -> [Position] -> Bool
@@ -129,16 +142,19 @@ findRoad b c p = go [p] [p]
       | otherwise = True
     go :: [Position] -> [Position] -> Bool
     go [] _ = False
-    go ((Position i j):xs) visited
+    go (pos@(Position i j):stack) visited
       | i == n = True
       | otherwise =
         let neighbors =
-              [ Position (i + 1) j -- Down
+              [ Position (i - 1) j -- Up
+              , Position (i + 1) j -- Down
               , Position i (j - 1) -- Left
               , Position i (j + 1) -- Right
               ]
             validNeighbors = filter (`checkValid` visited) neighbors
-         in go (xs ++ validNeighbors) (visited ++ validNeighbors)
+            newStack = validNeighbors ++ stack
+            newVisited = pos : visited
+         in Position (i + 1) j `elem` validNeighbors || go newStack newVisited
 
 --------------------------
 -- | Helper Functions | --

@@ -68,7 +68,7 @@ runBoardTests =
           let partialBoard = matrix 4 4 (const [])
           checkFullBoard partialBoard `shouldBe` Nothing
         it "detects full board" $ do
-          let partialBoard = matrix 4 4 (const [(Piece White Flat)])
+          let partialBoard = matrix 4 4 (const [Piece White Flat])
           checkFullBoard partialBoard `shouldBe` Just (Win White)
         it "detects when game is not over" $ do
           let partialBoard = matrix 4 4 (const [])
@@ -96,8 +96,7 @@ runBoardTests =
                   , [[Piece White Flat], [], [Piece White Flat], []]
                   , [[], [Piece White Flat], [], [Piece White Flat]]
                   ]
-          findRoad board White (Position 1 1) `shouldBe` True
-          findRoad board White (Position 4 4) `shouldBe` True
+          checkGameWin board `shouldBe` Just (Win White)
         it "detects a black road through mixed paths" $ do
           let board =
                 fromLists
@@ -110,8 +109,7 @@ runBoardTests =
                   , [[Piece Black Flat], [], [Piece Black Flat], []]
                   , [[], [Piece Black Flat], [], [Piece Black Flat]]
                   ]
-          findRoad board Black (Position 1 1) `shouldBe` True
-          findRoad board Black (Position 4 4) `shouldBe` True
+          checkGameWin board `shouldBe` Just (Win Black)
         it "prevents road through standing stones" $ do
           let board =
                 fromLists
