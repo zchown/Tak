@@ -23,6 +23,8 @@ stack.yaml.lock
 *.so
 *.dylib
 
+testOptions
+
 .vscode/
 .idea/
 *.swp

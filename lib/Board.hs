@@ -49,7 +49,7 @@ data Move
   = PlaceFlat (Position, Color)
   | PlaceStanding (Position, Color)
   | PlaceCap (Position, Color)
-  | Slide (Direction, [Int], Color)
+  | Slide (Position, Direction, [Int], Color)
   deriving (Show, Eq)
 
 data GameState = GameState

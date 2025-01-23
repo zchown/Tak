@@ -14,7 +14,18 @@ extra-doc-files:    CHANGELOG.md
 -- extra-source-files:
 
 common warnings
-    ghc-options: -Wall
+    ghc-options: -Wall 
+                 -Wcompat 
+                 -Widentities 
+                 -Wincomplete-record-updates
+                 -Wincomplete-uni-patterns 
+                 -Wmissing-home-modules 
+                 -Wpartial-fields 
+                 -Wredundant-constraints
+                 -Wno-orphans 
+                 -threaded
+                 -rtsopts
+                 -with-rtsopts=-M4G
 
 library
     import:           warnings
@@ -47,11 +58,17 @@ executable Tak
 test-suite Tak-test
     import:           warnings
     default-language: Haskell2010
-    -- other-modules:
+    other-modules:    TestBoard
+                      TestTPS
     -- other-extensions:
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
     main-is:          Main.hs
     build-depends:
         base ^>=4.16.4.0,
+        hspec ^>=2.10.0,
+        directory,
+        filepath,
+        text,
         Tak
+    buildable = True
