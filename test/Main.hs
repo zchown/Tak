@@ -10,12 +10,15 @@ import qualified Data.Text.IO as TIO
 import System.Directory (doesFileExist)
 import System.Environment (lookupEnv, setEnv)
 
+import TestBoard (runBoardTests)
+import TestTPS (runTPSTests)
+
 loadEnvFile :: IO [(String, String)]
 loadEnvFile = do
-  exists <- doesFileExist ".tenv"
+  exists <- doesFileExist "testOptions"
   if exists
     then do
-      content <- TIO.readFile ".tenv"
+      content <- TIO.readFile "testOptions"
       return $ parseEnvFile $ T.unpack content
     else return []
   where
@@ -29,7 +32,7 @@ loadEnvFile = do
         _ -> ("", "")
 
 setEnvVars :: [(String, String)] -> IO ()
-setEnvVars = mapM_ (\(key, value) -> setEnv key value)
+setEnvVars = mapM_ (uncurry setEnv)
 
 data TestConfig = TestConfig
   { runBoard :: Bool
@@ -40,11 +43,7 @@ getTestConfig :: IO TestConfig
 getTestConfig = do
   rBoard <- lookupEnvBool "RUN_BOARD" True
   rTPS <- lookupEnvBool "RUN_TPS" True
-  return $
-    TestConfig
-      { runBoard = rBoard
-      , runTPS = rTPS
-      }
+  return $ TestConfig {runBoard = rBoard, runTPS = rTPS}
   where
     lookupEnvBool :: String -> Bool -> IO Bool
     lookupEnvBool name defaultValue = do
@@ -56,10 +55,8 @@ getTestConfig = do
 
 runAllTests :: TestConfig -> IO ()
 runAllTests config = do
-  when (runBoard config) $
-    putStrLn "Running board tests ..." >> runBoardTests
-  when (runTPS config) $
-    putStrLn "Running TPS tests..." >> runTPSTests
+  when (runBoard config) $ putStrLn "Running board tests ..." >> runBoardTests
+  when (runTPS config) $ putStrLn "Running TPS tests..." >> runTPSTests
 
 main :: IO ()
 main = do

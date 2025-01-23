@@ -75,13 +75,13 @@ checkGameResult gs =
         Nothing -> checkGameWin (board gs)
 
 checkFullBoard :: Board -> Maybe Result
-checkFullBoard b = go 0 0 (0, 0)
+checkFullBoard b = go 1 1 (0, 0)
   where
     n = nrows b
     m = ncols b
     go :: Int -> Int -> (Int, Int) -> Maybe Result
     go x y c
-      | x > n = go 0 (y + 1) c
+      | x > n = go 1 (y + 1) c
       | y >= m = Just Draw
       | null (getElem x y b) = Nothing
       | otherwise = go (x + 1) y $ addCount c
@@ -203,7 +203,7 @@ stacksWithKeys = []
 boardString :: Board -> String
 boardString b =
   unlines $
-  [show (n - i) ++ " |" ++ row i | i <- [0 .. n - 1]] ++
+  [show (n - i) ++ " |" ++ row i | i <- [1 .. n]] ++
   ["  " ++ concat ["  " ++ [colToLetter j] ++ "  " | j <- [1 .. m]]] ++
   (if not (null keys)
      then "Key:" : keys
