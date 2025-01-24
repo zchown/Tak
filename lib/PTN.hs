@@ -5,6 +5,7 @@ module PTN where
 import Board
 import Data.Char (isAlpha, isDigit)
 import Data.List (foldl')
+import Data.List (isPrefixOf)
 import Data.Text (Text)
 import Text.Parsec
 import Text.Parsec.Text
@@ -71,69 +72,40 @@ parseHistoryMoves movesText =
 parseMove :: History -> String -> History
 parseMove history moveText =
   let parsedMove =
-        case words moveText of
-          [pos] ->
-            let (col, row) = splitPos pos
-                color =
-                  if head pos == '1'
-                    then White
-                    else Black
-                cleanPos =
-                  if head pos `elem` ['1', '2']
-                    then tail pos
-                    else pos
-             in PlaceFlat
-                  ( Position
-                      (read [last cleanPos])
-                      (letterToCol (head cleanPos))
-                  , color)
-          ['S':pos] ->
-            let (col, row) = splitPos pos
-                color =
-                  if head pos == '1'
-                    then White
-                    else Black
-                cleanPos =
-                  if head pos == '1'
-                    then tail pos
-                    else pos
-             in PlaceStanding
-                  ( Position
-                      (read [last cleanPos])
-                      (letterToCol (head cleanPos))
-                  , color)
-          ['C':pos] ->
-            let (col, row) = splitPos pos
-                color =
-                  if head pos == '1'
-                    then White
-                    else Black
-                cleanPos =
-                  if head pos == '1'
-                    then tail pos
-                    else tail pos
-             in PlaceCap
-                  ( Position
-                      (read [last cleanPos])
-                      (letterToCol (head cleanPos))
-                  , color)
-          [moveNotation] ->
-            let (_, start, dir, drops, crush) = parseSlideNotation moveNotation
-                color =
-                  if head moveNotation == '1'
-                    then White
-                    else Black
-                (col, row) =
-                  splitPos (dropWhile (`elem` ("12" :: String)) start)
-                direction = parseDirection dir
-             in Slide
-                  ( Position (read [last start]) (letterToCol (head start))
-                  , direction
-                  , drops
-                  , color
-                  , crush)
-          _ -> error $ "Can't parse move: " ++ moveText
+        case moveText
+        -- Common parsing logic for placement and slide moves
+              of
+          move
+            | isPrefixOf "S" move -> parsePlacement PlaceStanding move
+            | isPrefixOf "C" move -> parsePlacement PlaceCap move
+            | null (dropWhile isDigit move) -> parsePlacement PlaceFlat move
+            | otherwise -> parseSlideMove move
    in parsedMove : history
+  where
+    parsePlacement :: ((Position, Color) -> Move) -> String -> Move
+    parsePlacement constructor move =
+      let color =
+            if head move `elem` ("12" :: String)
+              then White
+              else Black
+          cleanPos = dropWhile (`elem` ("12SC" :: String)) move
+          pos = Position (read [last cleanPos]) (letterToCol (head cleanPos))
+       in constructor (pos, color)
+    parseSlideMove :: String -> Move
+    parseSlideMove moveNotation =
+      let (count, start, dir, drops, crush) = parseSlideNotation moveNotation
+          color =
+            if head moveNotation == '1'
+              then White
+              else Black
+          cleanStart = dropWhile (`elem` ("12" :: String)) start
+          direction = parseDirection dir
+       in Slide
+            ( Position (read [last start]) (letterToCol (head start))
+            , direction
+            , drops
+            , color
+            , crush)
 
 parseSlideNotation :: String -> (Int, String, Char, [Int], Crush)
 parseSlideNotation notation =
@@ -157,8 +129,3 @@ parseDirection '>' = Board.Right
 parseDirection '+' = Up
 parseDirection '-' = Down
 parseDirection c = error $ "Unknown direction: " ++ [c]
-
-splitPos :: String -> (Char, Int)
-splitPos pos =
-  let cleanPos = dropWhile (`elem` ("12" :: String)) pos
-   in (head cleanPos, read [last cleanPos])
