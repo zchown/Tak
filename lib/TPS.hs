@@ -19,7 +19,7 @@ parseTPS t =
     , player1 = getReserves b White
     , player2 = getReserves b Black
     , result = Nothing
-    , history = []
+    , gameHistory = []
     }
   where
     -- Remove "[TPS ]" prefix and suffix if present

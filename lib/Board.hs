@@ -45,12 +45,16 @@ data Result
   | Draw
   deriving (Show, Eq)
 
+type Crush = Bool
+
 data Move
   = PlaceFlat (Position, Color)
   | PlaceStanding (Position, Color)
   | PlaceCap (Position, Color)
-  | Slide (Position, Direction, [Int], Color)
+  | Slide (Position, Direction, [Int], Color, Crush)
   deriving (Show, Eq)
+
+type History = [Move]
 
 data GameState = GameState
   { board :: Board
@@ -59,7 +63,7 @@ data GameState = GameState
   , player1 :: Reserves
   , player2 :: Reserves
   , result :: Maybe Result
-  , history :: [Move]
+  , gameHistory :: History
   } deriving (Show, Eq)
 
 --------------------------

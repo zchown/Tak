@@ -61,7 +61,7 @@ runBoardTests =
                   , player1 = Reserves 0 0
                   , player2 = Reserves 0 0
                   , result = Nothing
-                  , history = []
+                  , gameHistory = []
                   }
           checkGameResult gameState `shouldBe` Just Draw
         it "detects non full board" $ do
@@ -80,7 +80,7 @@ runBoardTests =
                   , player1 = Reserves 10 1
                   , player2 = Reserves 10 1
                   , result = Nothing
-                  , history = []
+                  , gameHistory = []
                   }
           checkGameResult gameState `shouldBe` Nothing
       describe "findRoad" $ do

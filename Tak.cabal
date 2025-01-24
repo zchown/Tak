@@ -40,6 +40,7 @@ library
                     , matrix 
                     , sequence
                     , text
+                    , parsec
     hs-source-dirs:   lib
     default-language: Haskell2010
 
