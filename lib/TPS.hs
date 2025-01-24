@@ -22,13 +22,17 @@ parseTPS t =
     , history = []
     }
   where
-    [boardStr, turnStr, moveNumberStr] = T.splitOn " " t
+    -- Remove "[TPS ]" prefix and suffix if present
+    -- also adds a 1 to single x's to make parsing easier
+    cleanedT =
+      T.strip $ T.replace "[TPS " "" $ T.replace "]" "" $ T.replace "x," "x1," t
+    [boardStr, turnStr, moveNumberStr] = T.splitOn " " cleanedT
     n = length $ T.splitOn "/" boardStr
     b = parseBoard boardStr n
 
 parseBoard :: Text -> Int -> Board
 parseBoard boardStr n =
-  fromList n n $ reverse $ concatMap parseRow $ T.splitOn "/" boardStr
+  fromList n n $ concatMap parseRow $ T.splitOn "/" boardStr
   where
     parseRow :: Text -> [Square]
     parseRow row = concatMap parseSquare $ T.splitOn "," row
