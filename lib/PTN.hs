@@ -82,7 +82,7 @@ parseMove move =
 
 parseSlideMove :: String -> Either PTNParseError B.Move
 parseSlideMove (a:b:c:d:e) =
-  let pos = B.Position (B.letterToCol b) (digitToInt c)
+  let pos = B.Position (digitToInt c) (B.letterToCol b)
       dir =
         case d of
           '+' -> Right B.Up
@@ -93,35 +93,63 @@ parseSlideMove (a:b:c:d:e) =
       count = digitToInt a
       drops = map digitToInt e
    in case dir of
-        Right d -> Right $ B.Slide (pos, count, d, drops, B.White, False)
-        Left e -> Left e
-parseSlideMove (a:b:c:d) =
-  let pos = B.Position (B.letterToCol b) (digitToInt c)
-      dir =
-        case d of
-          "+" -> Right B.Up
-          "-" -> Right B.Down
-          ">" -> Right B.Right
-          "<" -> Right B.Left
-          _ -> Left PTNDirectionError
-      count = digitToInt a
-   in case dir of
-        Right d -> Right $ B.Slide (pos, count, d, [], B.White, False)
-        Left e -> Left e
-parseSlideMove (a:b:c) =
-  let pos = B.Position (B.letterToCol a) (digitToInt b)
+        Right dir' -> Right $ B.Slide (pos, count, dir', drops, B.White, False)
+        Left err -> Left err
+parseSlideMove [a, b, c] =
+  let pos = B.Position (digitToInt b) (B.letterToCol a)
       dir =
         case c of
-          "+" -> Right B.Up
-          "-" -> Right B.Down
-          ">" -> Right B.Right
-          "<" -> Right B.Left
+          '+' -> Right B.Up
+          '-' -> Right B.Down
+          '>' -> Right B.Right
+          '<' -> Right B.Left
           _ -> Left PTNDirectionError
    in case dir of
-        Right d -> Right $ B.Slide (pos, 1, d, [], B.White, False)
-        Left e -> Left e
+        Right dir' -> Right $ B.Slide (pos, 1, dir', [], B.White, False)
+        Left err -> Left err
 parseSlideMove _ = Left PTNSlideError
 
+-- parseSlideMove :: String -> Either PTNParseError B.Move
+-- parseSlideMove (a:b:c:d:e) =
+--   let pos = B.Position (B.letterToCol b) (digitToInt c)
+--       dir =
+--         case d of
+--           '+' -> Right B.Up
+--           '-' -> Right B.Down
+--           '>' -> Right B.Right
+--           '<' -> Right B.Left
+--           _ -> Left PTNDirectionError
+--       count = digitToInt a
+--       drops = map digitToInt e
+--    in case dir of
+--         Right d -> Right $ B.Slide (pos, count, d, drops, B.White, False)
+--         Left e -> Left e
+-- parseSlideMove (a:b:c:d) =
+--   let pos = B.Position (B.letterToCol b) (digitToInt c)
+--       dir =
+--         case d of
+--           "+" -> Right B.Up
+--           "-" -> Right B.Down
+--           ">" -> Right B.Right
+--           "<" -> Right B.Left
+--           _ -> Left PTNDirectionError
+--       count = digitToInt a
+--    in case dir of
+--         Right d -> Right $ B.Slide (pos, count, d, [], B.White, False)
+--         Left e -> Left e
+-- parseSlideMove (a:b:c) =
+--   let pos = B.Position (B.letterToCol a) (digitToInt b)
+--       dir =
+--         case c of
+--           "+" -> Right B.Up
+--           "-" -> Right B.Down
+--           ">" -> Right B.Right
+--           "<" -> Right B.Left
+--           _ -> Left PTNDirectionError
+--    in case dir of
+--         Right d -> Right $ B.Slide (pos, 1, d, [], B.White, False)
+--         Left e -> Left e
+-- parseSlideMove _ = Left PTNSlideError
 extractField :: String -> [Text] -> Either PTNParseError String
 extractField fieldName lines =
   case find (T.isPrefixOf (T.pack ("[" ++ fieldName ++ ": "))) lines of
