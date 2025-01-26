@@ -46,10 +46,10 @@ runBoardTests =
           getPlaced board White `shouldBe` Reserves {stones = 1, caps = 1}
       describe "letterToCol and colToLetter" $ do
         it "converts between letters and column numbers" $ do
-          letterToCol 'A' `shouldBe` 1
-          letterToCol 'B' `shouldBe` 2
-          colToLetter 1 `shouldBe` 'A'
-          colToLetter 2 `shouldBe` 'B'
+          letterToCol 'a' `shouldBe` 1
+          letterToCol 'b' `shouldBe` 2
+          colToLetter 1 `shouldBe` 'a'
+          colToLetter 2 `shouldBe` 'b'
       describe "checkGameResult" $ do
         it "handles 4x4 full board draw" $ do
           let fullBoard = matrix 4 4 (const [Piece White Flat])

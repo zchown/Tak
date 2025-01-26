@@ -61,6 +61,7 @@ test-suite Tak-test
     default-language: Haskell2010
     other-modules:    TestBoard
                       TestTPS
+                      TestPTN
     -- other-extensions:
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test

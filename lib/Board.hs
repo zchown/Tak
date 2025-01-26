@@ -1,5 +1,6 @@
 module Board where
 
+import Data.Char (isLetter, toLower)
 import Data.Matrix
 
 data Stone
@@ -47,11 +48,13 @@ data Result
 
 type Crush = Bool
 
+type Count = Int
+
 data Move
   = PlaceFlat (Position, Color)
   | PlaceStanding (Position, Color)
   | PlaceCap (Position, Color)
-  | Slide (Position, Direction, [Int], Color, Crush)
+  | Slide (Position, Count, Direction, [Int], Color, Crush)
   deriving (Show, Eq)
 
 type History = [Move]
@@ -190,6 +193,14 @@ getPlaced b c =
   where
     ap = getAllPieces b c
 
+letterToCol :: Char -> Int
+letterToCol c
+  | not (isLetter c) = error $ "Invalid column letter: " ++ [c]
+  | otherwise = fromEnum (toLower c) - fromEnum 'a' + 1
+
+colToLetter :: Int -> Char
+colToLetter n = toEnum (fromEnum 'a' + n - 1)
+
 -------------------------
 -- | Print Functions | --
 -------------------------
@@ -205,17 +216,11 @@ stackString :: Stack -> String
 stackString [] = "[]"
 stackString xs = (concatMap (\x -> pieceString x ++ " ") . reverse) xs
 
-letterToCol :: Char -> Int
-letterToCol c = fromEnum c - fromEnum 'A' + 1
-
-colToLetter :: Int -> Char
-colToLetter n = toEnum (fromEnum 'A' + n - 1)
-
 showSquare :: Square -> (String, Maybe String)
 showSquare [] = ("_", Nothing)
 showSquare [p] = (pieceString p, Nothing)
 showSquare stack =
-  let letter = [toEnum (fromEnum 'A' + stackCount)]
+  let letter = [toEnum (fromEnum 'a' + stackCount)]
       stackCount = stackCounter
       stackCounter = length stack - 1
    in (letter, Just $ letter ++ ": " ++ stackString stack)

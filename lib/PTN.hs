@@ -1,14 +1,10 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module PTN where
 
-import Board
-import Data.Char (isAlpha, isDigit)
-import Data.List (foldl')
-import Data.List (isPrefixOf)
+import qualified Board as B
+import Data.Char (digitToInt, isDigit, isLetter)
+import Data.List (find)
 import Data.Text (Text)
-import Text.Parsec
-import Text.Parsec.Text
+import qualified Data.Text as T
 
 data PTN = PTN
   { site :: String
@@ -20,112 +16,79 @@ data PTN = PTN
   , clock :: String
   , ptnResult :: String
   , size :: Int
-  , moves :: History
+  , moves :: B.History
   } deriving (Show)
 
-parsePTN :: Text -> Either ParseError PTN
-parsePTN input = parse ptnParser "PTN" input
+data PTNParseError =
+  PTNParseError
+  deriving (Show, Eq)
 
-ptnParser :: Parser PTN
-ptnParser = do
-  metadata <- many metadataLine
-  let metadataMap = foldr (\(k, v) acc -> (k, v) : acc) [] metadata
-  movesText <- many moveLine
-  return $
+parsePTN :: Text -> Either PTNParseError PTN
+parsePTN input = do
+  let lines = T.lines input
+  site <- extractField "Site" lines
+  event <- extractField "Event" lines
+  date <- extractField "Date" lines
+  time <- extractField "Time" lines
+  p1 <- extractField "Player1" lines
+  p2 <- extractField "Player2" lines
+  clock <- extractField "Clock" lines
+  ptnResult <- extractField "Result" lines
+  sizeStr <- extractField "Size" lines
+  moves <- parseMoves (map (T.dropWhile (/= ' ') . T.strip) lines)
+  return
     PTN
-      { site = lookupMetadata "Site" metadataMap
-      , event = lookupMetadata "Event" metadataMap
-      , date = lookupMetadata "Date" metadataMap
-      , time = lookupMetadata "Time" metadataMap
-      , p1 = lookupMetadata "Player1" metadataMap
-      , p2 = lookupMetadata "Player2" metadataMap
-      , clock = lookupMetadata "Clock" metadataMap
-      , ptnResult = lookupMetadata "Result" metadataMap
-      , size = read $ lookupMetadata "Size" metadataMap
-      , moves = parseHistoryMoves movesText
+      { site = site
+      , event = event
+      , date = date
+      , time = time
+      , p1 = p1
+      , p2 = p2
+      , clock = clock
+      , ptnResult = ptnResult
+      , size = read sizeStr :: Int
+      , moves = moves
       }
 
-lookupMetadata :: String -> [(String, String)] -> String
-lookupMetadata key metadata = maybe "" id $ lookup key metadata
+parseMoves :: [Text] -> Either PTNParseError B.History
+parseMoves moves = traverse parseMove (filter (not . T.null) moves)
 
-metadataLine :: Parser (String, String)
-metadataLine = do
-  char '['
-  key <- many (noneOf " ")
-  skipMany space
-  value <- between (char '"') (char '"') (many (noneOf "\""))
-  char ']'
-  newline
-  return (key, value)
+parseMove :: Text -> Either PTNParseError B.Move
+parseMove move =
+  case T.unpack move of
+    [col, row]
+      | isLetter col && isDigit row ->
+        Right $
+        B.PlaceFlat (B.Position (digitToInt row) (B.letterToCol col), B.White)
+    ['!', col, row]
+      | isLetter col && isDigit row ->
+        Right $
+        B.PlaceStanding
+          (B.Position (digitToInt row) (B.letterToCol col), B.White)
+    ['+', col, row]
+      | isLetter col && isDigit row ->
+        Right $
+        B.PlaceCap (B.Position (digitToInt row) (B.letterToCol col), B.White)
+    (col:row:rest)
+      | isLetter col && isDigit row -> parseSlideMove (col : row : rest)
+    _ -> Left PTNParseError
 
-moveLine :: Parser String
-moveLine = do
-  skipMany space
-  line <- many (noneOf "\n")
-  optional newline
-  return line
+parseSlideMove :: String -> Either PTNParseError B.Move
+parseSlideMove (col:row:rest) =
+  let pos = B.Position (digitToInt row) (B.letterToCol col)
+      (countStr, dirChar:_) = span isDigit rest
+      count = read countStr
+      dir =
+        case dirChar of
+          '+' -> B.Up
+          '-' -> B.Down
+          '>' -> B.Right
+          '<' -> B.Left
+   in Right $ B.Slide (pos, count, dir, [], B.White, False)
+parseSlideMove _ = Left PTNParseError
 
-parseHistoryMoves :: [String] -> History
-parseHistoryMoves movesText =
-  foldl' parseMove [] (filter (not . null) movesText)
-
-parseMove :: History -> String -> History
-parseMove history moveText =
-  let parsedMove =
-        case moveText
-        -- Common parsing logic for placement and slide moves
-              of
-          move
-            | isPrefixOf "S" move -> parsePlacement PlaceStanding move
-            | isPrefixOf "C" move -> parsePlacement PlaceCap move
-            | null (dropWhile isDigit move) -> parsePlacement PlaceFlat move
-            | otherwise -> parseSlideMove move
-   in parsedMove : history
-  where
-    parsePlacement :: ((Position, Color) -> Move) -> String -> Move
-    parsePlacement constructor move =
-      let color =
-            if head move `elem` ("12" :: String)
-              then White
-              else Black
-          cleanPos = dropWhile (`elem` ("12SC" :: String)) move
-          pos = Position (read [last cleanPos]) (letterToCol (head cleanPos))
-       in constructor (pos, color)
-    parseSlideMove :: String -> Move
-    parseSlideMove moveNotation =
-      let (count, start, dir, drops, crush) = parseSlideNotation moveNotation
-          color =
-            if head moveNotation == '1'
-              then White
-              else Black
-          cleanStart = dropWhile (`elem` ("12" :: String)) start
-          direction = parseDirection dir
-       in Slide
-            ( Position (read [last start]) (letterToCol (head start))
-            , direction
-            , drops
-            , color
-            , crush)
-
-parseSlideNotation :: String -> (Int, String, Char, [Int], Crush)
-parseSlideNotation notation =
-  let (countStr, rest) = span isDigit notation
-      count =
-        if null countStr
-          then 1
-          else read countStr
-      (start, dirRest) = span isAlpha rest
-      (dir, dropStr) = span (`elem` ("><+-" :: String)) dirRest
-      drops =
-        if null dropStr
-          then [count]
-          else map (\c -> read [c]) dropStr
-      crush = '*' `elem` notation
-   in (count, start, head dir, drops, crush)
-
-parseDirection :: Char -> Direction
-parseDirection '<' = Board.Left
-parseDirection '>' = Board.Right
-parseDirection '+' = Up
-parseDirection '-' = Down
-parseDirection c = error $ "Unknown direction: " ++ [c]
+extractField :: String -> [Text] -> Either PTNParseError String
+extractField fieldName lines =
+  case find (T.isPrefixOf (T.pack ("[" ++ fieldName ++ ": "))) lines of
+    Just line -> Right $ T.unpack $ T.drop (length fieldName + 4) line
+    Nothing -> Left PTNParseError

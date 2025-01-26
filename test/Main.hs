@@ -11,6 +11,7 @@ import System.Directory (doesFileExist)
 import System.Environment (lookupEnv, setEnv)
 
 import TestBoard (runBoardTests)
+import TestPTN (runPTNTests)
 import TestTPS (runTPSTests)
 
 loadEnvFile :: IO [(String, String)]
@@ -37,13 +38,15 @@ setEnvVars = mapM_ (uncurry setEnv)
 data TestConfig = TestConfig
   { runBoard :: Bool
   , runTPS :: Bool
+  , runPTN :: Bool
   }
 
 getTestConfig :: IO TestConfig
 getTestConfig = do
   rBoard <- lookupEnvBool "RUN_BOARD" True
   rTPS <- lookupEnvBool "RUN_TPS" True
-  return $ TestConfig {runBoard = rBoard, runTPS = rTPS}
+  tPTN <- lookupEnvBool "RUN_PTN" True
+  return $ TestConfig {runBoard = rBoard, runTPS = rTPS, runPTN = tPTN}
   where
     lookupEnvBool :: String -> Bool -> IO Bool
     lookupEnvBool name defaultValue = do
@@ -57,6 +60,7 @@ runAllTests :: TestConfig -> IO ()
 runAllTests config = do
   when (runBoard config) $ putStrLn "Running board tests ..." >> runBoardTests
   when (runTPS config) $ putStrLn "Running TPS tests..." >> runTPSTests
+  when (runPTN config) $ putStrLn "Running PTN tests..." >> runPTNTests
 
 main :: IO ()
 main = do
