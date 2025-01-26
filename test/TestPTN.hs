@@ -27,8 +27,9 @@ runPTNTests =
           parseMove "a1>" `shouldBe`
             Prelude.Right (Slide (Position 1 1, 1, B.Right, [], White, False))
         it "parses a slide move with multiple drops" $ do
-          parseMove "a1>12" `shouldBe`
-            Prelude.Right (Slide (Position 1 1, 1, B.Right, [2], White, False))
+          parseMove "3a1>12" `shouldBe`
+            Prelude.Right
+              (Slide (Position 1 1, 1, B.Right, [1, 2], White, False))
       describe "parsePTN" $ do
         it "parses a full PTN string with metadata and moves" $ do
           let ptnText =
