@@ -18,10 +18,10 @@ runPTNTests =
           parseMove "a1" `shouldBe`
             Prelude.Right (PlaceFlat (Position 1 1, White))
         it "parses a standing placement for White" $ do
-          parseMove "!a1" `shouldBe`
+          parseMove "Sa1" `shouldBe`
             Prelude.Right (PlaceStanding (Position 1 1, White))
         it "parses a capstone placement for White" $ do
-          parseMove "+a1" `shouldBe`
+          parseMove "Ca1" `shouldBe`
             Prelude.Right (PlaceCap (Position 1 1, White))
         it "parses a basic slide move" $ do
           parseMove "a1>" `shouldBe`
