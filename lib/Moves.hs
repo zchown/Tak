@@ -49,76 +49,55 @@ checkSlide b (B.Slide (pos@(B.Position row col), count, dir, drops, color, crush
 
 checkForCap :: B.Board -> B.Position -> B.Direction -> Int -> Bool
 checkForCap _ _ _ 0 = False
-checkForCap b (B.Position row col) B.Up dl
-  | null (getElem (row - 1) col b) = checkForCap b (B.Position (row - 1) col) B.Up (dl - 1)
-  | B.ps (head $ getElem (row - 1) col b) == B.Cap = True
-  | otherwise = checkForCap b (B.Position (row - 1) col) B.Up (dl - 1)
-checkForCap b (B.Position row col) B.Down dl
-  | null (getElem (row + 1) col b) = checkForCap b (B.Position (row + 1) col) B.Down (dl - 1)
-  | B.ps (head $ getElem (row + 1) col b) == B.Cap = True
-  | otherwise = checkForCap b (B.Position (row + 1) col) B.Down (dl - 1)
-checkForCap b (B.Position row col) B.Left dl
-  | null (getElem row (col - 1) b) = checkForCap b (B.Position row (col - 1)) B.Left (dl - 1)
-  | B.ps (head $ getElem row (col - 1) b) == B.Cap = True
-  | otherwise = checkForCap b (B.Position row (col - 1)) B.Left (dl - 1)
-checkForCap b (B.Position row col) B.Right dl
-  | null (getElem row (col + 1) b) = checkForCap b (B.Position row (col + 1)) B.Right (dl - 1)
-  | B.ps (head $ getElem row (col + 1) b) == B.Cap = True
-  | otherwise = checkForCap b (B.Position row (col + 1)) B.Right (dl - 1)
+checkForCap b (B.Position row col) dir dl
+  | null (getElem row' col' b) = checkForCap b newPos dir (dl - 1)
+  | B.ps (head $ getElem row' col' b) == B.Cap = True
+  | otherwise = checkForCap b newPos dir (dl - 1)
+  where
+    (row', col') = case dir of
+      B.Up -> (row - 1, col)
+      B.Down -> (row + 1, col)
+      B.Left -> (row, col - 1)
+      B.Right -> (row, col + 1)
+    newPos = B.Position row' col'
 
 checkForStanding :: B.Board -> B.Position -> B.Direction -> Int -> [B.Piece]-> Bool
 checkForStanding _ _ _ 0 _ = False
-checkForStanding b (B.Position row col) B.Up 1 ps
-  | null (getElem (row - 1) col b) = False
-  | topStanding b (B.Position (row - 1) col) = length ps == 1 && lastCap ps
+checkForStanding b (B.Position row col) dir 1 ps
+  | null (getElem row' col' b) = False
+  | topStanding b newPos = length ps == 1 && lastCap ps
   | otherwise = False
-checkForStanding b (B.Position row col) B.Down 1 ps
-  | null (getElem (row + 1) col b) = False
-  | topStanding b (B.Position (row + 1) col) = length ps == 1 && lastCap ps
-  | otherwise = False
-checkForStanding b (B.Position row col) B.Left 1 ps
-  | null (getElem row (col - 1) b) = False
-  | topStanding b (B.Position row (col - 1)) = length ps == 1 && lastCap ps
-  | otherwise = False
-checkForStanding b (B.Position row col) B.Right 1 ps
-  | null (getElem row (col + 1) b) = False
-  | topStanding b (B.Position row (col + 1)) = length ps == 1 && lastCap ps
-  | otherwise = False
-checkForStanding b (B.Position row col) B.Up dl ps
-  | null (getElem (row - 1) col b) = checkForStanding b (B.Position (row - 1) col) B.Up (dl - 1) ps
+  where
+    (row', col') = case dir of
+      B.Up -> (row - 1, col)
+      B.Down -> (row + 1, col)
+      B.Left -> (row, col - 1)
+      B.Right -> (row, col + 1)
+    newPos = B.Position row' col'
+checkForStanding b (B.Position row col) dir dl ps
+  | null (getElem row' col' b) = checkForStanding b newPos dir (dl - 1) ps
   | topStanding b (B.Position (row - 1) col) = True
-  | otherwise = checkForStanding b (B.Position (row - 1) col) B.Up (dl - 1) ps
-checkForStanding b (B.Position row col) B.Down dl ps
-  | null (getElem (row + 1) col b) = checkForStanding b (B.Position (row + 1) col) B.Down (dl - 1) ps
-  | topStanding b (B.Position (row + 1) col) = True
-  | otherwise = checkForStanding b (B.Position (row + 1) col) B.Down (dl - 1) ps
-checkForStanding b (B.Position row col) B.Left dl ps
-  | null (getElem row (col - 1) b) = checkForStanding b (B.Position row (col - 1)) B.Left (dl - 1) ps
-  | topStanding b (B.Position row (col - 1)) = True
-  | otherwise = checkForStanding b (B.Position row (col - 1)) B.Left (dl - 1) ps
-checkForStanding b (B.Position row col) B.Right dl ps
-  | null (getElem row (col + 1) b) = checkForStanding b (B.Position row (col + 1)) B.Right (dl - 1) ps
-  | topStanding b (B.Position row (col + 1)) = True
-  | otherwise = checkForStanding b (B.Position row (col + 1)) B.Right (dl - 1) ps
+  | otherwise = checkForStanding b newPos dir (dl - 1) ps
+  where
+    (row', col') = case dir of
+      B.Up -> (row - 1, col)
+      B.Down -> (row + 1, col)
+      B.Left -> (row, col - 1)
+      B.Right -> (row, col + 1)
+    newPos = B.Position row' col'
 
 checkForCrush :: B.Board -> B.Position -> B.Direction -> Int -> [B.Piece] -> Bool
 checkForCrush _ _ _ _ [] = False
-checkForCrush b (B.Position row col) B.Up dl [B.Piece _ B.Cap]
+checkForCrush b (B.Position row col) dir dl [B.Piece _ B.Cap]
   | null (getElem (row - dl) col b) = False
-  | topStanding b (B.Position (row - 1) col) = True
+  | topStanding b newPos = True
   | otherwise = False
-checkForCrush b (B.Position row col) B.Down dl [B.Piece _ B.Cap]
-  | null (getElem (row + dl) col b) = False
-  | topStanding b (B.Position (row + 1) col) = True
-  | otherwise = False
-checkForCrush b (B.Position row col) B.Left dl [B.Piece _ B.Cap]
-  | null (getElem row (col - dl) b) = False
-  | topStanding b (B.Position row (col - 1)) = True
-  | otherwise = False
-checkForCrush b (B.Position row col) B.Right dl [B.Piece _ B.Cap]
-  | null (getElem row (col + dl) b) = False
-  | topStanding b (B.Position row (col + 1)) = True
-  | otherwise = False
+  where
+    newPos = case dir of
+      B.Up -> B.Position (row - 1) col
+      B.Down -> B.Position (row + 1) col
+      B.Left -> B.Position row (col - 1)
+      B.Right -> B.Position row (col + 1)
 checkForCrush _ _ _ _ _ = False
 
 topStanding :: B.Board -> B.Position -> Bool
@@ -133,7 +112,6 @@ lastCap ps = B.ps (last ps) == B.Cap
 ----------------------------
 -- | Make and Undo Move | --
 ----------------------------
-
 makeMove :: B.Board -> B.Move -> Either InvalidMove B.Board
 makeMove b m@(B.PlaceFlat (pos, c)) = 
   case checkMove b m of
@@ -147,6 +125,38 @@ makeMove b m@(B.PlaceCap (pos, c)) =
   case checkMove b m of
     Left e -> Left e
     Right _ -> Right $ B.placeCap b pos c
+makeMove b m@(B.Slide (B.Position row col, count, dir, drops, _, crush)) =
+  case checkMove b m of
+    Left e -> Left e
+    Right _ -> Right $ makeSlide b' dir pos' ps drops crush
+  where
+    ps = take count $ getElem row col b
+    s' = drop count $ getElem row col b
+    b' = setElem s' (row, col) b
+    pos' = case dir of
+      B.Up -> B.Position (row - 1) col
+      B.Down -> B.Position (row + 1) col
+      B.Left -> B.Position row (col - 1)
+      B.Right -> B.Position row (col + 1)
+
+
+makeSlide :: B.Board -> B.Direction -> B.Position -> [B.Piece] -> [Int] -> B.Crush -> B.Board
+makeSlide b _ _ _ [] _ = b
+makeSlide b _ pos@(B.Position row col) [x] _ True =
+  let s = getElem row col b
+      s' = drop 1 s
+      h' = case B.pc (head s) of
+          B.Black -> B.Piece B.Black B.Flat
+          B.White -> B.Piece B.White B.Flat
+  in setElem ( x : h' : s') (row, col) b
+
+  -- where
+  --   nextPos = case dir of
+  --     B.Up -> B.Position (row - 1) col
+  --     B.Down -> B.Position (row + 1) col
+  --     B.Left -> B.Position row (col - 1)
+  --     B.Right -> B.Position row (col + 1)
+
 
 data InvalidUndo = InvalidPlaceUndo | InvalidSlideUndo | InvalidUndoPosition
 
@@ -166,3 +176,4 @@ undoMove b (B.PlaceCap (B.Position row col, _))
   | null (getElem row col b) = Left InvalidPlaceUndo
   | length (getElem row col b) > 1 = Left InvalidPlaceUndo
   | otherwise = Right $ setElem [] (row, col) b
+
