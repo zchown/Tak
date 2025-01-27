@@ -54,13 +54,8 @@ checkForCap b (B.Position row col) dir dl
   | B.ps (head $ getElem row' col' b) == B.Cap = True
   | otherwise = checkForCap b newPos dir (dl - 1)
   where
-    (row', col') = case dir of
-      B.Up -> (row - 1, col)
-      B.Down -> (row + 1, col)
-      B.Left -> (row, col - 1)
-      B.Right -> (row, col + 1)
-    newPos = B.Position row' col'
-
+    (newPos, row', col') = getNextPos (B.Position row col) dir
+    
 checkForStanding :: B.Board -> B.Position -> B.Direction -> Int -> [B.Piece]-> Bool
 checkForStanding _ _ _ 0 _ = False
 checkForStanding b (B.Position row col) dir 1 ps
@@ -68,24 +63,14 @@ checkForStanding b (B.Position row col) dir 1 ps
   | topStanding b newPos = length ps == 1 && lastCap ps
   | otherwise = False
   where
-    (row', col') = case dir of
-      B.Up -> (row - 1, col)
-      B.Down -> (row + 1, col)
-      B.Left -> (row, col - 1)
-      B.Right -> (row, col + 1)
-    newPos = B.Position row' col'
+    (newPos, row', col') = getNextPos (B.Position row col) dir
 checkForStanding b (B.Position row col) dir dl ps
   | null (getElem row' col' b) = checkForStanding b newPos dir (dl - 1) ps
   | topStanding b (B.Position (row - 1) col) = True
   | otherwise = checkForStanding b newPos dir (dl - 1) ps
   where
-    (row', col') = case dir of
-      B.Up -> (row - 1, col)
-      B.Down -> (row + 1, col)
-      B.Left -> (row, col - 1)
-      B.Right -> (row, col + 1)
-    newPos = B.Position row' col'
-
+    (newPos, row', col') = getNextPos (B.Position row col) dir
+    
 checkForCrush :: B.Board -> B.Position -> B.Direction -> Int -> [B.Piece] -> Bool
 checkForCrush _ _ _ _ [] = False
 checkForCrush b (B.Position row col) dir dl [B.Piece _ B.Cap]
@@ -93,11 +78,7 @@ checkForCrush b (B.Position row col) dir dl [B.Piece _ B.Cap]
   | topStanding b newPos = True
   | otherwise = False
   where
-    newPos = case dir of
-      B.Up -> B.Position (row - 1) col
-      B.Down -> B.Position (row + 1) col
-      B.Left -> B.Position row (col - 1)
-      B.Right -> B.Position row (col + 1)
+    (newPos, _, _) = getNextPos (B.Position row col) dir
 checkForCrush _ _ _ _ _ = False
 
 topStanding :: B.Board -> B.Position -> Bool
@@ -133,12 +114,7 @@ makeMove b m@(B.Slide (B.Position row col, count, dir, drops, _, crush)) =
     ps = reverse $ take count $ getElem row col b
     s' = drop count $ getElem row col b
     b' = setElem s' (row, col) b
-    pos' = case dir of
-      B.Up -> B.Position (row - 1) col
-      B.Down -> B.Position (row + 1) col
-      B.Left -> B.Position row (col - 1)
-      B.Right -> B.Position row (col + 1)
-
+    (pos', _, _) = getNextPos (B.Position row col) dir
 
 makeSlide :: B.Board -> B.Direction -> B.Position -> [B.Piece] -> [Int] -> B.Crush -> B.Board
 makeSlide b _ _ _ [] _ = b
@@ -157,12 +133,7 @@ makeSlide b dir (B.Position row col) xs (d:ds) crush =
       xs' = drop d xs
   in makeSlide b' dir nextPos xs' ds crush
   where
-    nextPos = case dir of
-      B.Up -> B.Position (row - 1) col
-      B.Down -> B.Position (row + 1) col
-      B.Left -> B.Position row (col - 1)
-      B.Right -> B.Position row (col + 1)
-
+    (nextPos, _, _) = getNextPos (B.Position row col) dir
 
 data InvalidUndo = InvalidPlaceUndo | InvalidSlideUndo | InvalidUndoPosition
 
@@ -181,3 +152,14 @@ undoPlaceMove b (B.Position row col)
 
 undoSlide :: B.Board -> B.Position -> Int -> B.Direction -> [Int] -> Either InvalidUndo B.Board
 undoSlide = undefined 
+
+--------------------------
+-- | Helper Functions | --
+--------------------------
+
+getNextPos :: B.Position -> B.Direction -> (B.Position, Int, Int)
+getNextPos (B.Position row col) B.Up = (B.Position (row - 1) col, row - 1, col)
+getNextPos (B.Position row col) B.Down = (B.Position (row + 1) col, row + 1, col)
+getNextPos (B.Position row col) B.Left = (B.Position row (col - 1), row, col - 1)
+getNextPos (B.Position row col) B.Right = (B.Position row (col + 1), row, col + 1)
+
