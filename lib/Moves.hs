@@ -134,3 +134,8 @@ lastCap ps = B.ps (last ps) == B.Cap
 -- | Make and Undo Move | --
 ----------------------------
 
+makeMove :: B.Board -> B.Move -> Either InvalidMove B.Board
+makeMove b m@(B.PlaceFlat (pos, c)) = 
+  case checkMove b m of
+    Left e -> Left e
+    Right _ -> Right $ placeFlat b pos c
