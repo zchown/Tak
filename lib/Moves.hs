@@ -138,4 +138,31 @@ makeMove :: B.Board -> B.Move -> Either InvalidMove B.Board
 makeMove b m@(B.PlaceFlat (pos, c)) = 
   case checkMove b m of
     Left e -> Left e
-    Right _ -> Right $ placeFlat b pos c
+    Right _ -> Right $ B.placeFlat b pos c
+makeMove b m@(B.PlaceStanding (pos, c)) =
+  case checkMove b m of
+    Left e -> Left e
+    Right _ -> Right $ B.placeStanding b pos c
+makeMove b m@(B.PlaceCap (pos, c)) =
+  case checkMove b m of
+    Left e -> Left e
+    Right _ -> Right $ B.placeCap b pos c
+
+data InvalidUndo = InvalidPlaceUndo | InvalidSlideUndo | InvalidUndoPosition
+
+undoMove :: B.Board -> B.Move -> Either InvalidUndo B.Board
+undoMove b (B.PlaceFlat (B.Position row col, _))
+  | row < 1 || col < 1 || row > nrows b || col > ncols b = Left InvalidUndoPosition
+  | null (getElem row col b) = Left InvalidPlaceUndo
+  | length (getElem row col b) > 1 = Left InvalidPlaceUndo
+  | otherwise = Right $ setElem [] (row, col) b
+undoMove b (B.PlaceStanding (B.Position row col, _))
+  | row < 1 || col < 1 || row > nrows b || col > ncols b = Left InvalidUndoPosition
+  | null (getElem row col b) = Left InvalidPlaceUndo
+  | length (getElem row col b) > 1 = Left InvalidPlaceUndo
+  | otherwise = Right $ setElem [] (row, col) b
+undoMove b (B.PlaceCap (B.Position row col, _))
+  | row < 1 || col < 1 || row > nrows b || col > ncols b = Left InvalidUndoPosition
+  | null (getElem row col b) = Left InvalidPlaceUndo
+  | length (getElem row col b) > 1 = Left InvalidPlaceUndo
+  | otherwise = Right $ setElem [] (row, col) b
