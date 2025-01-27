@@ -167,19 +167,17 @@ makeSlide b dir (B.Position row col) xs (d:ds) crush =
 data InvalidUndo = InvalidPlaceUndo | InvalidSlideUndo | InvalidUndoPosition
 
 undoMove :: B.Board -> B.Move -> Either InvalidUndo B.Board
-undoMove b (B.PlaceFlat (B.Position row col, _))
-  | row < 1 || col < 1 || row > nrows b || col > ncols b = Left InvalidUndoPosition
-  | null (getElem row col b) = Left InvalidPlaceUndo
-  | length (getElem row col b) > 1 = Left InvalidPlaceUndo
-  | otherwise = Right $ setElem [] (row, col) b
-undoMove b (B.PlaceStanding (B.Position row col, _))
-  | row < 1 || col < 1 || row > nrows b || col > ncols b = Left InvalidUndoPosition
-  | null (getElem row col b) = Left InvalidPlaceUndo
-  | length (getElem row col b) > 1 = Left InvalidPlaceUndo
-  | otherwise = Right $ setElem [] (row, col) b
-undoMove b (B.PlaceCap (B.Position row col, _))
+undoMove b (B.PlaceFlat (pos, _)) = undoPlaceMove b pos
+undoMove b (B.PlaceStanding (pos, _)) = undoPlaceMove b pos
+undoMove b (B.PlaceCap (pos, _)) = undoPlaceMove b pos
+undoMove b (B.Slide (pos, count, dir, drops, _, _)) = undoSlide b pos count dir drops
+
+undoPlaceMove :: B.Board -> B.Position -> Either InvalidUndo B.Board
+undoPlaceMove b (B.Position row col)
   | row < 1 || col < 1 || row > nrows b || col > ncols b = Left InvalidUndoPosition
   | null (getElem row col b) = Left InvalidPlaceUndo
   | length (getElem row col b) > 1 = Left InvalidPlaceUndo
   | otherwise = Right $ setElem [] (row, col) b
 
+undoSlide :: B.Board -> B.Position -> Int -> B.Direction -> [Int] -> Either InvalidUndo B.Board
+undoSlide = undefined 
