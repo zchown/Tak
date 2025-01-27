@@ -3,36 +3,44 @@ module Moves where
 import qualified Board as B
 import Data.Matrix
 
-checkMove :: B.Board -> B.Move -> Bool
+newtype InvalidMove = InvalidMove String
+  deriving (Show, Eq)
+
+-------------------------
+-- | Move Validation | --
+-------------------------
+checkMove :: B.Board -> B.Move -> Either InvalidMove Bool
 checkMove b (B.PlaceFlat (pos, _)) = checkPlace b pos 
 checkMove b (B.PlaceStanding (pos, _)) = checkPlace b pos 
 checkMove b (B.PlaceCap (pos, _)) = checkPlace b pos 
 checkMove b s = checkSlide b s
 
-checkPlace :: B.Board -> B.Position -> Bool
+checkPlace :: B.Board -> B.Position -> Either InvalidMove Bool
 checkPlace b (B.Position row col)
-  | row < 1 || col < 1 = False
-  | row > nrows b || col > ncols b = False
-  | otherwise = null $ getElem row col b
+  | row < 1 || col < 1 = Left $ InvalidMove "Invalid Position (1, 1) or greater"
+  | row > nrows b || col > ncols b = Left $ InvalidMove "Invalid Position (nrows, ncols) or less"
+  | otherwise = Right $ null $ getElem row col b
 
-checkSlide :: B.Board -> B.Move -> Bool
-checkSlide _ (B.PlaceFlat _ ) = False
-checkSlide _ (B.PlaceStanding  _) = False
-checkSlide _ (B.PlaceCap _ ) = False
+checkSlide :: B.Board -> B.Move -> Either InvalidMove Bool
+checkSlide _ (B.PlaceFlat _ ) = Left $ InvalidMove "Can't Slide a PlaceFlat"
+checkSlide _ (B.PlaceStanding  _) = Left $ InvalidMove "Can't Slide a PlaceStanding"
+checkSlide _ (B.PlaceCap _ ) = Left $ InvalidMove "Can't Slide a PlaceCap"
 checkSlide b (B.Slide (pos@(B.Position row col), count, dir, drops, color, crush))
-  | null drops = False
-  | td /= count || count > ncols b = False
-  | any (< 1) drops = False
-  | count < 1 || count > length (getElem row col b) = False
-  | dir == B.Up && row - dl < 1 = False
-  | dir == B.Down && row + dl > nrows b = False
-  | dir == B.Left && col - dl < 1 = False
-  | dir == B.Right && col + dl > ncols b = False
-  | color /= B.pc (head $ getElem row col b) = False
-  | checkForCap b pos dir dl = False
-  | checkForStanding b pos dir dl lps = False
-  | crush && checkForCrush b pos dir ld lps = False
-  | otherwise = True
+  | row < 1 || col < 1 = Left $ InvalidMove "Invalid Position (1, 1) or greater"
+  | row > nrows b || col > ncols b = Left $ InvalidMove "Invalid Position (nrows, ncols) or less"
+  | null drops = Left $ InvalidMove "No Drops"
+  | td /= count || count > ncols b = Left $ InvalidMove "Invalid Count or Drops"
+  | any (< 1) drops = Left $ InvalidMove "Invalid Drop"
+  | count < 1 || count > length (getElem row col b) = Left $ InvalidMove "Invalid Count For Stack"
+  | dir == B.Up && row - dl < 1 = Left $ InvalidMove "Not Enough Rows Up"
+  | dir == B.Down && row + dl > nrows b = Left $ InvalidMove "Not Enough Rows Down"
+  | dir == B.Left && col - dl < 1 = Left $ InvalidMove "Not Enough Columns Left"
+  | dir == B.Right && col + dl > ncols b = Left $ InvalidMove "Not Enough Columns Right"
+  | color /= B.pc (head $ getElem row col b) = Left $ InvalidMove "Color Does Not Control Stack"
+  | checkForCap b pos dir dl = Left $ InvalidMove "Cap In The Way"
+  | checkForStanding b pos dir dl lps = Left $ InvalidMove "Standing In The Way"
+  | crush && checkForCrush b pos dir ld lps = Left $ InvalidMove "Crush not set correctly"
+  | otherwise = Right True
   where
     dl = length drops
     td = sum drops
@@ -121,3 +129,8 @@ topStanding b (B.Position row col)
 lastCap :: [B.Piece] -> Bool
 lastCap [] = False
 lastCap ps = B.ps (last ps) == B.Cap
+
+----------------------------
+-- | Make and Undo Move | --
+----------------------------
+
