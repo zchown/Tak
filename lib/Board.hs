@@ -234,9 +234,6 @@ showSquare stack =
       stackCounter = length stack - 1
    in (letter, Just $ letter ++ ": " ++ stackString stack)
 
-stacksWithKeys :: [(String, Stack)]
-stacksWithKeys = []
-
 boardString :: Board -> String
 boardString b =
   unlines $

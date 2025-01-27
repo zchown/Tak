@@ -130,7 +130,7 @@ makeMove b m@(B.Slide (B.Position row col, count, dir, drops, _, crush)) =
     Left e -> Left e
     Right _ -> Right $ makeSlide b' dir pos' ps drops crush
   where
-    ps = take count $ getElem row col b
+    ps = reverse $ take count $ getElem row col b
     s' = drop count $ getElem row col b
     b' = setElem s' (row, col) b
     pos' = case dir of
@@ -142,20 +142,26 @@ makeMove b m@(B.Slide (B.Position row col, count, dir, drops, _, crush)) =
 
 makeSlide :: B.Board -> B.Direction -> B.Position -> [B.Piece] -> [Int] -> B.Crush -> B.Board
 makeSlide b _ _ _ [] _ = b
-makeSlide b _ pos@(B.Position row col) [x] _ True =
+makeSlide b _ (B.Position row col) [x] _ True =
   let s = getElem row col b
       s' = drop 1 s
       h' = case B.pc (head s) of
           B.Black -> B.Piece B.Black B.Flat
           B.White -> B.Piece B.White B.Flat
   in setElem ( x : h' : s') (row, col) b
-
-  -- where
-  --   nextPos = case dir of
-  --     B.Up -> B.Position (row - 1) col
-  --     B.Down -> B.Position (row + 1) col
-  --     B.Left -> B.Position row (col - 1)
-  --     B.Right -> B.Position row (col + 1)
+makeSlide b dir (B.Position row col) xs (d:ds) crush = 
+  let s = getElem row col b
+      dp = reverse $ take d xs
+      s' = dp ++ s
+      b' = setElem s' (row, col) b
+      xs' = drop d xs
+  in makeSlide b' dir nextPos xs' ds crush
+  where
+    nextPos = case dir of
+      B.Up -> B.Position (row - 1) col
+      B.Down -> B.Position (row + 1) col
+      B.Left -> B.Position row (col - 1)
+      B.Right -> B.Position row (col + 1)
 
 
 data InvalidUndo = InvalidPlaceUndo | InvalidSlideUndo | InvalidUndoPosition
