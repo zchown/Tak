@@ -17,7 +17,7 @@ data PTN = PTN
   , ptnResult :: String
   , size :: Int
   , moves :: B.History
-  } deriving (Show)
+  } deriving (Show, Eq)
 
 data PTNParseError
   = PTNParseError
@@ -58,30 +58,45 @@ parsePTN input = do
       }
 
 parseMoves :: [Text] -> Either PTNParseError B.History
-parseMoves moves = traverse parseMove (filter (not . T.null) moves)
+parseMoves moves = do
+  movePairs <- traverse parseMovePair (filter checkValid moves)
+  return (concat movePairs)
+  where
+    checkValid :: Text -> Bool
+    checkValid x
+      | T.null x = False
+      | T.isPrefixOf (T.pack "[") x = False
+      | otherwise = True
 
-parseMove :: Text -> Either PTNParseError B.Move
-parseMove move =
-  case T.unpack move of
+parseMovePair :: Text -> Either PTNParseError [B.Move]
+parseMovePair movePair = do
+  let moveStr = T.unpack movePair
+  case words moveStr of
+    [_, whiteMove, blackMove] -> do
+      whiteMove' <- parseSingleMove whiteMove B.White
+      blackMove' <- parseSingleMove blackMove B.Black
+      return [whiteMove', blackMove']
+    _ -> Left PTNMoveError
+
+parseSingleMove :: String -> B.Color -> Either PTNParseError B.Move
+parseSingleMove moveStr color =
+  case moveStr of
     [col, row]
       | isLetter col && isDigit row ->
         Right $
-        B.PlaceFlat (B.Position (digitToInt row) (B.letterToCol col), B.White)
+        B.PlaceFlat (B.Position (digitToInt row) (B.letterToCol col), color)
     ['S', col, row]
       | isLetter col && isDigit row ->
         Right $
-        B.PlaceStanding
-          (B.Position (digitToInt row) (B.letterToCol col), B.White)
+        B.PlaceStanding (B.Position (digitToInt row) (B.letterToCol col), color)
     ['C', col, row]
       | isLetter col && isDigit row ->
         Right $
-        B.PlaceCap (B.Position (digitToInt row) (B.letterToCol col), B.White)
-    (col:row:rest)
-      | isLetter col && isDigit row -> parseSlideMove (col : row : rest)
-    _ -> Left PTNParseError
+        B.PlaceCap (B.Position (digitToInt row) (B.letterToCol col), color)
+    _ -> parseSlideMove moveStr color
 
-parseSlideMove :: String -> Either PTNParseError B.Move
-parseSlideMove str =
+parseSlideMove :: String -> B.Color -> Either PTNParseError B.Move
+parseSlideMove str color =
   case str of
     [countChar, col, row, dir] ->
       let pos = B.Position (digitToInt row) (B.letterToCol col)
@@ -94,7 +109,7 @@ parseSlideMove str =
               _ -> Left PTNDirectionError
           count = digitToInt countChar
        in case dir' of
-            Right d -> Right $ B.Slide (pos, count, d, [], B.White, False)
+            Right d -> Right $ B.Slide (pos, count, d, [], color, False)
             Left err -> Left err
     countChar:col:row:dir:dropsStr ->
       let pos = B.Position (digitToInt row) (B.letterToCol col)
@@ -108,7 +123,7 @@ parseSlideMove str =
           count = digitToInt countChar
           drops = map digitToInt dropsStr
        in case dir' of
-            Right d -> Right $ B.Slide (pos, count, d, drops, B.White, False)
+            Right d -> Right $ B.Slide (pos, count, d, drops, color, False)
             Left err -> Left err
     [col, row, dir] ->
       let pos = B.Position (digitToInt row) (B.letterToCol col)
@@ -120,12 +135,12 @@ parseSlideMove str =
               '<' -> Right B.Left
               _ -> Left PTNDirectionError
        in case dir' of
-            Right d -> Right $ B.Slide (pos, 1, d, [], B.White, False)
+            Right d -> Right $ B.Slide (pos, 1, d, [], color, False)
             Left err -> Left err
     _ -> Left PTNSlideError
 
 extractField :: String -> [Text] -> Either PTNParseError String
 extractField fieldName lines =
   case find (T.isPrefixOf (T.pack ("[" ++ fieldName ++ ": "))) lines of
-    Just line -> Right $ T.unpack $ T.drop (length fieldName + 4) line
+    Just line -> Right $ T.unpack $ T.drop (length fieldName + 1) line
     Nothing -> Left PTNParseError
