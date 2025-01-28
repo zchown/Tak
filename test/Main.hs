@@ -11,6 +11,7 @@ import System.Directory (doesFileExist)
 import System.Environment (lookupEnv, setEnv)
 
 import TestBoard (runBoardTests)
+import TestMoves (runMoveTests)
 import TestPTN (runPTNTests)
 import TestTPS (runTPSTests)
 
@@ -39,6 +40,7 @@ data TestConfig = TestConfig
   { runBoard :: Bool
   , runTPS :: Bool
   , runPTN :: Bool
+  , runMoves :: Bool
   }
 
 getTestConfig :: IO TestConfig
@@ -46,7 +48,10 @@ getTestConfig = do
   rBoard <- lookupEnvBool "RUN_BOARD" True
   rTPS <- lookupEnvBool "RUN_TPS" True
   tPTN <- lookupEnvBool "RUN_PTN" True
-  return $ TestConfig {runBoard = rBoard, runTPS = rTPS, runPTN = tPTN}
+  rMoves <- lookupEnvBool "RUN_MOVES" True
+  return $
+    TestConfig
+      {runBoard = rBoard, runTPS = rTPS, runPTN = tPTN, runMoves = rMoves}
   where
     lookupEnvBool :: String -> Bool -> IO Bool
     lookupEnvBool name defaultValue = do
@@ -61,6 +66,7 @@ runAllTests config = do
   when (runBoard config) $ putStrLn "Running board tests ..." >> runBoardTests
   when (runTPS config) $ putStrLn "Running TPS tests..." >> runTPSTests
   when (runPTN config) $ putStrLn "Running PTN tests..." >> runPTNTests
+  when (runMoves config) $ putStrLn "Running move tests..." >> runMoveTests
 
 main :: IO ()
 main = do

@@ -1,6 +1,7 @@
 module Moves where
 
 import qualified Board as B
+import Data.List (nub)
 import Data.Matrix
 
 newtype InvalidMove =
@@ -158,6 +159,7 @@ data InvalidUndo
   = InvalidPlaceUndo
   | InvalidSlideUndo
   | InvalidUndoPosition
+  deriving (Show, Eq)
 
 undoMove :: B.Board -> B.Move -> Either InvalidUndo B.Board
 undoMove b (B.PlaceFlat (pos, _)) = undoPlaceMove b pos
@@ -210,3 +212,158 @@ undoSlide b (B.Position row col) dir (d:ds) xs
             b' = setElem remaining (row, col) b
             (nextPos, _, _) = B.getNextPos (B.Position row col) dir
         undoSlide b' nextPos dir ds newXs
+
+-------------------------
+-- | Move Generation | --
+-------------------------
+generateAllMoves :: B.GameState -> [B.Move]
+generateAllMoves gs
+  | B.moveNumber gs == 1 = firstMovePlacement gs
+  | otherwise = nub $ placementMoves gs ++ slideMoves (B.board gs) (B.turn gs)
+
+-- First move must place opponent's flat stone on any empty square
+firstMovePlacement :: B.GameState -> [B.Move]
+firstMovePlacement gs =
+  [B.PlaceFlat (pos, oppositeColor) | pos <- emptyPositions (B.board gs)]
+  where
+    oppositeColor =
+      if B.turn gs == B.White
+        then B.Black
+        else B.White
+
+placementMoves :: B.GameState -> [B.Move]
+placementMoves gs =
+  let reserves =
+        if B.turn gs == B.White
+          then B.player1 gs
+          else B.player2 gs
+      emptyPos = emptyPositions (B.board gs)
+   in concat
+        [ [ B.PlaceFlat (pos, B.turn gs)
+          | B.stones reserves > 0
+          , pos <- emptyPos
+          ]
+        , [ B.PlaceStanding (pos, B.turn gs)
+          | B.stones reserves > 0
+          , pos <- emptyPos
+          ]
+        , [B.PlaceCap (pos, B.turn gs) | B.caps reserves > 0, pos <- emptyPos]
+        ]
+
+slideMoves :: B.Board -> B.Color -> [B.Move]
+slideMoves board color =
+  concatMap
+    (generateSlidesForPosition board color)
+    (controlledPositions board color)
+
+emptyPositions :: B.Board -> [B.Position]
+emptyPositions board =
+  [ B.Position row col
+  | row <- [1 .. nrows board]
+  , col <- [1 .. ncols board]
+  , null (getElem row col board)
+  ]
+
+controlledPositions :: B.Board -> B.Color -> [B.Position]
+controlledPositions board color =
+  [ B.Position row col
+  | row <- [1 .. nrows board]
+  , col <- [1 .. ncols board]
+  , not (null (getElem row col board))
+  , B.pc (head (getElem row col board)) == color
+  ]
+
+generateSlidesForPosition :: B.Board -> B.Color -> B.Position -> [B.Move]
+generateSlidesForPosition board color pos =
+  concatMap
+    (generateSlidesInDirection board color pos)
+    [B.Up, B.Down, B.Left, B.Right]
+
+generateSlidesInDirection ::
+     B.Board -> B.Color -> B.Position -> B.Direction -> [B.Move]
+generateSlidesInDirection board color pos@(B.Position row col) dir =
+  [ B.Slide (pos, count, dir, drops, color, canCrush board pos dir drops)
+  | count <- [1 .. maxCount]
+  , drops <- validDrops count
+  , isValidSlide board pos count dir drops color (canCrush board pos dir drops)
+  ]
+  where
+    maxCount = length (getElem row col board)
+    steps = numSteps dir pos board
+    validDrops count =
+      [ ds
+      | ds <- dropSequences steps count
+      , sum ds == count
+      , all (> 0) ds
+      , isValidDropSequence ds count
+      ]
+
+isValidDropSequence :: [Int] -> Int -> Bool
+isValidDropSequence drops initialCount =
+  let remainingAfterEachDrop = scanl (-) initialCount drops
+   in all (>= 0) remainingAfterEachDrop
+
+dropSequences :: Int -> Int -> [[Int]]
+dropSequences steps count = go steps count []
+  where
+    go :: Int -> Int -> [Int] -> [[Int]]
+    go 0 0 acc = [reverse acc]
+    go 0 _ _ = []
+    go stepsLeft remaining acc
+      | remaining < 0 = []
+      | stepsLeft == 1 =
+        if remaining > 0
+          then [reverse (remaining : acc)]
+          else []
+      | otherwise =
+        concatMap
+          (\i -> go (stepsLeft - 1) (remaining - i) (i : acc))
+          [0 .. remaining]
+
+canCrush :: B.Board -> B.Position -> B.Direction -> [Int] -> Bool
+canCrush board startPos dir drops =
+  let movingStack = getElem row col board
+      endPos = getFinalPosition startPos dir (length drops)
+      targetSquare =
+        case endPos of
+          B.Position r c
+            | r > 0 && r <= nrows board && c > 0 && c <= ncols board ->
+              getElem r c board
+          _ -> []
+   in case (movingStack, targetSquare, drops) of
+        (stack, target, ds)
+          | not (null stack) &&
+              B.ps (head stack) == B.Cap &&
+              last ds == 1 &&
+              not (null target) && B.ps (head target) == B.Standing -> True
+        _ -> False
+  where
+    (B.Position row col) = startPos
+
+getFinalPosition :: B.Position -> B.Direction -> Int -> B.Position
+getFinalPosition (B.Position r c) dir steps =
+  case dir of
+    B.Up -> B.Position (r - steps) c
+    B.Down -> B.Position (r + steps) c
+    B.Left -> B.Position r (c - steps)
+    B.Right -> B.Position r (c + steps)
+
+numSteps :: B.Direction -> B.Position -> B.Board -> Int
+numSteps B.Up (B.Position row _) _ = row - 1
+numSteps B.Down (B.Position row _) b = nrows b - row
+numSteps B.Left (B.Position _ col) _ = col - 1
+numSteps B.Right (B.Position _ col) b = ncols b - col
+
+isValidSlide ::
+     B.Board
+  -> B.Position
+  -> Int
+  -> B.Direction
+  -> [Int]
+  -> B.Color
+  -> Bool
+  -> Bool
+isValidSlide board pos count dir drops color crush =
+  case checkSlide board (B.Slide (pos, count, dir, drops, color, crush)) of
+    Right _ -> True
+    Left _ -> False
