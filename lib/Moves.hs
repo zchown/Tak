@@ -157,9 +157,9 @@ makeSlide b dir (B.Position row col) xs (d:ds) crush =
     (nextPos, _, _) = B.getNextPos (B.Position row col) dir
 
 data InvalidUndo
-  = InvalidPlaceUndo
-  | InvalidSlideUndo
-  | InvalidUndoPosition
+  = InvalidPlaceUndo String
+  | InvalidSlideUndo String
+  | InvalidUndoPosition String
   deriving (Show, Eq)
 
 undoMove :: B.Board -> B.Move -> Either InvalidUndo B.Board
@@ -167,9 +167,9 @@ undoMove b (B.PlaceFlat (pos, _)) = undoPlaceMove b pos
 undoMove b (B.PlaceStanding (pos, _)) = undoPlaceMove b pos
 undoMove b (B.PlaceCap (pos, _)) = undoPlaceMove b pos
 undoMove b (B.Slide (pos@(B.Position row col), count, dir, drops, _, _))
-  | sum drops /= count = Left InvalidSlideUndo
-  | count < 1 || count > ncols b = Left InvalidSlideUndo
-  | checkLength pos count dir = Left InvalidSlideUndo
+  | sum drops /= count = Left $ InvalidSlideUndo "Drop Count Mismatch"
+  | count < 1 || count > ncols b = Left $ InvalidSlideUndo "Invalid Count"
+  | not $ checkLength pos count dir = Left $ InvalidSlideUndo "Invalid Length"
   | otherwise = undoSlide b newPos dir drops []
   where
     checkLength :: B.Position -> Int -> B.Direction -> Bool
@@ -187,9 +187,9 @@ undoMove b (B.Slide (pos@(B.Position row col), count, dir, drops, _, _))
 undoPlaceMove :: B.Board -> B.Position -> Either InvalidUndo B.Board
 undoPlaceMove b (B.Position row col)
   | row < 1 || col < 1 || row > nrows b || col > ncols b =
-    Left InvalidUndoPosition
-  | null (getElem row col b) = Left InvalidPlaceUndo
-  | length (getElem row col b) > 1 = Left InvalidPlaceUndo
+    Left $ InvalidUndoPosition "Invalid Position"
+  | null (getElem row col b) = Left $ InvalidPlaceUndo "Square Empty"
+  | length (getElem row col b) > 1 = Left $ InvalidPlaceUndo "Stack Too Big"
   | otherwise = Right $ setElem [] (row, col) b
 
 undoSlide ::
@@ -202,16 +202,17 @@ undoSlide ::
 undoSlide b (B.Position row col) _ [] xs =
   Right $ setElem (reverse xs) (row, col) b
 undoSlide b (B.Position row col) dir (d:ds) xs
-  | d < 1 = Left InvalidSlideUndo
+  | d < 1 = Left $ InvalidSlideUndo "Invalid Drop"
   | otherwise = do
     let s = getElem row col b
     if length s < d
-      then Left InvalidSlideUndo
+      then Left $ InvalidSlideUndo "Not Enough Pieces"
       else do
         let (piecesToMove, remaining) = splitAt d s
             newXs = piecesToMove ++ xs
             b' = setElem remaining (row, col) b
-            (nextPos, _, _) = B.getNextPos (B.Position row col) dir
+            (nextPos, _, _) =
+              B.getNextPos (B.Position row col) $ B.getInverseDir dir
         undoSlide b' nextPos dir ds newXs
 
 -------------------------
@@ -292,34 +293,22 @@ generateSlidesInDirection board color pos@(B.Position row col) dir =
     maxCount = length (getElem row col board)
     steps = numSteps dir pos board
     validDrops count =
-      [ ds
-      | ds <- dropSequences steps count
-      , sum ds == count
-      , all (> 0) ds
-      , isValidDropSequence ds count
-      ]
-
-isValidDropSequence :: [Int] -> Int -> Bool
-isValidDropSequence drops initialCount =
-  let remainingAfterEachDrop = scanl (-) initialCount drops
-   in all (>= 0) remainingAfterEachDrop
+      [ds | ds <- dropSequences steps count, sum ds == count, all (> 0) ds]
 
 dropSequences :: Int -> Int -> [[Int]]
 dropSequences steps count = go steps count []
   where
     go :: Int -> Int -> [Int] -> [[Int]]
-    go 0 0 acc = [reverse acc]
+    go _ 0 acc = [acc]
     go 0 _ _ = []
-    go stepsLeft remaining acc
-      | remaining < 0 = []
-      | stepsLeft == 1 =
-        if remaining > 0
-          then [reverse (remaining : acc)]
-          else []
+    go sl remaining acc
+      | remaining < 1 = []
+      | sl < 1 = []
       | otherwise =
-        concatMap
-          (\i -> go (stepsLeft - 1) (remaining - i) (i : acc))
-          [0 .. remaining]
+        [ res
+        | i <- [1 .. remaining]
+        , res <- go (sl - 1) (remaining - i) (i : acc)
+        ]
 
 canCrush :: B.Board -> B.Position -> B.Direction -> [Int] -> Bool
 canCrush board startPos dir drops =
