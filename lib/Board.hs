@@ -210,6 +210,20 @@ placeStanding b (Position row col) c = setElem [Piece c Standing] (row, col) b
 placeCap :: Board -> Position -> Color -> Board
 placeCap b (Position row col) c = setElem [Piece c Cap] (row, col) b
 
+getInverseDir :: Direction -> Direction
+getInverseDir Up = Down
+getInverseDir Down = Up
+getInverseDir Board.Left = Board.Right
+getInverseDir Board.Right = Board.Left
+
+getNextPos :: Position -> Direction -> (Position, Int, Int)
+getNextPos (Position row col) Up = (Position (row - 1) col, row - 1, col)
+getNextPos (Position row col) Down = (Position (row + 1) col, row + 1, col)
+getNextPos (Position row col) Board.Left =
+  (Position row (col - 1), row, col - 1)
+getNextPos (Position row col) Board.Right =
+  (Position row (col + 1), row, col + 1)
+
 -------------------------
 -- | Print Functions | --
 -------------------------
