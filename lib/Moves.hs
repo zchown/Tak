@@ -22,7 +22,8 @@ checkPlace b (B.Position row col)
   | row < 1 || col < 1 = Left $ InvalidMove "Invalid Position (1, 1) or greater"
   | row > nrows b || col > ncols b =
     Left $ InvalidMove "Invalid Position (nrows, ncols) or less"
-  | otherwise = Right $ null $ getElem row col b
+  | not $ null $ getElem row col b = Left $ InvalidMove "Square Occupied"
+  | otherwise = Right True
 
 checkSlide :: B.Board -> B.Move -> Either InvalidMove Bool
 checkSlide _ (B.PlaceFlat _) = Left $ InvalidMove "Can't Slide a PlaceFlat"

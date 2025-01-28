@@ -20,7 +20,7 @@ runMoveTests =
         let board = placeFlat (createEmptyBoard 5) (Position 3 3) White
             move = PlaceFlat (Position 3 3, Black)
         checkMove board move `shouldBe`
-          Prelude.Left (InvalidMove "Invalid Position (nrows, ncols) or less")
+          Prelude.Left (InvalidMove "Square Occupied")
       it "should allow sliding a stack within the board boundaries" $ do
         let board = placeFlat (createEmptyBoard 5) (Position 3 3) White
             move = Slide (Position 3 3, 1, Up, [1], White, False)
