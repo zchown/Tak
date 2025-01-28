@@ -163,8 +163,23 @@ undoMove :: B.Board -> B.Move -> Either InvalidUndo B.Board
 undoMove b (B.PlaceFlat (pos, _)) = undoPlaceMove b pos
 undoMove b (B.PlaceStanding (pos, _)) = undoPlaceMove b pos
 undoMove b (B.PlaceCap (pos, _)) = undoPlaceMove b pos
-undoMove b (B.Slide (pos, count, dir, drops, _, _)) =
-  undoSlide b pos count dir drops
+undoMove b (B.Slide (pos@(B.Position row col), count, dir, drops, _, _))
+  | sum drops /= count = Left InvalidSlideUndo
+  | count < 1 || count > ncols b = Left InvalidSlideUndo
+  | checkLength pos count dir = Left InvalidSlideUndo
+  | otherwise = undoSlide b newPos dir drops []
+  where
+    checkLength :: B.Position -> Int -> B.Direction -> Bool
+    checkLength (B.Position r _) n B.Up = r - n >= 1
+    checkLength (B.Position r _) n B.Down = r + n <= nrows b
+    checkLength (B.Position _ c) n B.Left = c - n >= 1
+    checkLength (B.Position _ c) n B.Right = c + n <= ncols b
+    newPos =
+      case dir of
+        B.Up -> B.Position (row - length drops) col
+        B.Down -> B.Position (row + length drops) col
+        B.Left -> B.Position row (col - length drops)
+        B.Right -> B.Position row (col + length drops)
 
 undoPlaceMove :: B.Board -> B.Position -> Either InvalidUndo B.Board
 undoPlaceMove b (B.Position row col)
@@ -177,8 +192,21 @@ undoPlaceMove b (B.Position row col)
 undoSlide ::
      B.Board
   -> B.Position
-  -> Int
   -> B.Direction
   -> [Int]
+  -> [B.Piece]
   -> Either InvalidUndo B.Board
-undoSlide = undefined
+undoSlide b (B.Position row col) _ [] xs =
+  Right $ setElem (reverse xs) (row, col) b
+undoSlide b (B.Position row col) dir (d:ds) xs
+  | d < 1 = Left InvalidSlideUndo
+  | otherwise = do
+    let s = getElem row col b
+    if length s < d
+      then Left InvalidSlideUndo
+      else do
+        let (piecesToMove, remaining) = splitAt d s
+            newXs = piecesToMove ++ xs
+            b' = setElem remaining (row, col) b
+            (nextPos, _, _) = B.getNextPos (B.Position row col) dir
+        undoSlide b' nextPos dir ds newXs
