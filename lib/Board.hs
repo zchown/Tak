@@ -99,9 +99,9 @@ checkFullBoard b = go 1 1 (0, 0)
       | otherwise = go (x + 1) y $ addCount c
       where
         addCount :: (Int, Int) -> (Int, Int)
-        addCount (wc, bc)
-          | pc (head (getElem x y b)) == White = (wc + 1, bc)
-          | pc (head (getElem x y b)) == Black = (wc, bc + 1)
+        addCount (wc', bc')
+          | pc (head (getElem x y b)) == White = (wc' + 1, bc')
+          | pc (head (getElem x y b)) == Black = (wc', bc' + 1)
           | otherwise = (wc, bc)
 
 checkReservesDraw :: Reserves -> Reserves -> Maybe Result

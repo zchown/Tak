@@ -4,7 +4,7 @@ module TestPTN where
 
 import Board as B
 import Control.Monad (when)
-import Data.Either (fromRight, isRight)
+import Data.Either (isRight)
 import Data.Text (pack)
 import PTN
 import Test.Hspec
@@ -58,11 +58,11 @@ runPTNTests =
                \[Size: 6]\n\
                \1. a1 b1\n\
                \2. c1 d1\n"
-          let result = parsePTN (pack ptnText)
-          result `shouldBe` Prelude.Left (PTNMoveError)
+          let result' = parsePTN (pack ptnText)
+          result' `shouldBe` Prelude.Left PTNMoveError
           -- isRight result `shouldBe` True
-          when (isRight result) $ do
-            let Prelude.Right ptn = result
+          when (isRight result') $ do
+            let Prelude.Right ptn = result'
             site ptn `shouldBe` "Test"
             event ptn `shouldBe` "Test Event"
             p1 ptn `shouldBe` "Alice"

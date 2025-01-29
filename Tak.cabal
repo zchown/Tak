@@ -24,8 +24,6 @@ common warnings
                  -Wredundant-constraints
                  -Wno-orphans 
                  -threaded
-                 -rtsopts
-                 -with-rtsopts=-M4G
 
 library
     import:           warnings
@@ -62,6 +60,7 @@ test-suite Tak-test
     other-modules:    TestBoard
                       TestTPS
                       TestPTN
+                      TestMoves
     -- other-extensions:
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test

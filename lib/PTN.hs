@@ -32,34 +32,34 @@ data PTNParseError
 
 parsePTN :: Text -> Either PTNParseError PTN
 parsePTN input = do
-  let lines = T.lines input
-  site <- extractField "Site" lines
-  event <- extractField "Event" lines
-  date <- extractField "Date" lines
-  time <- extractField "Time" lines
-  p1 <- extractField "Player1" lines
-  p2 <- extractField "Player2" lines
-  clock <- extractField "Clock" lines
-  ptnResult <- extractField "Result" lines
-  sizeStr <- extractField "Size" lines
-  moves <- parseMoves (map (T.dropWhile (/= ' ') . T.strip) lines)
+  let lines' = T.lines input
+  site' <- extractField "Site" lines'
+  event' <- extractField "Event" lines'
+  date' <- extractField "Date" lines'
+  time' <- extractField "Time" lines'
+  p1' <- extractField "Player1" lines'
+  p2' <- extractField "Player2" lines'
+  clock' <- extractField "Clock" lines'
+  ptnResult' <- extractField "Result" lines'
+  sizeStr' <- extractField "Size" lines'
+  moves' <- parseMoves (map (T.dropWhile (/= ' ') . T.strip) lines')
   return
     PTN
-      { site = site
-      , event = event
-      , date = date
-      , time = time
-      , p1 = p1
-      , p2 = p2
-      , clock = clock
-      , ptnResult = ptnResult
-      , size = read sizeStr :: Int
-      , moves = moves
+      { site = site'
+      , event = event'
+      , date = date'
+      , time = time'
+      , p1 = p1'
+      , p2 = p2'
+      , clock = clock'
+      , ptnResult = ptnResult'
+      , size = read sizeStr' :: Int
+      , moves = moves'
       }
 
 parseMoves :: [Text] -> Either PTNParseError B.History
-parseMoves moves = do
-  movePairs <- traverse parseMovePair (filter checkValid moves)
+parseMoves ms = do
+  movePairs <- traverse parseMovePair (filter checkValid ms)
   return (concat movePairs)
   where
     checkValid :: Text -> Bool
@@ -140,7 +140,7 @@ parseSlideMove str color =
     _ -> Left PTNSlideError
 
 extractField :: String -> [Text] -> Either PTNParseError String
-extractField fieldName lines =
-  case find (T.isPrefixOf (T.pack ("[" ++ fieldName ++ ": "))) lines of
+extractField fieldName ls =
+  case find (T.isPrefixOf (T.pack ("[" ++ fieldName ++ ": "))) ls of
     Just line -> Right $ T.unpack $ T.drop (length fieldName + 1) line
     Nothing -> Left PTNParseError
