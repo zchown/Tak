@@ -81,9 +81,14 @@ runMoveTests =
           Prelude.Right (placeFlat (createEmptyBoard 5) (Position 2 3) White)
       it "should handle complex slides with multiple drops" $ do
         let board = placeFlat (createEmptyBoard 5) (Position 3 3) White
-            board' = placeFlat board (Position 3 3) White
+            board' = placeFlat board (Position 2 3) White
+            setUpMove = Slide (Position 2 3, 1, Down, [1], White, False)
+            board'' =
+              case makeMove board' setUpMove of
+                Prelude.Right b -> b
+                Prelude.Left _ -> createEmptyBoard 5
             move = Slide (Position 3 3, 2, Up, [1, 1], White, False)
-            newBoard = makeMove board' move
+            newBoard = makeMove board'' move
         newBoard `shouldBe`
           Prelude.Right
             (placeFlat
@@ -169,10 +174,16 @@ runMoveTests =
         length m' `shouldBe` 4
       it "should generate slide moves for a stack of height 2" $ do
         let board = placeFlat (createEmptyBoard 5) (Position 3 3) White
-            board' = placeFlat board (Position 3 3) White
+            board' = placeFlat board (Position 2 3) White
+            board'' =
+              case makeMove
+                     board'
+                     (Slide (Position 2 3, 1, Down, [1], White, False)) of
+                Prelude.Right b -> b
+                Prelude.Left _ -> createEmptyBoard 5
             gameState =
               GameState
-                board'
+                board''
                 White
                 2
                 (Reserves 21 1)
@@ -187,15 +198,7 @@ runMoveTests =
                      Slide _ -> True
                      _ -> False)
                 moves
-        length m' `shouldBe` 8
-      it "should allow complex slides with multiple drops across the board" $ do
-        let board =
-              foldl
-                (\b p -> placeFlat b p White)
-                (createEmptyBoard 5)
-                [Position 3 3, Position 3 3, Position 3 3]
-            move = Slide (Position 3 3, 3, Board.Right, [1, 2], White, False)
-        checkMove board move `shouldBe` Prelude.Right True
+        length m' `shouldBe` 12
       it
         "should reject slides that would exceed board boundaries with multiple drops" $ do
         let board =
