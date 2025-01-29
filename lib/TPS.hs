@@ -25,7 +25,9 @@ parseTPS t =
     -- Remove "[TPS ]" prefix and suffix if present
     -- also adds a 1 to single x's to make parsing easier
     cleanedT =
-      T.strip $ T.replace "[TPS " "" $ T.replace "]" "" $ T.replace "x," "x1," t
+      T.strip $
+      T.replace "[TPS " "" $
+      T.replace "]" "" $ T.replace "x," "x1," $ T.replace "x/" "x1/" t
     [boardStr, turnStr, moveNumberStr] = T.splitOn " " cleanedT
     n = length $ T.splitOn "/" boardStr
     b = parseBoard boardStr n
