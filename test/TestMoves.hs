@@ -109,9 +109,10 @@ runMoveTests =
           Prelude.Left (InvalidMove "Standing In The Way")
       it "should allow slides that crush standing stones with a capstone" $ do
         let b = board $ parseTPS $ T.pack "[TPS x5/x5/x2,111C,x,2S/x5/x5 1 2]"
-        let move = Slide (Position 3 3, 3, Board.Right, [2, 1], White, False)
+        let move = Slide (Position 3 3, 3, Board.Right, [2, 1], White, True)
         getElem 3 3 b `shouldBe`
           [Piece White Cap, Piece White Flat, Piece White Flat]
+        getElem 3 5 b `shouldBe` [Piece Black Standing]
         checkMove b move `shouldBe` Prelude.Right True
       it "should not allow crush with flat and cap stone" $ do
         let b = board $ parseTPS $ T.pack "[TPS x5/x5/x2,111C,x,2S/x5/x5 1 2]"
@@ -144,13 +145,25 @@ runMoveTests =
             undoneBoard = undoMove newBoard move
         undoneBoard `shouldBe` Prelude.Right board
       it "should reject undoing a slide with invalid drop counts" $ do
-        let board = placeFlat (createEmptyBoard 5) (Position 3 3) White
-            move = Slide (Position 3 3, 2, Up, [1, 1], White, False)
-            newBoard = fromRight board (makeMove board move)
-            invalidMove = Slide (Position 3 3, 2, Up, [2], White, False)
-            undoneBoard = undoMove newBoard invalidMove
-        undoneBoard `shouldBe`
-          Prelude.Left (InvalidSlideUndo "Drop Count Mismatch")
+        let b = board $ parseTPS $ T.pack "[TPS x5/x5/x4,111/x5/x5 2 1]"
+            move = Slide (Position 3 4, 4, Board.Left, [4], White, False)
+        undoMove b move `shouldBe`
+          Prelude.Left (InvalidSlideUndo "Invalid Count or Drops")
+      it "should reject undoing a slide with invalid drop counts" $ do
+        let b = board $ parseTPS $ T.pack "[TPS x5/x5/x4,111/x5/x5 2 1]"
+            move = Slide (Position 3 4, 4, Board.Left, [1, 2], White, False)
+        undoMove b move `shouldBe`
+          Prelude.Left (InvalidSlideUndo "Invalid Count or Drops")
+      it "should reject undoing a slide move with impossible drops" $ do
+        let b = board $ parseTPS $ T.pack "[TPS x5/x5/x4,111/x5/x5 2 1]"
+            move = Slide (Position 3 4, 3, Board.Left, [1, 2], White, False)
+        undoMove b move `shouldBe`
+          Prelude.Left (InvalidSlideUndo "Invalid Count or Drops")
+      it "should reject undoing a slide with beyond limit drops" $ do
+        let b = board $ parseTPS $ T.pack "[TPS x5/x5/x4,1111111/x5/x5 2 1]"
+            move = Slide (Position 3 4, 6, Board.Left, [6], White, False)
+        undoMove b move `shouldBe`
+          Prelude.Left (InvalidSlideUndo "Invalid Count or Drops")
       it "should reject undoing a slide with insufficient pieces" $ do
         let board = placeFlat (createEmptyBoard 5) (Position 3 3) White
             move = Slide (Position 3 3, 1, Up, [1], White, False)

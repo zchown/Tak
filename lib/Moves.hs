@@ -61,7 +61,7 @@ checkSlide b (B.Slide (pos@(B.Position row col), count, dir, drops, color, crush
         then False
         else B.ps (head (getElem row col b)) == B.Cap
     standingBool = ld == 1 && lc
-    cc = checkForCrush b pos dir ld lc
+    cc = checkForCrush b pos dir dl lc
     (newPos, _, _) = B.getNextPos pos dir
 
 checkForCap :: B.Board -> B.Position -> B.Direction -> Int -> Bool
@@ -172,7 +172,8 @@ undoMove b (B.PlaceCap (pos, _)) = undoPlaceMove b pos
 undoMove b (B.Slide (pos@(B.Position row col), count, dir, drops, _, _))
   | sum drops /= count = Left $ InvalidSlideUndo "Drop Count Mismatch"
   | count < 1 || count > ncols b = Left $ InvalidSlideUndo "Invalid Count"
-  | not $ checkLength pos count dir = Left $ InvalidSlideUndo "Invalid Length"
+  | not $ checkLength pos (length drops) dir =
+    Left $ InvalidSlideUndo "Invalid Length"
   | otherwise = undoSlide b newPos dir drops []
   where
     checkLength :: B.Position -> Int -> B.Direction -> Bool
