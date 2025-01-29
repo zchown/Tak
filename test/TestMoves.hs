@@ -95,7 +95,7 @@ runMoveTests =
                (placeFlat (createEmptyBoard 5) (Position 2 3) White)
                (Position 1 3)
                White)
-      it "reject slides that would exceed b boundaries with multiple drops" $ do
+      it "reject slides that would exceed board boundaries with multiple drops" $ do
         let b = board $ parseTPS $ T.pack "[TPS x5/x5/x4,111/x5/x5 1 1]"
         let move = Slide (Position 3 5, 3, Board.Right, [1, 2], White, False)
         checkMove b move `shouldBe`
@@ -208,12 +208,12 @@ runMoveTests =
             moves = slideMoves b' White
         length moves `shouldBe` 4
     describe "Edge Cases" $ do
-      it "should reject placing a stone outside the b boundaries" $ do
+      it "should reject placing a stone outside the board boundaries" $ do
         let b = createEmptyBoard 5
             move = PlaceFlat (Position 0 3, White)
         checkMove b move `shouldBe`
           Prelude.Left (InvalidMove "Invalid Position (1, 1) or greater")
-      it "should reject sliding a stack outside the b boundaries" $ do
+      it "should reject sliding a stack outside the board boundaries" $ do
         let b = placeFlat (createEmptyBoard 5) (Position 1 1) White
             move = Slide (Position 1 1, 1, Board.Left, [1], White, False)
         checkMove b move `shouldBe`
