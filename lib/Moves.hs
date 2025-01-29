@@ -49,14 +49,14 @@ checkSlide b (B.Slide (pos@(B.Position row col), count, dir, drops, color, crush
     Left $ InvalidMove "Color Does Not Control Stack"
   | checkForCap b pos dir dl = Left $ InvalidMove "Cap In The Way"
   | checkForStanding b pos dir dl lps = Left $ InvalidMove "Standing In The Way"
-  | crush && checkForCrush b pos dir ld lps =
-    Left $ InvalidMove "Crush not set correctly"
+  | cc /= crush = Left $ InvalidMove "Crush not set correctly"
   | otherwise = Right True
   where
     dl = length drops
     td = sum drops
     ld = last drops
     lps = drop (dl - ld) (getElem row col b)
+    cc = checkForCrush b pos dir ld lps
 
 checkForCap :: B.Board -> B.Position -> B.Direction -> Int -> Bool
 checkForCap _ _ _ 0 = False
@@ -72,7 +72,7 @@ checkForStanding ::
 checkForStanding _ _ _ 0 _ = False
 checkForStanding b (B.Position row col) dir 1 ps
   | null (getElem row' col' b) = False
-  | topStanding b newPos = length ps == 1 && lastCap ps
+  | topStanding b newPos = not $ length ps == 1 && lastCap ps
   | otherwise = False
   where
     (newPos, row', col') = B.getNextPos (B.Position row col) dir
