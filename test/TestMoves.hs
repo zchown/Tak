@@ -109,7 +109,9 @@ runMoveTests =
           Prelude.Left (InvalidMove "Standing In The Way")
       it "should allow slides that crush standing stones with a capstone" $ do
         let b = board $ parseTPS $ T.pack "[TPS x5/x5/x2,111C,x,2S/x5/x5 1 2]"
-        let move = Slide (Position 3 3, 3, Board.Right, [2, 1], White, True)
+        let move = Slide (Position 3 3, 3, Board.Right, [2, 1], White, False)
+        getElem 3 3 b `shouldBe`
+          [Piece White Cap, Piece White Flat, Piece White Flat]
         checkMove b move `shouldBe` Prelude.Right True
       it "should not allow crush with flat and cap stone" $ do
         let b = board $ parseTPS $ T.pack "[TPS x5/x5/x2,111C,x,2S/x5/x5 1 2]"

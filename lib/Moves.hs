@@ -48,15 +48,21 @@ checkSlide b (B.Slide (pos@(B.Position row col), count, dir, drops, color, crush
   | color /= B.pc (head $ getElem row col b) =
     Left $ InvalidMove "Color Does Not Control Stack"
   | checkForCap b pos dir dl = Left $ InvalidMove "Cap In The Way"
-  | checkForStanding b pos dir dl lps = Left $ InvalidMove "Standing In The Way"
+  | checkForStanding b newPos dir (dl - 1) standingBool =
+    Left $ InvalidMove "Standing In The Way"
   | cc /= crush = Left $ InvalidMove "Crush not set correctly"
   | otherwise = Right True
   where
     dl = length drops
     td = sum drops
     ld = last drops
-    lps = drop (dl - ld) (getElem row col b)
-    cc = checkForCrush b pos dir ld lps
+    lc =
+      if null (getElem row col b)
+        then False
+        else B.ps (head (getElem row col b)) == B.Cap
+    standingBool = ld == 1 && lc
+    cc = checkForCrush b pos dir ld lc
+    (newPos, _, _) = B.getNextPos pos dir
 
 checkForCap :: B.Board -> B.Position -> B.Direction -> Int -> Bool
 checkForCap _ _ _ 0 = False
@@ -67,32 +73,29 @@ checkForCap b (B.Position row col) dir dl
   where
     (newPos, row', col') = B.getNextPos (B.Position row col) dir
 
-checkForStanding ::
-     B.Board -> B.Position -> B.Direction -> Int -> [B.Piece] -> Bool
-checkForStanding _ _ _ 0 _ = False
-checkForStanding b (B.Position row col) dir 1 ps
-  | null (getElem row' col' b) = False
-  | topStanding b newPos = not $ length ps == 1 && lastCap ps
+-- Board, Position, Direstion, length of drops, last drops
+checkForStanding :: B.Board -> B.Position -> B.Direction -> Int -> Bool -> Bool
+-- base cases
+checkForStanding b pos@(B.Position row col) _ 0 lc
+  | lc = False
+  | null (getElem row col b) = False
+  | topStanding b pos = True
   | otherwise = False
-  where
-    (newPos, row', col') = B.getNextPos (B.Position row col) dir
-checkForStanding b (B.Position row col) dir dl ps
-  | null (getElem row' col' b) = checkForStanding b newPos dir (dl - 1) ps
-  | topStanding b (B.Position (row - 1) col) = True
+-- recursive cases
+checkForStanding b pos@(B.Position row col) dir dl ps
+  | null (getElem row col b) = checkForStanding b newPos dir (dl - 1) ps
+  | topStanding b pos = True
   | otherwise = checkForStanding b newPos dir (dl - 1) ps
   where
-    (newPos, row', col') = B.getNextPos (B.Position row col) dir
+    (newPos, _, _) = B.getNextPos pos dir
 
-checkForCrush ::
-     B.Board -> B.Position -> B.Direction -> Int -> [B.Piece] -> Bool
-checkForCrush _ _ _ _ [] = False
-checkForCrush b (B.Position row col) dir dl [B.Piece _ B.Cap]
-  | null (getElem (row - dl) col b) = False
-  | topStanding b newPos = True
-  | otherwise = False
+checkForCrush :: B.Board -> B.Position -> B.Direction -> Int -> Bool -> Bool
+checkForCrush _ _ _ _ False = False
+checkForCrush b (B.Position row col) dir dl True
+  | null (getElem row' col' b) = False
+  | otherwise = topStanding b newPos
   where
-    (newPos, _, _) = B.getNextPos (B.Position row col) dir
-checkForCrush _ _ _ _ _ = False
+    (newPos, row', col') = B.getSlidePos (B.Position row col) dir dl
 
 topStanding :: B.Board -> B.Position -> Bool
 topStanding b (B.Position row col)

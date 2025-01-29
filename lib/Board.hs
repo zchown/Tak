@@ -226,6 +226,14 @@ getNextPos (Position row col) Board.Left =
 getNextPos (Position row col) Board.Right =
   (Position row (col + 1), row, col + 1)
 
+getSlidePos :: Position -> Direction -> Int -> (Position, Int, Int)
+getSlidePos (Position row col) Up n = (Position (row - n) col, row - n, col)
+getSlidePos (Position row col) Down n = (Position (row + n) col, row + n, col)
+getSlidePos (Position row col) Board.Left n =
+  (Position row (col - n), row, col - n)
+getSlidePos (Position row col) Board.Right n =
+  (Position row (col + n), row, col + n)
+
 -------------------------
 -- | Print Functions | --
 -------------------------
