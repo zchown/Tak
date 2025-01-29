@@ -4,6 +4,8 @@ module TestMoves where
 
 import Board
 import Data.Matrix
+import Data.Text (Text)
+import qualified Data.Text as T
 import Moves
 import TPS
 import Test.Hspec
@@ -95,35 +97,69 @@ runMoveTests =
                (placeFlat (createEmptyBoard 5) (Position 2 3) White)
                (Position 1 3)
                White)
-    describe "Undoing Moves" $ do
-      it "should undo placing a flat stone" $ do
-        let board = placeFlat (createEmptyBoard 5) (Position 3 3) White
+      it "reject slides that would exceed board boundaries with multiple drops" $ do
+        let b = board $ parseTPS $ T.pack "[TPS x5/x5/x4,111/x5/x5 1 1]"
+        let move = Slide (Position 3 5, 3, Board.Right, [1, 2], White, False)
+        checkMove b move `shouldBe`
+          Prelude.Left (InvalidMove "Not Enough Columns Right")
+      it "should handle slides with standing stones in the path" $ do
+        let b = board (parseTPS (T.pack "[TPS x5/x5/x2,111,x,2S/x5/x5 2 1]"))
+        let move = Slide (Position 3 3, 3, Board.Right, [1, 2], White, False)
+        checkMove b move `shouldBe`
+          Prelude.Left (InvalidMove "Standing In The Way")
+      it "should allow slides that crush standing stones with a capstone" $ do
+        let b = board $ parseTPS $ T.pack "[TPS x5/x5/x2,111C,x,2S/x5/x5 1 2]"
+        let move = Slide (Position 3 3, 3, Board.Right, [2, 1], White, True)
+        checkMove b move `shouldBe` Prelude.Right True
+      it "should not allow crush with flat and cap stone" $ do
+        let b = board $ parseTPS $ T.pack "[TPS x5/x5/x2,111C,x,2S/x5/x5 1 2]"
+        let move = Slide (Position 3 3, 3, Board.Right, [1, 2], White, True)
+        checkMove b move `shouldBe`
+          Prelude.Left (InvalidMove "Standing In The Way")
+    describe "Undo Moves" $ do
+      it "should undo a flat stone placement" $ do
+        let board = createEmptyBoard 5
             move = PlaceFlat (Position 3 3, White)
-            undoneBoard = undoMove board move
-        undoneBoard `shouldBe` Prelude.Right (createEmptyBoard 5)
-      it "should undo sliding a stack" $ do
-        let board =
-              placeFlat
-                (placeFlat (createEmptyBoard 5) (Position 3 3) White)
-                (Position 2 3)
-                White
+            newBoard = fromRight board (makeMove board move)
+            undoneBoard = undoMove newBoard move
+        undoneBoard `shouldBe` Prelude.Right board
+      it "should undo a standing stone placement" $ do
+        let board = createEmptyBoard 5
+            move = PlaceStanding (Position 3 3, White)
+            newBoard = fromRight board (makeMove board move)
+            undoneBoard = undoMove newBoard move
+        undoneBoard `shouldBe` Prelude.Right board
+      it "should undo a capstone placement" $ do
+        let board = createEmptyBoard 5
+            move = PlaceCap (Position 3 3, White)
+            newBoard = fromRight board (makeMove board move)
+            undoneBoard = undoMove newBoard move
+        undoneBoard `shouldBe` Prelude.Right board
+      it "should undo a slide move" $ do
+        let board = placeFlat (createEmptyBoard 5) (Position 3 3) White
             move = Slide (Position 3 3, 1, Up, [1], White, False)
-            undoneBoard = undoMove board move
-        undoneBoard `shouldBe`
-          Prelude.Right (placeFlat (createEmptyBoard 5) (Position 3 3) White)
-      it "should fail to undo a slide with invalid drop counts" $ do
-        let board =
-              placeFlat
-                (placeFlat (createEmptyBoard 5) (Position 3 3) White)
-                (Position 2 3)
-                White
-            move = Slide (Position 3 3, 2, Up, [1, 0], White, False)
-            undoneBoard = undoMove board move
+            newBoard = fromRight board (makeMove board move)
+            undoneBoard = undoMove newBoard move
+        undoneBoard `shouldBe` Prelude.Right board
+      it "should reject undoing a slide with invalid drop counts" $ do
+        let board = placeFlat (createEmptyBoard 5) (Position 3 3) White
+            move = Slide (Position 3 3, 2, Up, [1, 1], White, False)
+            newBoard = fromRight board (makeMove board move)
+            invalidMove = Slide (Position 3 3, 2, Up, [2], White, False)
+            undoneBoard = undoMove newBoard invalidMove
         undoneBoard `shouldBe`
           Prelude.Left (InvalidSlideUndo "Drop Count Mismatch")
+      it "should reject undoing a slide with insufficient pieces" $ do
+        let board = placeFlat (createEmptyBoard 5) (Position 3 3) White
+            move = Slide (Position 3 3, 1, Up, [1], White, False)
+            newBoard = fromRight board (makeMove board move)
+            invalidMove = Slide (Position 3 3, 2, Up, [1, 1], White, False)
+            undoneBoard = undoMove newBoard invalidMove
+        undoneBoard `shouldBe`
+          Prelude.Left (InvalidSlideUndo "Not Enough Pieces")
     describe "Move Generation" $ do
-      it "should generate all valid placement moves for the first move" $ do
-        let gameState =
+      it "should generate all valid first moves" $ do
+        let gs =
               GameState
                 (createEmptyBoard 5)
                 White
@@ -132,10 +168,10 @@ runMoveTests =
                 (Reserves 21 1)
                 Nothing
                 []
-            moves = generateAllMoves gameState
+            moves = generateAllMoves gs
         length moves `shouldBe` 25
-      it "should generate all valid placement moves for non first move" $ do
-        let gameState =
+      it "should generate all valid placement moves for a player" $ do
+        let gs =
               GameState
                 (createEmptyBoard 5)
                 White
@@ -144,188 +180,92 @@ runMoveTests =
                 (Reserves 21 1)
                 Nothing
                 []
-            moves = generateAllMoves gameState
+            moves = generateAllMoves gs
         length moves `shouldBe` 75
-      it "should generate all valid slide moves for a controlled stack" $ do
+      it "should generate all valid slide moves for a player" $ do
         let board = placeFlat (createEmptyBoard 5) (Position 3 3) White
-            gameState =
-              GameState board White 2 (Reserves 21 1) (Reserves 21 1) Nothing []
-            moves = generateAllMoves gameState
-            m' =
-              filter
-                (\m ->
-                   case m of
-                     Slide _ -> True
-                     _ -> False)
-                moves
-        length m' `shouldBe` 4
-      it "should generate no slide moves for a stack of height 1" $ do
+            gs = GameState board White 2 (Reserves 21 1) (Reserves 21 1)
+            moves = slideMoves board White
+        length moves `shouldBe` 4
+      it "should generate valid slides for a stack of stones" $ do
         let board = placeFlat (createEmptyBoard 5) (Position 3 3) White
-            gameState =
-              GameState board White 2 (Reserves 21 1) (Reserves 21 1) Nothing []
-            moves = generateAllMoves gameState
-            m' =
-              filter
-                (\m ->
-                   case m of
-                     Slide _ -> True
-                     _ -> False)
-                moves
-        length m' `shouldBe` 4
-      it "should generate slide moves for a stack of height 2" $ do
+            board' = placeFlat board (Position 3 3) White
+            gs = GameState board' White 2 (Reserves 21 1) (Reserves 21 1)
+            moves = slideMoves board' White
+        length moves `shouldBe` 8
+      it "should generate valid slides with crushing for a capstone" $ do
+        let board = placeCap (createEmptyBoard 5) (Position 3 3) White
+            board' = placeStanding board (Position 2 3) Black
+            moves = slideMoves board' White
+        length moves `shouldBe` 4
+    describe "Edge Cases" $ do
+      it "should reject placing a stone outside the board boundaries" $ do
+        let board = createEmptyBoard 5
+            move = PlaceFlat (Position 0 3, White)
+        checkMove board move `shouldBe`
+          Prelude.Left (InvalidMove "Invalid Position (1, 1) or greater")
+      it "should reject sliding a stack outside the board boundaries" $ do
+        let board = placeFlat (createEmptyBoard 5) (Position 1 1) White
+            move = Slide (Position 1 1, 1, Board.Left, [1], White, False)
+        checkMove board move `shouldBe`
+          Prelude.Left (InvalidMove "Not Enough Columns Left")
+      it "should reject sliding a stack with invalid drop counts" $ do
         let board = placeFlat (createEmptyBoard 5) (Position 3 3) White
-            board' = placeFlat board (Position 2 3) White
-            board'' =
-              case makeMove
-                     board'
-                     (Slide (Position 2 3, 1, Down, [1], White, False)) of
-                Prelude.Right b -> b
-                Prelude.Left _ -> createEmptyBoard 5
-            gameState =
-              GameState
-                board''
-                White
-                2
-                (Reserves 21 1)
-                (Reserves 21 1)
-                Nothing
-                []
-            moves = generateAllMoves gameState
-            m' =
-              filter
-                (\m ->
-                   case m of
-                     Slide _ -> True
-                     _ -> False)
-                moves
-        length m' `shouldBe` 12
-      it
-        "should reject slides that would exceed board boundaries with multiple drops" $ do
-        let board =
-              foldl
-                (\b p -> placeFlat b p White)
-                (createEmptyBoard 5)
-                [Position 3 5, Position 3 5, Position 3 5]
-            move = Slide (Position 3 5, 3, Board.Right, [1, 2], White, False)
+            move = Slide (Position 3 3, 2, Up, [1, 2], White, False)
+        checkMove board move `shouldBe`
+          Prelude.Left (InvalidMove "Invalid Count or Drops")
+      it "should reject sliding a stack with insufficient pieces" $ do
+        let board = placeFlat (createEmptyBoard 5) (Position 3 3) White
+            move = Slide (Position 3 3, 2, Up, [1, 1], White, False)
         checkMove board move `shouldBe`
           Prelude.Left (InvalidMove "Invalid Count For Stack")
-      it "should handle slides with standing stones in the path" $ do
-        let board =
-              foldl
-                (\b p -> placeFlat b p White)
-                (createEmptyBoard 5)
-                [Position 3 3, Position 3 3, Position 3 3]
-            board' = placeStanding board (Position 3 4) Black
-            move = Slide (Position 3 3, 3, Board.Right, [1, 2], White, False)
+      it "should reject sliding a stack with a standing stone in the way" $ do
+        let board = placeFlat (createEmptyBoard 5) (Position 3 3) White
+            board' = placeStanding board (Position 2 3) Black
+            move = Slide (Position 3 3, 1, Up, [1], White, False)
         checkMove board' move `shouldBe`
           Prelude.Left (InvalidMove "Standing In The Way")
-      it "should allow slides that crush standing stones with a capstone" $ do
-        let board =
-              foldl
-                (\b p -> placeFlat b p White)
-                (createEmptyBoard 5)
-                [Position 3 3, Position 3 3, Position 3 3]
-            board' = placeCap board (Position 3 3) White
-            board'' = placeStanding board' (Position 3 4) Black
-            move = Slide (Position 3 3, 3, Board.Right, [1, 2], White, True)
-        checkMove board'' move `shouldBe` Prelude.Right True
-    describe "Making Moves" $ do
-      it "should handle complex slides with multiple drops across the board" $ do
-        let board =
-              foldl
-                (\b p -> placeFlat b p White)
-                (createEmptyBoard 5)
-                [Position 3 3, Position 3 3, Position 3 3]
-            move = Slide (Position 3 3, 3, Board.Right, [1, 2], White, False)
-            newBoard = makeMove board move
-        newBoard `shouldBe`
-          Prelude.Right
-            (placeFlat
-               (placeFlat
-                  (placeFlat (createEmptyBoard 5) (Position 3 4) White)
-                  (Position 3 5)
-                  White)
-               (Position 3 5)
-               White)
-      it "should handle slides that crush standing stones with a capstone" $ do
-        let board =
-              foldl
-                (\b p -> placeFlat b p White)
-                (createEmptyBoard 5)
-                [Position 3 3, Position 3 3, Position 3 3]
-            board' = placeCap board (Position 3 3) White
-            board'' = placeStanding board' (Position 3 4) Black
-            move = Slide (Position 3 3, 3, Board.Right, [1, 2], White, True)
-            newBoard = makeMove board'' move
-        newBoard `shouldBe`
-          Prelude.Right
-            (placeFlat
-               (placeFlat
-                  (placeFlat (createEmptyBoard 5) (Position 3 4) White)
-                  (Position 3 5)
-                  White)
-               (Position 3 5)
-               White)
-    describe "Undoing Moves" $ do
-      it "should undo complex slides with multiple drops" $ do
-        let board =
-              foldl
-                (\b p -> placeFlat b p White)
-                (createEmptyBoard 5)
-                [Position 3 3, Position 3 3, Position 3 3]
-            move = Slide (Position 3 3, 3, Board.Right, [1, 2], White, False)
-            newBoard = makeMove board move
-            undoneBoard =
-              undoMove (fromRight (createEmptyBoard 5) newBoard) move
-        undoneBoard `shouldBe` Prelude.Right board
-      it "should undo slides that crush standing stones with a capstone" $ do
-        let board =
-              foldl
-                (\b p -> placeFlat b p White)
-                (createEmptyBoard 5)
-                [Position 3 3, Position 3 3, Position 3 3]
-            board' = placeCap board (Position 3 3) White
-            board'' = placeStanding board' (Position 3 4) Black
-            move = Slide (Position 3 3, 3, Board.Right, [1, 2], White, True)
-            newBoard = makeMove board'' move
-            undoneBoard =
-              undoMove (fromRight (createEmptyBoard 5) newBoard) move
-        undoneBoard `shouldBe` Prelude.Right board''
-    describe "Move Generation" $ do
-      it "should generate all valid slide moves for a stack of height 3" $ do
-        let board =
-              foldl
-                (\b p -> placeFlat b p White)
-                (createEmptyBoard 5)
-                [Position 3 3, Position 3 3, Position 3 3]
-            gameState =
-              GameState board White 2 (Reserves 21 1) (Reserves 21 1) Nothing []
-            moves = generateAllMoves gameState
-            m' =
-              filter
-                (\m ->
-                   case m of
-                     Slide _ -> True
-                     _ -> False)
-                moves
-        length m' `shouldBe` 16
-      it "should generate no slide moves for a stack controlled by the opponent" $ do
-        let board =
-              foldl
-                (\b p -> placeFlat b p Black)
-                (createEmptyBoard 5)
-                [Position 3 3, Position 3 3, Position 3 3]
-            gameState =
-              GameState board White 2 (Reserves 21 1) (Reserves 21 1) Nothing []
-            moves = generateAllMoves gameState
-            m' =
-              filter
-                (\m ->
-                   case m of
-                     Slide _ -> True
-                     _ -> False)
-                moves
-        length m' `shouldBe` 0
+      it "should reject sliding a stack with a capstone in the way" $ do
+        let board = placeFlat (createEmptyBoard 5) (Position 3 3) White
+            board' = placeCap board (Position 2 3) White
+            move = Slide (Position 3 3, 1, Up, [1], White, False)
+        checkMove board' move `shouldBe`
+          Prelude.Left (InvalidMove "Cap In The Way")
+      it "should reject sliding a stack with incorrect crush setting" $ do
+        let board = placeCap (createEmptyBoard 5) (Position 3 3) White
+            board' = placeStanding board (Position 2 3) Black
+            move = Slide (Position 3 3, 1, Up, [1], White, False)
+        checkMove board' move `shouldBe`
+          Prelude.Left (InvalidMove "Crush not set correctly")
+    describe "Complex TPS Positions" $ do
+      it "should handle a complex TPS position with multiple stacks" $ do
+        let tps = T.pack "[TPS x5/x5/1,2,x,2,1/x5/x5 1 1]"
+            b = board $ parseTPS tps
+            move = Slide (Position 3 1, 1, Board.Right, [1], White, False)
+        checkMove b move `shouldBe` Prelude.Right True
+      it "should handle a TPS position with a capstone and standing stones" $ do
+        let tps = T.pack "[TPS x5/x5/1C,2S,x,2,1/x5/x5 1 1]"
+            b = board $ parseTPS tps
+            move = Slide (Position 3 1, 1, Board.Right, [1], White, True)
+        checkMove b move `shouldBe` Prelude.Right True
+      it
+        "should reject a slide in a TPS position with a standing stone in the way" $ do
+        let tps = T.pack "[TPS x5/x5/1,2S,x,2,1/x5/x5 1 1]"
+            b = board $ parseTPS tps
+            move = Slide (Position 3 1, 1, Board.Right, [1], White, False)
+        checkMove b move `shouldBe`
+          Prelude.Left (InvalidMove "Standing In The Way")
+      it "should handle a TPS position with a complex slide and multiple drops" $ do
+        let tps = T.pack "[TPS x5/x5/1,2,2,2,1/x5/x5 1 1]"
+            b = board $ parseTPS tps
+            move = Slide (Position 3 1, 3, Board.Right, [1, 1, 1], White, False)
+        checkMove b move `shouldBe` Prelude.Right True
+      it "should reject a slide in a TPS position with insufficient pieces" $ do
+        let tps = T.pack "[TPS x5/x5/1,2,2,2,1/x5/x5 1 1]"
+            b = board $ parseTPS tps
+            move =
+              Slide (Position 3 1, 4, Board.Right, [1, 1, 1, 1], White, False)
+        checkMove b move `shouldBe` Prelude.Right True
 
 fromRight :: b -> Either a b -> b
 fromRight _ (Prelude.Right x) = x

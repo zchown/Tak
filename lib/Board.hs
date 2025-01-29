@@ -202,7 +202,9 @@ colToLetter :: Int -> Char
 colToLetter n = toEnum (fromEnum 'a' + n - 1)
 
 placeFlat :: Board -> Position -> Color -> Board
-placeFlat b (Position row col) c = setElem [Piece c Flat] (row, col) b
+placeFlat b (Position row col) c = setElem (Piece c Flat : xs) (row, col) b
+  where
+    xs = getElem row col b
 
 placeStanding :: Board -> Position -> Color -> Board
 placeStanding b (Position row col) c = setElem [Piece c Standing] (row, col) b
