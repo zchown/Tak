@@ -18,10 +18,8 @@ data ParseError
 
 parseTPS :: Text -> Either ParseError GameState
 parseTPS t = do
-  let cleanedT = cleanTPS t
-  case splitTPS cleanedT of
+  case (splitTPS . cleanTPS) t of
     Prelude.Right [boardStr, turnStr, moveNumberStr] -> do
-      let tn = parseTurn turnStr
       case parseMoveNumber moveNumberStr of
         Prelude.Left e -> Prelude.Left e
         Prelude.Right mn -> do
@@ -32,14 +30,21 @@ parseTPS t = do
               return $
                 GameState
                   { board = b
-                  , turn = tn
+                  , turn = parseTurn turnStr
                   , moveNumber = mn
                   , player1 = getReserves b White
                   , player2 = getReserves b Black
                   , result = Nothing
                   , gameHistory = []
                   }
-    _ -> Prelude.Left $ InvalidTPSFormat $ T.pack "Invalid TPS format"
+    _ -> Prelude.Left $ InvalidTPSFormat t
+
+-- useful for testing when I know the input is correct
+parseTPSHard :: Text -> GameState
+parseTPSHard t =
+  case parseTPS t of
+    Prelude.Left e -> error $ show e
+    Prelude.Right gs -> gs
 
 cleanTPS :: Text -> Text
 cleanTPS =

@@ -96,24 +96,27 @@ runMoveTests =
                (Position 1 3)
                White)
       it "reject slides that would exceed board boundaries with multiple drops" $ do
-        let b = board $ parseTPS $ T.pack "[TPS x5/x5/x4,111/x5/x5 1 1]"
+        let b = board $ parseTPSHard $ T.pack "[TPS x5/x5/x4,111/x5/x5 1 1]"
         let move = Slide (Position 3 5, 3, Board.Right, [1, 2], White, False)
         checkMove b move `shouldBe`
           Prelude.Left (InvalidMove "Not Enough Columns Right")
       it "should handle slides with standing stones in the path" $ do
-        let b = board (parseTPS (T.pack "[TPS x5/x5/x2,111,x,2S/x5/x5 2 1]"))
+        let b =
+              board (parseTPSHard (T.pack "[TPS x5/x5/x2,111,x,2S/x5/x5 2 1]"))
         let move = Slide (Position 3 3, 3, Board.Right, [1, 2], White, False)
         checkMove b move `shouldBe`
           Prelude.Left (InvalidMove "Standing In The Way")
       it "should allow slides that crush standing stones with a capstone" $ do
-        let b = board $ parseTPS $ T.pack "[TPS x5/x5/x2,111C,x,2S/x5/x5 1 2]"
+        let b =
+              board $ parseTPSHard $ T.pack "[TPS x5/x5/x2,111C,x,2S/x5/x5 1 2]"
         let move = Slide (Position 3 3, 3, Board.Right, [2, 1], White, True)
         getElem 3 3 b `shouldBe`
           [Piece White Cap, Piece White Flat, Piece White Flat]
         getElem 3 5 b `shouldBe` [Piece Black Standing]
         checkMove b move `shouldBe` Prelude.Right True
       it "should not allow crush with flat and cap stone" $ do
-        let b = board $ parseTPS $ T.pack "[TPS x5/x5/x2,111C,x,2S/x5/x5 1 2]"
+        let b =
+              board $ parseTPSHard $ T.pack "[TPS x5/x5/x2,111C,x,2S/x5/x5 1 2]"
         let move = Slide (Position 3 3, 3, Board.Right, [1, 2], White, True)
         checkMove b move `shouldBe`
           Prelude.Left (InvalidMove "Standing In The Way")
@@ -143,22 +146,22 @@ runMoveTests =
             undoneb = undoMove newb move
         undoneb `shouldBe` Prelude.Right b
       it "should reject undoing a slide with invalid drop counts" $ do
-        let b = board $ parseTPS $ T.pack "[TPS x5/x5/x4,111/x5/x5 2 1]"
+        let b = board $ parseTPSHard $ T.pack "[TPS x5/x5/x4,111/x5/x5 2 1]"
             move = Slide (Position 3 4, 4, Board.Left, [4], White, False)
         undoMove b move `shouldBe`
           Prelude.Left (InvalidSlideUndo "Not Enough Pieces")
       it "should reject undoing a slide with invalid drop counts" $ do
-        let b = board $ parseTPS $ T.pack "[TPS x5/x5/x4,111/x5/x5 2 1]"
+        let b = board $ parseTPSHard $ T.pack "[TPS x5/x5/x4,111/x5/x5 2 1]"
             move = Slide (Position 3 4, 4, Board.Left, [1, 2], White, False)
         undoMove b move `shouldBe`
           Prelude.Left (InvalidSlideUndo "Drop Count Mismatch")
       it "should reject undoing a slide move with impossible drops" $ do
-        let b = board $ parseTPS $ T.pack "[TPS x5/x5/x3,111,x/x5/x5 2 1]"
+        let b = board $ parseTPSHard $ T.pack "[TPS x5/x5/x3,111,x/x5/x5 2 1]"
             move = Slide (Position 3 3, 3, Board.Right, [1, 2], White, False)
         undoMove b move `shouldBe`
           Prelude.Left (InvalidSlideUndo "Not Enough Pieces")
       it "should reject undoing a slide with beyond limit drops" $ do
-        let b = board $ parseTPS $ T.pack "[TPS x5/x5/x4,1111111/x5/x5 2 1]"
+        let b = board $ parseTPSHard $ T.pack "[TPS x5/x5/x4,1111111/x5/x5 2 1]"
             move = Slide (Position 3 4, 6, Board.Left, [6], White, False)
         undoMove b move `shouldBe`
           Prelude.Left (InvalidSlideUndo "Invalid Count")
@@ -199,7 +202,7 @@ runMoveTests =
             moves = slideMoves b White
         length moves `shouldBe` 4
       it "should generate valid slides for a stack of stones" $ do
-        let b = board $ parseTPS $ T.pack "[TPS x5/x5/x2,11,x2/x5/x5 1 1]"
+        let b = board $ parseTPSHard $ T.pack "[TPS x5/x5/x2,11,x2/x5/x5 1 1]"
             moves = slideMoves b White
         length moves `shouldBe` 12
       it "should generate valid slides with crushing for a capstone" $ do
@@ -248,29 +251,35 @@ runMoveTests =
     describe "Complex TPS Positions" $ do
       it "should handle a complex TPS position with multiple stacks" $ do
         let tps = T.pack "[TPS x5/x5/1,2,x,2,1/x5/x5 1 1]"
-            b = board $ parseTPS tps
+            b = board $ parseTPSHard tps
             move = Slide (Position 3 1, 1, Board.Right, [1], White, False)
         checkMove b move `shouldBe` Prelude.Right True
       it "should handle a TPS position with a capstone and standing stones" $ do
         let tps = T.pack "[TPS x5/x5/1C,2S,x,2,1/x5/x5 1 1]"
-            b = board $ parseTPS tps
+            b = board $ parseTPSHard tps
             move = Slide (Position 3 1, 1, Board.Right, [1], White, True)
         checkMove b move `shouldBe` Prelude.Right True
       it
         "should reject a slide in a TPS position with a standing stone in the way" $ do
         let tps = T.pack "[TPS x5/x5/1,2S,x,2,1/x5/x5 1 1]"
-            b = board $ parseTPS tps
+            b = board $ parseTPSHard tps
             move = Slide (Position 3 1, 1, Board.Right, [1], White, False)
         checkMove b move `shouldBe`
           Prelude.Left (InvalidMove "Standing In The Way")
       it "should handle a TPS position with a complex slide and multiple drops" $ do
         let tps = T.pack "[TPS x5/x5/121,2,2,2,1/x5/x5 1 1]"
-            b = board $ parseTPS tps
+            b = board $ parseTPSHard tps
             move = Slide (Position 3 1, 3, Board.Right, [1, 1, 1], White, False)
         checkMove b move `shouldBe` Prelude.Right True
       it "should reject a slide in a TPS position with insufficient pieces" $ do
         let tps = T.pack "[TPS x5/x5/2121C,2,2,2,1/x5/x5 1 1]"
-            b = board $ parseTPS tps
+            b = board $ parseTPSHard tps
             move =
               Slide (Position 3 1, 4, Board.Right, [1, 1, 1, 1], White, False)
         checkMove b move `shouldBe` Prelude.Right True
+
+parseTPSHard :: T.Text -> GameState
+parseTPSHard t =
+  case parseTPS t of
+    Prelude.Left e -> error $ show e
+    Prelude.Right gs -> gs
