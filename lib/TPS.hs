@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications #-}
 
 module TPS where
 
@@ -14,7 +15,7 @@ data ParseError
   | InvalidTPSFormat Text
   | InvalidSquareFormat Text
   | InvalidMoveNumber
-  deriving (Show)
+  deriving (Show, Eq)
 
 parseTPS :: Text -> Either ParseError GameState
 parseTPS t = do
@@ -71,11 +72,21 @@ parseMoveNumber t =
 
 parseBoard :: Text -> Int -> Either ParseError Board
 parseBoard boardStr n = do
-  rows <- mapM parseRow $ T.splitOn "/" boardStr
-  return $ fromList n n (concat rows)
+  rows <- mapM (parseRow n) $ T.splitOn "/" boardStr
+  let cr = concat rows
+  if length cr /= n * n
+    then Prelude.Left $ InvalidBoardSize n
+    else Prelude.Right $ fromList n n cr
 
-parseRow :: Text -> Either ParseError [Square]
-parseRow row = concat <$> mapM parseSquare (T.splitOn "," row)
+parseRow :: Int -> Text -> Either ParseError [Square]
+parseRow n row =
+  let r = concat <$> mapM parseSquare (T.splitOn "," row)
+   in case r of
+        Prelude.Right r' ->
+          if length r' /= n
+            then Prelude.Left $ InvalidBoardSize n
+            else Prelude.Right r'
+        l -> l
 
 parseSquare :: Text -> Either ParseError [Square]
 parseSquare square =
@@ -136,7 +147,7 @@ rowToTPS row = T.intercalate "," $ foldr groupSquares [] row
     groupSquares [] [] = ["x1"]
     groupSquares [] (x:xs)
       | T.take 1 x == "x" =
-        T.concat ["x", T.pack $ show (1 + read (T.unpack $ T.drop 1 x))] : xs
+        T.concat ["x", T.pack $ show (1 + read @Int (T.unpack $ T.drop 1 x))] : xs
       | otherwise = "x1" : x : xs
     groupSquares square acc = squareToTPS square : acc
 

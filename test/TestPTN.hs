@@ -3,8 +3,7 @@
 module TestPTN where
 
 import Board as B
-import Control.Monad (when)
-import Data.Either (isRight)
+import Data.Either (isLeft)
 import Data.Text (pack)
 import PTN
 import Test.Hspec
@@ -60,20 +59,20 @@ runPTNTests =
                \2. c1 d1\n"
           let result' = parsePTN (pack ptnText)
           result' `shouldBe` Prelude.Left PTNMoveError
-          -- isRight result `shouldBe` True
-          when (isRight result') $ do
-            let Prelude.Right ptn = result'
-            site ptn `shouldBe` "Test"
-            event ptn `shouldBe` "Test Event"
-            p1 ptn `shouldBe` "Alice"
-            p2 ptn `shouldBe` "Bob"
-            size ptn `shouldBe` 6
-            moves ptn `shouldBe`
-              [ B.PlaceFlat (B.Position 1 1, B.White)
-              , B.PlaceFlat (B.Position 1 2, B.Black)
-              , B.PlaceFlat (B.Position 1 3, B.White)
-              , B.PlaceFlat (B.Position 1 4, B.Black)
-              ]
+          case result' of
+            Prelude.Right ptn -> do
+              site ptn `shouldBe` "Test"
+              event ptn `shouldBe` "Test Event"
+              p1 ptn `shouldBe` "Alice"
+              p2 ptn `shouldBe` "Bob"
+              size ptn `shouldBe` 6
+              moves ptn `shouldBe`
+                [ B.PlaceFlat (B.Position 1 1, B.White)
+                , B.PlaceFlat (B.Position 1 2, B.Black)
+                , B.PlaceFlat (B.Position 1 3, B.White)
+                , B.PlaceFlat (B.Position 1 4, B.Black)
+                ]
+            Prelude.Left e -> error (show e)
         it "fails to parse a PTN string with missing metadata" $ do
           let ptnText =
                 "[Site: Test]\n\
@@ -93,7 +92,3 @@ runPTNTests =
                \[Size: 6]\n\
                \1. invalid b1\n"
           isLeft (parsePTN (pack ptnText)) `shouldBe` True
-
-isLeft :: Either a b -> Bool
-isLeft (Prelude.Left _) = True
-isLeft _ = False
