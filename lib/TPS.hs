@@ -6,70 +6,96 @@ import Board
 import Data.Matrix
 import Data.Text (Text)
 import qualified Data.Text as T
+import Text.Read (readMaybe)
 
-parseTPS :: Text -> GameState
-parseTPS t =
-  GameState
-    { board = b
-    , turn =
-        if turnStr == "1"
-          then White
-          else Black
-    , moveNumber = read (T.unpack moveNumberStr) :: Int
-    , player1 = getReserves b White
-    , player2 = getReserves b Black
-    , result = Nothing
-    , gameHistory = []
-    }
-  where
-    -- Remove "[TPS ]" prefix and suffix if present
-    -- also adds a 1 to single x's to make parsing easier
-    cleanedT =
-      T.strip $
-      T.replace "[TPS " "" $
-      T.replace "]" "" $ T.replace "x," "x1," $ T.replace "x/" "x1/" t
-    [boardStr, turnStr, moveNumberStr] = T.splitOn " " cleanedT
-    n = length $ T.splitOn "/" boardStr
-    b = parseBoard boardStr n
+data ParseError
+  = InvalidPiece Char
+  | InvalidBoardSize Int
+  | InvalidTPSFormat Text
+  | InvalidSquareFormat Text
+  | InvalidMoveNumber
+  deriving (Show)
 
-parseBoard :: Text -> Int -> Board
-parseBoard boardStr n =
-  fromList n n $ concatMap parseRow $ T.splitOn "/" boardStr
-  where
-    parseRow :: Text -> [Square]
-    parseRow row = concatMap parseSquare $ T.splitOn "," row
+parseTPS :: Text -> Either ParseError GameState
+parseTPS t = do
+  let cleanedT = cleanTPS t
+  case splitTPS cleanedT of
+    Prelude.Right [boardStr, turnStr, moveNumberStr] -> do
+      let tn = parseTurn turnStr
+      case parseMoveNumber moveNumberStr of
+        Prelude.Left e -> Prelude.Left e
+        Prelude.Right mn -> do
+          let n = length $ T.splitOn "/" boardStr
+          case parseBoard boardStr n of
+            Prelude.Left e -> Prelude.Left e
+            Prelude.Right b -> do
+              return $
+                GameState
+                  { board = b
+                  , turn = tn
+                  , moveNumber = mn
+                  , player1 = getReserves b White
+                  , player2 = getReserves b Black
+                  , result = Nothing
+                  , gameHistory = []
+                  }
+    _ -> Prelude.Left $ InvalidTPSFormat $ T.pack "Invalid TPS format"
 
-parseSquare :: Text -> [Square]
+cleanTPS :: Text -> Text
+cleanTPS =
+  T.strip .
+  T.replace "[TPS " "" .
+  T.replace "]" "" . T.replace "x," "x1," . T.replace "x/" "x1/"
+
+splitTPS :: Text -> Either ParseError [Text]
+splitTPS t =
+  case T.splitOn " " t of
+    [boardStr, turnStr, moveNumberStr] ->
+      Prelude.Right [boardStr, turnStr, moveNumberStr]
+    _ -> Prelude.Left $ InvalidTPSFormat t
+
+parseTurn :: Text -> Color
+parseTurn "1" = White
+parseTurn _ = Black
+
+parseMoveNumber :: Text -> Either ParseError Int
+parseMoveNumber t =
+  case (readMaybe . T.unpack) t of
+    Nothing -> Prelude.Left InvalidMoveNumber
+    Just i -> Prelude.Right i
+
+parseBoard :: Text -> Int -> Either ParseError Board
+parseBoard boardStr n = do
+  rows <- mapM parseRow $ T.splitOn "/" boardStr
+  return $ fromList n n (concat rows)
+
+parseRow :: Text -> Either ParseError [Square]
+parseRow row = concat <$> mapM parseSquare (T.splitOn "," row)
+
+parseSquare :: Text -> Either ParseError [Square]
 parseSquare square =
   case T.unpack square of
-    [] -> []
-    'x':y -> replicate (read y :: Int) []
-    xs -> [parseSingleSquare xs []]
+    [] -> Prelude.Right []
+    'x':y -> Prelude.Right $ replicate (read y) []
+    xs -> (: []) <$> parseSingleSquare xs []
+
+parseSingleSquare :: [Char] -> Stack -> Either ParseError Square
+parseSingleSquare [] acc = Prelude.Right acc
+parseSingleSquare (x:xs) acc@(y:ys) =
+  case x of
+    '1' -> parseSingleSquare xs (Piece White Flat : acc)
+    '2' -> parseSingleSquare xs (Piece Black Flat : acc)
+    'S' -> parseSingleSquare xs (modifyStanding y : ys)
+    'C' -> parseSingleSquare xs (modifyCap y : ys)
+    _ -> Prelude.Left $ InvalidPiece x
   where
-    parseSingleSquare :: [Char] -> Stack -> Square
-    parseSingleSquare [] acc = acc
-    parseSingleSquare (x:xs) acc@(y:ys) =
-      case x of
-        '1' -> parseSingleSquare xs (Piece White Flat : acc)
-        '2' -> parseSingleSquare xs (Piece Black Flat : acc)
-        'S' ->
-          parseSingleSquare
-            xs
-            (if pc y == White
-               then Piece White Standing : ys
-               else Piece Black Standing : ys)
-        'C' ->
-          parseSingleSquare
-            xs
-            (if pc y == White
-               then Piece White Cap : ys
-               else Piece Black Cap : ys)
-        _ -> error "Invalid piece"
-    parseSingleSquare (x:xs) [] =
-      case x of
-        '1' -> parseSingleSquare xs [Piece White Flat]
-        '2' -> parseSingleSquare xs [Piece Black Flat]
-        _ -> error "Invalid piece"
+    modifyStanding (Piece c _) = Piece c Standing
+    modifyCap (Piece c _) = Piece c Cap
+parseSingleSquare (x:xs) [] =
+  case x of
+    '1' -> parseSingleSquare xs [Piece White Flat]
+    '2' -> parseSingleSquare xs [Piece Black Flat]
+    _ -> Prelude.Left $ InvalidPiece x
 
 getReserves :: Board -> Color -> Reserves
 getReserves b c
@@ -78,6 +104,6 @@ getReserves b c
   | ncols b == 6 = Reserves (30 - x) (1 - y)
   | ncols b == 7 = Reserves (40 - x) (2 - y)
   | ncols b == 8 = Reserves (50 - x) (2 - y)
-  | otherwise = error "Invalid board size"
+  | otherwise = Reserves 0 0
   where
     (Reserves x y) = getPlaced b c
