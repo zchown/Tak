@@ -21,23 +21,19 @@ parseTPS :: Text -> Either ParseError GameState
 parseTPS t = do
   case (splitTPS . cleanTPS) t of
     Prelude.Right [boardStr, turnStr, moveNumberStr] -> do
-      case parseMoveNumber moveNumberStr of
-        Prelude.Left e -> Prelude.Left e
-        Prelude.Right mn -> do
-          let n = length $ T.splitOn "/" boardStr
-          case parseBoard boardStr n of
-            Prelude.Left e -> Prelude.Left e
-            Prelude.Right b -> do
-              return $
-                GameState
-                  { board = b
-                  , turn = parseTurn turnStr
-                  , moveNumber = mn
-                  , player1 = getReserves b White
-                  , player2 = getReserves b Black
-                  , result = Nothing
-                  , gameHistory = []
-                  }
+      mn <- parseMoveNumber moveNumberStr
+      let boardSize = length $ T.splitOn "/" boardStr
+      b <- parseBoard boardStr boardSize
+      return $
+        GameState
+          { board = b
+          , turn = parseTurn turnStr
+          , moveNumber = mn
+          , player1 = getReserves b White
+          , player2 = getReserves b Black
+          , result = Nothing
+          , gameHistory = []
+          }
     _ -> Prelude.Left $ InvalidTPSFormat t
 
 -- useful for testing when I know the input is correct
@@ -147,7 +143,8 @@ rowToTPS row = T.intercalate "," $ foldr groupSquares [] row
     groupSquares [] [] = ["x1"]
     groupSquares [] (x:xs)
       | T.take 1 x == "x" =
-        T.concat ["x", T.pack $ show (1 + read @Int (T.unpack $ T.drop 1 x))] : xs
+        T.concat ["x", T.pack $ show (1 + read @Int (T.unpack $ T.drop 1 x))] :
+        xs
       | otherwise = "x1" : x : xs
     groupSquares square acc = squareToTPS square : acc
 
