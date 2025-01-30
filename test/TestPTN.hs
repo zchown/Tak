@@ -12,7 +12,7 @@ runPTNTests :: IO ()
 runPTNTests =
   hspec $ do
     describe "PTN Parsing" $ do
-      describe "parseMove" $ do
+      describe "parseSingleMove" $ do
         it "parses a flat placement for White" $ do
           parseSingleMove "a1" B.White `shouldBe`
             Prelude.Right (B.PlaceFlat (B.Position 1 1, B.White))
@@ -39,10 +39,15 @@ runPTNTests =
               [ B.PlaceFlat (B.Position 1 1, B.White)
               , B.PlaceFlat (B.Position 1 2, B.Black)
               ]
+        it "parses a move pair with only White's move (partial move)" $ do
+          parseMovePair "1. a1" `shouldBe`
+            Prelude.Right [B.PlaceFlat (B.Position 1 1, B.White)]
         it "fails to parse a move pair with an invalid format" $ do
           isLeft (parseMovePair "invalid") `shouldBe` True
-        it "fails to parse a move pair with missing moves" $ do
-          isLeft (parseMovePair "1. a1") `shouldBe` True
+        it "fails to parse a move pair with an invalid White move" $ do
+          isLeft (parseMovePair "1. invalid b1") `shouldBe` True
+        it "fails to parse a move pair with an invalid Black move" $ do
+          isLeft (parseMovePair "1. a1 invalid") `shouldBe` True
       describe "parsePTN" $ do
         it "parses a full PTN string with metadata and moves" $ do
           let ptnText =
@@ -58,14 +63,13 @@ runPTNTests =
                \1. a1 b1\n\
                \2. c1 d1\n"
           let result' = parsePTN (pack ptnText)
-          result' `shouldBe` Prelude.Left PTNMoveError
           case result' of
             Prelude.Right ptn -> do
-              site ptn `shouldBe` "Test"
-              event ptn `shouldBe` "Test Event"
-              p1 ptn `shouldBe` "Alice"
-              p2 ptn `shouldBe` "Bob"
-              size ptn `shouldBe` 6
+              site ptn `shouldBe` Just "Test"
+              event ptn `shouldBe` Just "Test Event"
+              p1 ptn `shouldBe` Just "Alice"
+              p2 ptn `shouldBe` Just "Bob"
+              size ptn `shouldBe` Just 6
               moves ptn `shouldBe`
                 [ B.PlaceFlat (B.Position 1 1, B.White)
                 , B.PlaceFlat (B.Position 1 2, B.Black)
@@ -73,12 +77,45 @@ runPTNTests =
                 , B.PlaceFlat (B.Position 1 4, B.Black)
                 ]
             Prelude.Left e -> error (show e)
-        it "fails to parse a PTN string with missing metadata" $ do
+        it "parses a PTN string with a partial move (only White's move)" $ do
+          let ptnText =
+                "[Site: Test]\n\
+               \[Event: Test Event]\n\
+               \[Date: 2024-01-26]\n\
+               \[Time: 10:00]\n\
+               \[Player1: Alice]\n\
+               \[Player2: Bob]\n\
+               \[Clock: 30m]\n\
+               \[Result: 1-0]\n\
+               \[Size: 6]\n\
+               \1. a1\n"
+          let result' = parsePTN (pack ptnText)
+          case result' of
+            Prelude.Right ptn -> do
+              moves ptn `shouldBe` [B.PlaceFlat (B.Position 1 1, B.White)]
+            Prelude.Left e -> error (show e)
+        it "parses a PTN string with missing metadata" $ do
           let ptnText =
                 "[Site: Test]\n\
                \[Event: Test Event]\n\
                \1. a1 b1\n"
-          isLeft (parsePTN (pack ptnText)) `shouldBe` True
+          let result' = parsePTN (pack ptnText)
+          case result' of
+            Prelude.Right ptn -> do
+              site ptn `shouldBe` Just "Test"
+              event ptn `shouldBe` Just "Test Event"
+              date ptn `shouldBe` Nothing
+              time ptn `shouldBe` Nothing
+              p1 ptn `shouldBe` Nothing
+              p2 ptn `shouldBe` Nothing
+              clock ptn `shouldBe` Nothing
+              ptnResult ptn `shouldBe` Nothing
+              size ptn `shouldBe` Nothing
+              moves ptn `shouldBe`
+                [ B.PlaceFlat (B.Position 1 1, B.White)
+                , B.PlaceFlat (B.Position 1 2, B.Black)
+                ]
+            Prelude.Left e -> error (show e)
         it "fails to parse a PTN string with invalid moves" $ do
           let ptnText =
                 "[Site: Test]\n\

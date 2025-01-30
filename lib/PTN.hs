@@ -7,15 +7,15 @@ import Data.Text (Text)
 import qualified Data.Text as T
 
 data PTN = PTN
-  { site :: String
-  , event :: String
-  , date :: String
-  , time :: String
-  , p1 :: String
-  , p2 :: String
-  , clock :: String
-  , ptnResult :: String
-  , size :: Int
+  { site :: Maybe String
+  , event :: Maybe String
+  , date :: Maybe String
+  , time :: Maybe String
+  , p1 :: Maybe String
+  , p2 :: Maybe String
+  , clock :: Maybe String
+  , ptnResult :: Maybe String
+  , size :: Maybe Int
   , moves :: B.History
   } deriving (Show, Eq)
 
@@ -42,7 +42,12 @@ parsePTN input = do
   clock' <- extractField "Clock" lines'
   ptnResult' <- extractField "Result" lines'
   sizeStr' <- extractField "Size" lines'
-  moves' <- parseMoves (map (T.dropWhile (/= ' ') . T.strip) lines')
+  let size' =
+        case sizeStr' of
+          Just str -> read <$> Just str
+          Nothing -> Nothing
+  let moveLines = filter isMoveLine lines'
+  moves' <- parseMoves moveLines
   return
     PTN
       { site = site'
@@ -53,25 +58,27 @@ parsePTN input = do
       , p2 = p2'
       , clock = clock'
       , ptnResult = ptnResult'
-      , size = read sizeStr' :: Int
+      , size = size'
       , moves = moves'
       }
 
+isMoveLine :: Text -> Bool
+isMoveLine line =
+  let trimmed = T.strip line
+   in not (T.null trimmed) && T.head trimmed `elem` ['0' .. '9']
+
 parseMoves :: [Text] -> Either PTNParseError B.History
 parseMoves ms = do
-  movePairs <- traverse parseMovePair (filter checkValid ms)
+  movePairs <- traverse parseMovePair ms
   return (concat movePairs)
-  where
-    checkValid :: Text -> Bool
-    checkValid x
-      | T.null x = False
-      | T.isPrefixOf (T.pack "[") x = False
-      | otherwise = True
 
 parseMovePair :: Text -> Either PTNParseError [B.Move]
 parseMovePair movePair = do
   let moveStr = T.unpack movePair
   case words moveStr of
+    [_, whiteMove] -> do
+      whiteMove' <- parseSingleMove whiteMove B.White
+      return [whiteMove']
     [_, whiteMove, blackMove] -> do
       whiteMove' <- parseSingleMove whiteMove B.White
       blackMove' <- parseSingleMove blackMove B.Black
@@ -139,8 +146,9 @@ parseSlideMove str color =
             Left err -> Left err
     _ -> Left PTNSlideError
 
-extractField :: String -> [Text] -> Either PTNParseError String
+extractField :: String -> [Text] -> Either PTNParseError (Maybe String)
 extractField fieldName ls =
   case find (T.isPrefixOf (T.pack ("[" ++ fieldName ++ ": "))) ls of
-    Just line -> Right $ T.unpack $ T.drop (length fieldName + 1) line
-    Nothing -> Left PTNParseError
+    Just line ->
+      Right $ Just $ T.unpack $ T.drop (length fieldName + 3) (T.init line)
+    Nothing -> Right Nothing
