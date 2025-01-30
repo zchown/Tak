@@ -112,3 +112,47 @@ getReserves b c
   | otherwise = Reserves 0 0
   where
     (Reserves x y) = getPlaced b c
+
+--------------------------
+-- | GameState to TPS | --
+--------------------------
+gameStateToTPS :: GameState -> Text
+gameStateToTPS gs =
+  T.concat
+    [ boardToTPS (board gs)
+    , " "
+    , turnToTPS (turn gs)
+    , " "
+    , T.pack $ show (moveNumber gs)
+    ]
+
+boardToTPS :: Board -> Text
+boardToTPS b = T.intercalate "/" $ map rowToTPS (toLists b)
+
+rowToTPS :: [Square] -> Text
+rowToTPS row = T.intercalate "," $ foldr groupSquares [] row
+  where
+    groupSquares :: Square -> [Text] -> [Text]
+    groupSquares [] [] = ["x1"]
+    groupSquares [] (x:xs)
+      | T.take 1 x == "x" =
+        T.concat ["x", T.pack $ show (1 + read (T.unpack $ T.drop 1 x))] : xs
+      | otherwise = "x1" : x : xs
+    groupSquares square acc = squareToTPS square : acc
+
+squareToTPS :: Square -> Text
+squareToTPS [] = "x"
+squareToTPS stack =
+  T.pack $ foldr (\piece acc -> pieceToChar piece : acc) "" stack
+  where
+    pieceToChar :: Piece -> Char
+    pieceToChar (Piece White Flat) = '1'
+    pieceToChar (Piece Black Flat) = '2'
+    pieceToChar (Piece White Standing) = 'S'
+    pieceToChar (Piece Black Standing) = 'S'
+    pieceToChar (Piece White Cap) = 'C'
+    pieceToChar (Piece Black Cap) = 'C'
+
+turnToTPS :: Color -> Text
+turnToTPS White = "1"
+turnToTPS Black = "2"

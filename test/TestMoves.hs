@@ -277,9 +277,3 @@ runMoveTests =
             move =
               Slide (Position 3 1, 4, Board.Right, [1, 1, 1, 1], White, False)
         checkMove b move `shouldBe` Prelude.Right True
-
-parseTPSHard :: T.Text -> GameState
-parseTPSHard t =
-  case parseTPS t of
-    Prelude.Left e -> error $ show e
-    Prelude.Right gs -> gs
