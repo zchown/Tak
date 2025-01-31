@@ -18,11 +18,11 @@ checkMove b (B.PlaceCap (pos, _)) = checkPlace b pos
 checkMove b s = checkSlide b s
 
 checkPlace :: B.Board -> B.Position -> Either InvalidMove Bool
-checkPlace b (B.Position row col)
-  | row < 1 || col < 1 = Left $ InvalidMove "Invalid Position (1, 1) or greater"
-  | row > nrows b || col > ncols b =
+checkPlace b (B.Position (x, y))
+  | x < 1 || y < 1 = Left $ InvalidMove "Invalid Position (1, 1) or greater"
+  | y > nrows b || x > ncols b =
     Left $ InvalidMove "Invalid Position (nrows, ncols) or less"
-  | not $ null $ getElem row col b = Left $ InvalidMove "Square Occupied"
+  | not $ null $ getElem x y b = Left $ InvalidMove "Square Occupied"
   | otherwise = Right True
 
 checkSlide :: B.Board -> B.Move -> Either InvalidMove Bool
@@ -30,22 +30,22 @@ checkSlide _ (B.PlaceFlat _) = Left $ InvalidMove "Can't Slide a PlaceFlat"
 checkSlide _ (B.PlaceStanding _) =
   Left $ InvalidMove "Can't Slide a PlaceStanding"
 checkSlide _ (B.PlaceCap _) = Left $ InvalidMove "Can't Slide a PlaceCap"
-checkSlide b (B.Slide (pos@(B.Position row col), count, dir, drops, color, crush))
-  | row < 1 || col < 1 = Left $ InvalidMove "Invalid Position (1, 1) or greater"
-  | row > nrows b || col > ncols b =
+checkSlide b (B.Slide (pos@(B.Position (x, y)), count, dir, drops, color, crush))
+  | x < 1 || y < 1 = Left $ InvalidMove "Invalid Position (1, 1) or greater"
+  | y > nrows b || x > ncols b =
     Left $ InvalidMove "Invalid Position (nrows, ncols) or less"
   | null drops = Left $ InvalidMove "No Drops"
   | td /= count || count > ncols b = Left $ InvalidMove "Invalid Count or Drops"
   | any (< 1) drops = Left $ InvalidMove "Invalid Drop"
-  | count < 1 || count > length (getElem row col b) =
+  | count < 1 || count > length (getElem x y b) =
     Left $ InvalidMove "Invalid Count For Stack"
-  | dir == B.Up && row - dl < 1 = Left $ InvalidMove "Not Enough Rows Up"
-  | dir == B.Down && row + dl > nrows b =
-    Left $ InvalidMove "Not Enough Rows Down"
-  | dir == B.Left && col - dl < 1 = Left $ InvalidMove "Not Enough Columns Left"
-  | dir == B.Right && col + dl > ncols b =
-    Left $ InvalidMove "Not Enough Columns Right"
-  | color /= B.pc (head $ getElem row col b) =
+  | dir == B.Up && y + dl > nrows b = Left $ InvalidMove "Not Enough Space Up"
+  | dir == B.Down && y - dl < 0 = Left $ InvalidMove "Not Enough Space Down"
+  | dir == B.Left && x + dl > ncols b =
+    Left $ InvalidMove "Not Enough Space Left"
+  | dir == B.Right && y + dl > ncols b =
+    Left $ InvalidMove "Not Enough Space Right"
+  | color /= B.pc (head $ getElem x y b) =
     Left $ InvalidMove "Color Does Not Control Stack"
   | checkForCap b pos dir dl = Left $ InvalidMove "Cap In The Way"
   | checkForStanding b newPos dir (dl - 1) standingBool =
@@ -57,33 +57,30 @@ checkSlide b (B.Slide (pos@(B.Position row col), count, dir, drops, color, crush
     td = sum drops
     ld = last drops
     lc =
-      if null (getElem row col b)
+      if null (getElem x y b)
         then False
-        else B.ps (head (getElem row col b)) == B.Cap
+        else B.ps (head (getElem x y b)) == B.Cap
     standingBool = ld == 1 && lc
     cc = checkForCrush b pos dir dl lc
     (newPos, _, _) = B.getNextPos pos dir
 
 checkForCap :: B.Board -> B.Position -> B.Direction -> Int -> Bool
 checkForCap _ _ _ 0 = False
-checkForCap b (B.Position row col) dir dl
-  | null (getElem row' col' b) = checkForCap b newPos dir (dl - 1)
-  | B.ps (head $ getElem row' col' b) == B.Cap = True
+checkForCap b p dir dl
+  | null (getElem x' y' b) = checkForCap b newPos dir (dl - 1)
+  | B.ps (head $ getElem x' y' b) == B.Cap = True
   | otherwise = checkForCap b newPos dir (dl - 1)
   where
-    (newPos, row', col') = B.getNextPos (B.Position row col) dir
+    (newPos, x', y') = B.getNextPos p dir
 
--- Board, Position, Direstion, length of drops, last drops
 checkForStanding :: B.Board -> B.Position -> B.Direction -> Int -> Bool -> Bool
--- base cases
-checkForStanding b pos@(B.Position row col) _ 0 lc
+checkForStanding b pos@(B.Position (x, y)) _ 0 lc
   | lc = False
-  | null (getElem row col b) = False
+  | null (getElem x y b) = False
   | topStanding b pos = True
   | otherwise = False
--- recursive cases
-checkForStanding b pos@(B.Position row col) dir dl ps
-  | null (getElem row col b) = checkForStanding b newPos dir (dl - 1) ps
+checkForStanding b pos@(B.Position (x, y)) dir dl ps
+  | null (getElem x y b) = checkForStanding b newPos dir (dl - 1) ps
   | topStanding b pos = True
   | otherwise = checkForStanding b newPos dir (dl - 1) ps
   where
@@ -91,24 +88,24 @@ checkForStanding b pos@(B.Position row col) dir dl ps
 
 checkForCrush :: B.Board -> B.Position -> B.Direction -> Int -> Bool -> Bool
 checkForCrush _ _ _ _ False = False
-checkForCrush b (B.Position row col) dir dl True
-  | null (getElem row' col' b) = False
+checkForCrush b p dir dl True
+  | null (getElem x' y' b) = False
   | otherwise = topStanding b newPos
   where
-    (newPos, row', col') = B.getSlidePos (B.Position row col) dir dl
+    (newPos, x', y') = B.getSlidePos p dir dl
 
 topStanding :: B.Board -> B.Position -> Bool
-topStanding b (B.Position row col)
-  | null (getElem row col b) = False
-  | otherwise = B.ps (head $ getElem row col b) == B.Standing
+topStanding b (B.Position (x, y))
+  | null (getElem x y b) = False
+  | otherwise = B.ps (head $ getElem x y b) == B.Standing
 
 lastCap :: [B.Piece] -> Bool
 lastCap [] = False
 lastCap ps = B.ps (last ps) == B.Cap
 
-----------------------------
--- | Make and Undo Move | --
-----------------------------
+-------------------------------
+-- -- | Make and Undo Move | --
+-- ----------------------------
 makeMove :: B.Board -> B.Move -> Either InvalidMove B.Board
 makeMove b m@(B.PlaceFlat (pos, c)) =
   case checkMove b m of
@@ -122,15 +119,15 @@ makeMove b m@(B.PlaceCap (pos, c)) =
   case checkMove b m of
     Left e -> Left e
     Right _ -> Right $ B.placeCap b pos c
-makeMove b m@(B.Slide (B.Position row col, count, dir, drops, _, crush)) =
+makeMove b m@(B.Slide (p@(B.Position (x, y)), count, dir, drops, _, crush)) =
   case checkMove b m of
     Left e -> Left e
     Right _ -> Right $ makeSlide b' dir pos' ps drops crush
   where
-    ps = reverse $ take count $ getElem row col b
-    s' = drop count $ getElem row col b
-    b' = setElem s' (row, col) b
-    (pos', _, _) = B.getNextPos (B.Position row col) dir
+    ps = reverse $ take count $ getElem x y b
+    s' = drop count $ getElem x y b
+    b' = setElem s' (x, y) b
+    (pos', _, _) = B.getNextPos p dir
 
 makeSlide ::
      B.Board
@@ -141,23 +138,23 @@ makeSlide ::
   -> B.Crush
   -> B.Board
 makeSlide b _ _ _ [] _ = b
-makeSlide b _ (B.Position row col) [x] _ True =
-  let s = getElem row col b
+makeSlide b _ (B.Position (x, y)) [pc] _ True =
+  let s = getElem x y b
       s' = drop 1 s
       h' =
         case B.pc (head s) of
           B.Black -> B.Piece B.Black B.Flat
           B.White -> B.Piece B.White B.Flat
-   in setElem (x : h' : s') (row, col) b
-makeSlide b dir (B.Position row col) xs (d:ds) crush =
-  let s = getElem row col b
+   in setElem (pc : h' : s') (x, y) b
+makeSlide b dir p@(B.Position (x, y)) xs (d:ds) crush =
+  let s = getElem x y b
       dp = reverse $ take d xs
       s' = dp ++ s
-      b' = setElem s' (row, col) b
+      b' = setElem s' (x, y) b
       xs' = drop d xs
    in makeSlide b' dir nextPos xs' ds crush
   where
-    (nextPos, _, _) = B.getNextPos (B.Position row col) dir
+    (nextPos, _, _) = B.getNextPos p dir
 
 data InvalidUndo
   = InvalidPlaceUndo String
@@ -169,7 +166,7 @@ undoMove :: B.Board -> B.Move -> Either InvalidUndo B.Board
 undoMove b (B.PlaceFlat (pos, _)) = undoPlaceMove b pos
 undoMove b (B.PlaceStanding (pos, _)) = undoPlaceMove b pos
 undoMove b (B.PlaceCap (pos, _)) = undoPlaceMove b pos
-undoMove b (B.Slide (pos@(B.Position row col), count, dir, drops, _, _))
+undoMove b (B.Slide (pos, count, dir, drops, _, _))
   | sum drops /= count = Left $ InvalidSlideUndo "Drop Count Mismatch"
   | count < 1 || count > ncols b = Left $ InvalidSlideUndo "Invalid Count"
   | not $ checkLength pos (length drops) dir =
@@ -177,24 +174,19 @@ undoMove b (B.Slide (pos@(B.Position row col), count, dir, drops, _, _))
   | otherwise = undoSlide b newPos dir drops []
   where
     checkLength :: B.Position -> Int -> B.Direction -> Bool
-    checkLength (B.Position r _) n B.Up = r - n >= 1
-    checkLength (B.Position r _) n B.Down = r + n <= nrows b
-    checkLength (B.Position _ c) n B.Left = c - n >= 1
-    checkLength (B.Position _ c) n B.Right = c + n <= ncols b
-    newPos =
-      case dir of
-        B.Up -> B.Position (row - length drops) col
-        B.Down -> B.Position (row + length drops) col
-        B.Left -> B.Position row (col - length drops)
-        B.Right -> B.Position row (col + length drops)
+    checkLength (B.Position (r, _)) n B.Up = r + n <= nrows b
+    checkLength (B.Position (r, _)) n B.Down = r - n >= 1
+    checkLength (B.Position (_, c)) n B.Left = c - n >= 1
+    checkLength (B.Position (_, c)) n B.Right = c + n <= ncols b
+    (newPos, _, _) = B.getSlidePos pos dir (length drops)
 
 undoPlaceMove :: B.Board -> B.Position -> Either InvalidUndo B.Board
-undoPlaceMove b (B.Position row col)
-  | row < 1 || col < 1 || row > nrows b || col > ncols b =
+undoPlaceMove b (B.Position (x, y))
+  | x < 1 || y < 1 || y > nrows b || x > ncols b =
     Left $ InvalidUndoPosition "Invalid Position"
-  | null (getElem row col b) = Left $ InvalidPlaceUndo "Square Empty"
-  | length (getElem row col b) > 1 = Left $ InvalidPlaceUndo "Stack Too Big"
-  | otherwise = Right $ setElem [] (row, col) b
+  | null (getElem x y b) = Left $ InvalidPlaceUndo "Square Empty"
+  | length (getElem x y b) > 1 = Left $ InvalidPlaceUndo "Stack Too Big"
+  | otherwise = Right $ setElem [] (x, y) b
 
 undoSlide ::
      B.Board
@@ -203,25 +195,23 @@ undoSlide ::
   -> [Int]
   -> [B.Piece]
   -> Either InvalidUndo B.Board
-undoSlide b (B.Position row col) _ [] xs =
-  Right $ setElem (reverse xs) (row, col) b
-undoSlide b (B.Position row col) dir (d:ds) xs
+undoSlide b (B.Position (x, y)) _ [] xs = Right $ setElem (reverse xs) (x, y) b
+undoSlide b p@(B.Position (x, y)) dir (d:ds) xs
   | d < 1 = Left $ InvalidSlideUndo "Invalid Drop"
   | otherwise = do
-    let s = getElem row col b
+    let s = getElem x y b
     if length s < d
       then Left $ InvalidSlideUndo "Not Enough Pieces"
       else do
         let (piecesToMove, remaining) = splitAt d s
             newXs = piecesToMove ++ xs
-            b' = setElem remaining (row, col) b
-            (nextPos, _, _) =
-              B.getNextPos (B.Position row col) $ B.getInverseDir dir
+            b' = setElem remaining (x, y) b
+            (nextPos, _, _) = B.getNextPos p $ B.getInverseDir dir
         undoSlide b' nextPos dir ds newXs
 
--------------------------
--- | Move Generation | --
--------------------------
+-- -------------------------
+-- -- | Move Generation | --
+-- -------------------------
 generateAllMoves :: B.GameState -> [B.Move]
 generateAllMoves gs
   | B.moveNumber gs == 1 = firstMovePlacement gs
@@ -264,19 +254,19 @@ slideMoves board color =
 
 emptyPositions :: B.Board -> [B.Position]
 emptyPositions board =
-  [ B.Position row col
-  | row <- [1 .. nrows board]
-  , col <- [1 .. ncols board]
-  , null (getElem row col board)
+  [ B.Position (x, y)
+  | x <- [1 .. nrows board]
+  , y <- [1 .. ncols board]
+  , null (getElem x y board)
   ]
 
 controlledPositions :: B.Board -> B.Color -> [B.Position]
 controlledPositions board color =
-  [ B.Position row col
-  | row <- [1 .. nrows board]
-  , col <- [1 .. ncols board]
-  , not (null (getElem row col board))
-  , B.pc (head (getElem row col board)) == color
+  [ B.Position (x, y)
+  | x <- [1 .. nrows board]
+  , y <- [1 .. ncols board]
+  , not (null (getElem x y board))
+  , B.pc (head (getElem x y board)) == color
   ]
 
 generateSlidesForPosition :: B.Board -> B.Color -> B.Position -> [B.Move]
@@ -287,14 +277,14 @@ generateSlidesForPosition board color pos =
 
 generateSlidesInDirection ::
      B.Board -> B.Color -> B.Position -> B.Direction -> [B.Move]
-generateSlidesInDirection board color pos@(B.Position row col) dir =
+generateSlidesInDirection board color pos@(B.Position (x, y)) dir =
   [ B.Slide (pos, count, dir, drops, color, canCrush board pos dir drops)
   | count <- [1 .. maxCount]
   , drops <- validDrops count
   , isValidSlide board pos count dir drops color (canCrush board pos dir drops)
   ]
   where
-    maxCount = length (getElem row col board)
+    maxCount = length (getElem x y board)
     steps = numSteps dir pos board
     validDrops count =
       [ds | ds <- dropSequences steps count, sum ds == count, all (> 0) ds]
@@ -315,14 +305,14 @@ dropSequences steps count = go steps count []
         ]
 
 canCrush :: B.Board -> B.Position -> B.Direction -> [Int] -> Bool
-canCrush board startPos dir drops =
-  let movingStack = getElem row col board
-      endPos = getFinalPosition startPos dir (length drops)
+canCrush board startPos@(B.Position (x, y)) dir drops =
+  let movingStack = getElem x y board
+      (endPos, _, _) = B.getSlidePos startPos dir (length drops)
       targetSquare =
         case endPos of
-          B.Position r c
-            | r > 0 && r <= nrows board && c > 0 && c <= ncols board ->
-              getElem r c board
+          B.Position (x', y')
+            | x' > 0 && x' <= nrows board && y' > 0 && y' <= ncols board ->
+              getElem x' y' board
           _ -> []
    in case (movingStack, targetSquare, drops) of
         (stack, target, ds)
@@ -331,22 +321,12 @@ canCrush board startPos dir drops =
               last ds == 1 &&
               not (null target) && B.ps (head target) == B.Standing -> True
         _ -> False
-  where
-    (B.Position row col) = startPos
-
-getFinalPosition :: B.Position -> B.Direction -> Int -> B.Position
-getFinalPosition (B.Position r c) dir steps =
-  case dir of
-    B.Up -> B.Position (r - steps) c
-    B.Down -> B.Position (r + steps) c
-    B.Left -> B.Position r (c - steps)
-    B.Right -> B.Position r (c + steps)
 
 numSteps :: B.Direction -> B.Position -> B.Board -> Int
-numSteps B.Up (B.Position row _) _ = row - 1
-numSteps B.Down (B.Position row _) b = nrows b - row
-numSteps B.Left (B.Position _ col) _ = col - 1
-numSteps B.Right (B.Position _ col) b = ncols b - col
+numSteps B.Up (B.Position (x, _)) b = nrows b - x
+numSteps B.Down (B.Position (x, _)) _ = x - 1
+numSteps B.Left (B.Position (_, y)) _ = y - 1
+numSteps B.Right (B.Position (_, y)) b = ncols b - y
 
 isValidSlide ::
      B.Board
