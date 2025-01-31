@@ -91,22 +91,22 @@ parseSingleMove moveStr color =
     [col, row]
       | isLetter col && isDigit row ->
         Right $
-        B.PlaceFlat (B.Position (digitToInt row) (B.letterToCol col), color)
+        B.PlaceFlat (B.Position (digitToInt row, B.letterToCol col), color)
     ['S', col, row]
       | isLetter col && isDigit row ->
         Right $
-        B.PlaceStanding (B.Position (digitToInt row) (B.letterToCol col), color)
+        B.PlaceStanding (B.Position (digitToInt row, B.letterToCol col), color)
     ['C', col, row]
       | isLetter col && isDigit row ->
         Right $
-        B.PlaceCap (B.Position (digitToInt row) (B.letterToCol col), color)
+        B.PlaceCap (B.Position (digitToInt row, B.letterToCol col), color)
     _ -> parseSlideMove moveStr color
 
 parseSlideMove :: String -> B.Color -> Either PTNParseError B.Move
 parseSlideMove str color =
   case str of
     [countChar, col, row, dir] ->
-      let pos = B.Position (digitToInt row) (B.letterToCol col)
+      let pos = B.Position (digitToInt row, B.letterToCol col)
           dir' =
             case dir of
               '+' -> Right B.Up
@@ -119,7 +119,7 @@ parseSlideMove str color =
             Right d -> Right $ B.Slide (pos, count, d, [], color, False)
             Left err -> Left err
     countChar:col:row:dir:dropsStr ->
-      let pos = B.Position (digitToInt row) (B.letterToCol col)
+      let pos = B.Position (digitToInt row, B.letterToCol col)
           dir' =
             case dir of
               '+' -> Right B.Up
@@ -133,7 +133,7 @@ parseSlideMove str color =
             Right d -> Right $ B.Slide (pos, count, d, drops, color, False)
             Left err -> Left err
     [col, row, dir] ->
-      let pos = B.Position (digitToInt row) (B.letterToCol col)
+      let pos = B.Position (digitToInt row, B.letterToCol col)
           dir' =
             case dir of
               '+' -> Right B.Up

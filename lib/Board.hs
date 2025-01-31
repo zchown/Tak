@@ -162,7 +162,7 @@ findRoad b c startPos = go [startPos] []
             newStack = validNeighbors ++ stack
             newVisited = pos : visited
          in Position (i, n) `elem` validNeighbors || go newStack newVisited
---
+
 -- --------------------------
 -- -- | Helper Functions | --
 -- --------------------------
