@@ -107,26 +107,14 @@ parseSlideMove str color =
   case str of
     [countChar, col, row, dir] ->
       let pos = B.Position (digitToInt row, B.letterToCol col)
-          dir' =
-            case dir of
-              '+' -> Right B.Up
-              '-' -> Right B.Down
-              '>' -> Right B.Right
-              '<' -> Right B.Left
-              _ -> Left PTNDirectionError
+          dir' = charToDirection dir
           count = digitToInt countChar
        in case dir' of
             Right d -> Right $ B.Slide (pos, count, d, [], color, False)
             Left err -> Left err
     countChar:col:row:dir:dropsStr ->
       let pos = B.Position (digitToInt row, B.letterToCol col)
-          dir' =
-            case dir of
-              '+' -> Right B.Up
-              '-' -> Right B.Down
-              '>' -> Right B.Right
-              '<' -> Right B.Left
-              _ -> Left PTNDirectionError
+          dir' = charToDirection dir
           count = digitToInt countChar
           drops = map digitToInt dropsStr
        in case dir' of
@@ -134,17 +122,20 @@ parseSlideMove str color =
             Left err -> Left err
     [col, row, dir] ->
       let pos = B.Position (digitToInt row, B.letterToCol col)
-          dir' =
-            case dir of
-              '+' -> Right B.Up
-              '-' -> Right B.Down
-              '>' -> Right B.Right
-              '<' -> Right B.Left
-              _ -> Left PTNDirectionError
+          dir' = charToDirection dir
        in case dir' of
             Right d -> Right $ B.Slide (pos, 1, d, [1], color, False)
             Left err -> Left err
     _ -> Left PTNSlideError
+
+charToDirection :: Char -> Either PTNParseError B.Direction
+charToDirection c =
+  case c of
+    '+' -> Right B.Up
+    '-' -> Right B.Down
+    '>' -> Right B.Right
+    '<' -> Right B.Left
+    _ -> Left PTNDirectionError
 
 extractField :: String -> [Text] -> Either PTNParseError (Maybe String)
 extractField fieldName ls =

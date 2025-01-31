@@ -121,4 +121,4 @@ runBoardTests =
                   , [[], [], [], []]
                   , [[], [], [], []]
                   ]
-          findRoad b White (Position 1 1) `shouldBe` False
+          findRoad b White (Position (1, 1)) `shouldBe` False
