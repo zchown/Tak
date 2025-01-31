@@ -25,7 +25,7 @@ runPTNTests =
         it "parses a basic slide move for White" $ do
           parseSingleMove "a1>" B.White `shouldBe`
             Prelude.Right
-              (B.Slide (B.Position 1 1, 1, B.Right, [], B.White, False))
+              (B.Slide (B.Position 1 1, 1, B.Right, [1], B.White, False))
         it "parses a slide move with multiple drops for White" $ do
           parseSingleMove "3a1>12" B.White `shouldBe`
             Prelude.Right

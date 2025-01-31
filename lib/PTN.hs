@@ -142,7 +142,7 @@ parseSlideMove str color =
               '<' -> Right B.Left
               _ -> Left PTNDirectionError
        in case dir' of
-            Right d -> Right $ B.Slide (pos, 1, d, [], color, False)
+            Right d -> Right $ B.Slide (pos, 1, d, [1], color, False)
             Left err -> Left err
     _ -> Left PTNSlideError
 

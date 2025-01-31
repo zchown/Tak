@@ -1,0 +1,45 @@
+[Site "PlayTak.com"]
+[Event "Online Play"]
+[Date "2025.01.20"]
+[Time "23:30:50"]
+[Player1 "LambBrainz"]
+[Rating1 "1397"]
+[Player2 "ProfTak"]
+[Rating2 "1634"]
+[Clock "15:0 +10"]
+[Result "0-R"]
+[Size "6"]
+[Flats "30"]
+[Caps "1"]
+[Opening "swap"]
+
+1. a6 b6
+2. c4 Cc5
+3. d4 b5
+4. b4 a4
+5. a3 b3
+6. e4 a5
+7. f4 c5-
+8. Cd3 b2
+9. b1 c2
+10. c3 2c4<
+11. b1+ c2<
+12. Sb1 2b2<
+13. Sa1 Se5
+14. c2 c5
+15. Sc4 d5
+16. a3> 3b4-
+17. a1+ 4b3<
+18. 2a2> b4
+19. d6 e6
+20. d6- d6
+21. f6 f5
+22. d3+ c6
+23. f4+ c1
+24. d2 d1
+25. b1> f4
+26. b6> c5+
+27. Sb6 a1
+28. e1 b1
+29. b6> 4a3-
+30. 2c1<11 a2>*

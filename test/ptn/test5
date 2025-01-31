@@ -1,0 +1,59 @@
+[Site "PlayTak.com"]
+[Event "Online Play"]
+[Date "2025.01.31"]
+[Time "00:13:35"]
+[Player1 "Dartko"]
+[Rating1 "1140"]
+[Player2 "LambBrainz"]
+[Rating2 "1491"]
+[Clock "15:0 +10"]
+[Result "R-0"]
+[Size "6"]
+[Flats "30"]
+[Caps "1"]
+[Opening "swap"]
+
+1. f1 a1
+2. b3 d3
+3. c4 c3
+4. b4 b2
+5. d5 a3
+6. e5 e3
+7. f3 e2
+8. Sf2 e1
+9. f2< Cd2
+10. b3< b3
+11. Ca2 a4
+12. b4< Sa5
+13. b4 a5-
+14. c2 3a4-
+15. a2+* a2
+16. a1+ a1
+17. b1 a1+
+18. 2a3- Sa4
+19. 4a3>22 d4
+20. c5 Sc6
+21. b5 a4>
+22. 3a2> c6-
+23. f5 d6
+24. e4 2b4>
+25. b4 Sb6
+26. e6 d6-
+27. Sd1 d6
+28. e4- e4
+29. e6< 3c4-
+30. 2d6- 2c5>
+31. Sd6 6d5>24
+32. Se6 f6
+33. f2 6c3-15
+34. 4b2> c3
+35. b2 d3>
+36. d3 2e3>
+37. c5 c3<
+38. b2+ d2>*
+39. d1> d2
+40. d3- d3
+41. e6> e6
+42. d6> c3
+43. b2 d1
+44. c6
