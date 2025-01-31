@@ -28,8 +28,8 @@ type Stack = [Piece]
 
 type Square = Stack
 
-data Position =
-  Position Int Int
+newtype Position =
+  Position (Int, Int)
   deriving (Show, Eq)
 
 type Board = Matrix Square
@@ -113,24 +113,24 @@ checkGameWin :: Board -> Maybe Result
 checkGameWin b
   | any
       (findRoad b White)
-      (filter (validPos White) [Position x 1 | x <- [1 .. ncols b]]) =
+      (filter (validPos White) [Position (x, 1) | x <- [1 .. ncols b]]) =
     Just (Win White)
   | any
       (findRoad (transpose b) White)
-      (filter (validPos White) [Position x 1 | x <- [1 .. nrows b]]) =
+      (filter (validPos White) [Position (x, 1) | x <- [1 .. nrows b]]) =
     Just (Win White)
   | any
       (findRoad b Black)
-      (filter (validPos Black) [Position 1 x | x <- [1 .. nrows b]]) =
+      (filter (validPos Black) [Position (x, 1) | x <- [1 .. nrows b]]) =
     Just (Win Black)
   | any
       (findRoad (transpose b) Black)
-      (filter (validPos Black) [Position 1 x | x <- [1 .. ncols b]]) =
+      (filter (validPos Black) [Position (x, 1) | x <- [1 .. ncols b]]) =
     Just (Win Black)
   | otherwise = Nothing
   where
     validPos :: Color -> Position -> Bool
-    validPos c (Position x y) =
+    validPos c (Position (x, y)) =
       case getElem x y b of
         [] -> False
         p:_ -> (pc p == c) && (ps p /= Standing)
@@ -140,7 +140,7 @@ findRoad b c startPos = go [startPos] []
   where
     n = nrows b
     checkValid :: Position -> [Position] -> Bool
-    checkValid pos@(Position x y) visited
+    checkValid pos@(Position (x, y)) visited
       | x < 1 || x > n || y < 1 || y > n = False
       | null (getElem x y b) = False
       | pc (head (getElem x y b)) /= c = False
@@ -149,23 +149,23 @@ findRoad b c startPos = go [startPos] []
       | otherwise = True
     go :: [Position] -> [Position] -> Bool
     go [] _ = False
-    go (pos@(Position i j):stack) visited
+    go (pos@(Position (i, j)):stack) visited
       | i == n = True
       | otherwise =
         let neighbors =
-              [ Position (i - 1) j -- Up
-              , Position (i + 1) j -- Down
-              , Position i (j - 1) -- Left
-              , Position i (j + 1) -- Right
+              [ Position (i, j + 1) -- Up
+              , Position (i, j - 1) -- Down
+              , Position (i - 1, j) -- Left
+              , Position (i + 1, j) -- Right
               ]
             validNeighbors = filter (`checkValid` visited) neighbors
             newStack = validNeighbors ++ stack
             newVisited = pos : visited
-         in Position (i + 1) j `elem` validNeighbors || go newStack newVisited
-
---------------------------
--- | Helper Functions | --
---------------------------
+         in Position (i, n) `elem` validNeighbors || go newStack newVisited
+--
+-- --------------------------
+-- -- | Helper Functions | --
+-- --------------------------
 createEmptyBoard :: Int -> Board
 createEmptyBoard size = matrix size size (const [])
 
@@ -202,15 +202,15 @@ colToLetter :: Int -> Char
 colToLetter n = toEnum (fromEnum 'a' + n - 1)
 
 placeFlat :: Board -> Position -> Color -> Board
-placeFlat b (Position row col) c = setElem (Piece c Flat : xs) (row, col) b
+placeFlat b (Position (x, y)) c = setElem (Piece c Flat : xs) (x, y) b
   where
-    xs = getElem row col b
+    xs = getElem x y b
 
 placeStanding :: Board -> Position -> Color -> Board
-placeStanding b (Position row col) c = setElem [Piece c Standing] (row, col) b
+placeStanding b (Position (x, y)) c = setElem [Piece c Standing] (x, y) b
 
 placeCap :: Board -> Position -> Color -> Board
-placeCap b (Position row col) c = setElem [Piece c Cap] (row, col) b
+placeCap b (Position (x, y)) c = setElem [Piece c Cap] (x, y) b
 
 getInverseDir :: Direction -> Direction
 getInverseDir Up = Down
@@ -219,24 +219,20 @@ getInverseDir Board.Left = Board.Right
 getInverseDir Board.Right = Board.Left
 
 getNextPos :: Position -> Direction -> (Position, Int, Int)
-getNextPos (Position row col) Up = (Position (row - 1) col, row - 1, col)
-getNextPos (Position row col) Down = (Position (row + 1) col, row + 1, col)
-getNextPos (Position row col) Board.Left =
-  (Position row (col - 1), row, col - 1)
-getNextPos (Position row col) Board.Right =
-  (Position row (col + 1), row, col + 1)
+getNextPos (Position (x, y)) Up = (Position (x, y + 1), x, y + 1)
+getNextPos (Position (x, y)) Down = (Position (x, y - 1), x, y - 1)
+getNextPos (Position (x, y)) Board.Left = (Position (x - 1, y), x - 1, y)
+getNextPos (Position (x, y)) Board.Right = (Position (x + 1, y), x + 1, y)
 
 getSlidePos :: Position -> Direction -> Int -> (Position, Int, Int)
-getSlidePos (Position row col) Up n = (Position (row - n) col, row - n, col)
-getSlidePos (Position row col) Down n = (Position (row + n) col, row + n, col)
-getSlidePos (Position row col) Board.Left n =
-  (Position row (col - n), row, col - n)
-getSlidePos (Position row col) Board.Right n =
-  (Position row (col + n), row, col + n)
+getSlidePos (Position (x, y)) Up n = (Position (x, y + n), x, y + n)
+getSlidePos (Position (x, y)) Down n = (Position (x, y - n), x, y - n)
+getSlidePos (Position (x, y)) Board.Left n = (Position (x - n, y), x - n, y)
+getSlidePos (Position (x, y)) Board.Right n = (Position (x + n, y), x + n, y)
 
--------------------------
--- | Print Functions | --
--------------------------
+-- -------------------------
+-- -- | Print Functions | --
+-- -------------------------
 pieceString :: Piece -> String
 pieceString (Piece White Flat) = "1"
 pieceString (Piece White Standing) = "1S"
