@@ -173,10 +173,10 @@ undoMove b (B.Slide (pos, count, dir, drops, _, _))
   | otherwise = undoSlide b newPos dir drops []
   where
     checkLength :: B.Position -> Int -> B.Direction -> Bool
-    checkLength (B.Position (r, _)) n B.Up = r + n <= nrows b
-    checkLength (B.Position (r, _)) n B.Down = r - n >= 1
-    checkLength (B.Position (_, c)) n B.Left = c - n >= 1
-    checkLength (B.Position (_, c)) n B.Right = c + n <= ncols b
+    checkLength (B.Position (_, r)) n B.Up = r + n <= nrows b
+    checkLength (B.Position (_, r)) n B.Down = r - n >= 1
+    checkLength (B.Position (c, _)) n B.Left = c - n >= 1
+    checkLength (B.Position (c, _)) n B.Right = c + n <= ncols b
     (newPos, _, _) = B.getSlidePos pos dir (length drops)
 
 undoPlaceMove :: B.Board -> B.Position -> Either InvalidUndo B.Board

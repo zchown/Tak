@@ -137,33 +137,31 @@ gameStateToTPS gs =
     ]
 
 boardToTPS :: Board -> Text
-boardToTPS b = T.intercalate "/" $ map rowToTPS (toLists b)
-
-rowToTPS :: [Square] -> Text
-rowToTPS row = T.intercalate "," $ foldr groupSquares [] row
+boardToTPS b = T.intercalate "/" $ map rowToTPS ((reverse . L.transpose . toLists) b)
   where
-    groupSquares :: Square -> [Text] -> [Text]
-    groupSquares [] [] = ["x1"]
-    groupSquares [] (x:xs)
-      | T.take 1 x == "x" =
-        T.concat ["x", T.pack $ show (1 + read @Int (T.unpack $ T.drop 1 x))] :
-        xs
-      | otherwise = "x1" : x : xs
-    groupSquares square acc = squareToTPS square : acc
+    rowToTPS :: [Square] -> Text
+    rowToTPS row = T.intercalate "," $ compressXs $ map squareToTPS row
+    compressXs :: [Text] -> [Text]
+    compressXs = concatMap compressGroup . L.group
+      where
+        compressGroup xs@(x:_)
+          | x == "x" && length xs > 1 = [T.concat [x, T.pack $ show (length xs)]]
+          | otherwise = xs
+        compressGroup [] = []
 
 squareToTPS :: Square -> Text
 squareToTPS [] = "x"
-squareToTPS stack =
-  T.pack $ foldr (\piece acc -> pieceToChar piece : acc) "" stack
-  where
-    pieceToChar :: Piece -> Char
-    pieceToChar (Piece White Flat) = '1'
-    pieceToChar (Piece Black Flat) = '2'
-    pieceToChar (Piece White Standing) = 'S'
-    pieceToChar (Piece Black Standing) = 'S'
-    pieceToChar (Piece White Cap) = 'C'
-    pieceToChar (Piece Black Cap) = 'C'
+squareToTPS stack = T.concat $ map pieceToTPS (reverse stack)
+
+pieceToTPS :: Piece -> Text
+pieceToTPS (Piece White Flat) = "1"
+pieceToTPS (Piece Black Flat) = "2"
+pieceToTPS (Piece White Standing) = "1S"
+pieceToTPS (Piece Black Standing) = "2S"
+pieceToTPS (Piece White Cap) = "1C"
+pieceToTPS (Piece Black Cap) = "2C"
 
 turnToTPS :: Color -> Text
 turnToTPS White = "1"
 turnToTPS Black = "2"
+
