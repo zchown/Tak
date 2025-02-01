@@ -203,7 +203,7 @@ undoSlide b p@(B.Position (x, y)) dir (d:ds) xs
       then Left $ InvalidSlideUndo "Not Enough Pieces"
       else do
         let (piecesToMove, remaining) = splitAt d s
-            newXs = piecesToMove ++ xs
+            newXs = xs ++ piecesToMove
             b' = setElem remaining (x, y) b
             (nextPos, _, _) = B.getNextPos p $ B.getInverseDir dir
         undoSlide b' nextPos dir ds newXs
