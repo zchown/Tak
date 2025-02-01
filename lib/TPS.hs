@@ -4,6 +4,7 @@
 module TPS where
 
 import Board
+import qualified Data.List as L
 import Data.Matrix
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -70,10 +71,11 @@ parseMoveNumber t =
 parseBoard :: Text -> Int -> Either ParseError Board
 parseBoard boardStr n = do
   rows <- mapM (parseRow n) $ T.splitOn "/" boardStr
-  let cr = concat rows
+  -- let cr = concat $ reverse rows
+  let cr = concat . L.transpose . reverse $ rows
   if length cr /= n * n
     then Prelude.Left $ InvalidBoardSize n
-    else Prelude.Right $ fromList n n cr
+    else Prelude.Right $ fromList n n $ cr
 
 parseRow :: Int -> Text -> Either ParseError [Square]
 parseRow n row =

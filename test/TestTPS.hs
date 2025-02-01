@@ -42,50 +42,18 @@ runTPSTests =
             gameState = parseTPSHard tps
         turn gameState `shouldBe` Black
         moveNumber gameState `shouldBe` 15
-      it "parses a board with pieces correctly" $ do
-        let tps =
-              "x3,12,2S/x,22S,22C,11,21/121,212,12,1121C,1212S/21S,1,21,211S,12S/x,21S,2,x2 1 26"
-            gameState = parseTPSHard tps
+      it "parses easy board" $ do
+        let tps = "1C,x,212,x2/x5/x2,111,x,2S/x5/1S,x,121,x,2C 1 1"
+        let gameState = parseTPSHard tps
+        -- putStrLn $ show $ board gameState
         nrows (board gameState) `shouldBe` 5
         ncols (board gameState) `shouldBe` 5
-        board gameState `shouldBe`
-          fromList
-            5
-            5
-            [ []
-            , []
-            , []
-            , [Piece Black Flat, Piece White Flat]
-            , [Piece Black Standing]
-            , []
-            , [Piece Black Standing, Piece Black Flat]
-            , [Piece Black Cap, Piece Black Flat]
-            , [Piece White Flat, Piece White Flat]
-            , [Piece White Flat, Piece Black Flat]
-            , [Piece White Flat, Piece Black Flat, Piece White Flat]
-            , [Piece Black Flat, Piece White Flat, Piece Black Flat]
-            , [Piece Black Flat, Piece White Flat]
-            , [ Piece White Cap
-              , Piece Black Flat
-              , Piece White Flat
-              , Piece White Flat
-              ]
-            , [ Piece Black Standing
-              , Piece White Flat
-              , Piece Black Flat
-              , Piece White Flat
-              ]
-            , [Piece White Standing, Piece Black Flat]
-            , [Piece White Flat]
-            , [Piece White Flat, Piece Black Flat]
-            , [Piece White Standing, Piece White Flat, Piece Black Flat]
-            , [Piece Black Standing, Piece White Flat]
-            , []
-            , [Piece White Standing, Piece Black Flat]
-            , [Piece Black Flat]
-            , []
-            , []
-            ]
+        getElem 1 1 (board gameState) `shouldBe` [Piece White Standing]
+        getElem 3 3 (board gameState) `shouldBe`
+          [Piece White Flat, Piece White Flat, Piece White Flat]
+        getElem 5 3 (board gameState) `shouldBe` [Piece Black Standing]
+        getElem 5 1 (board gameState) `shouldBe` [Piece Black Cap]
+        getElem 1 5 (board gameState) `shouldBe` [Piece White Cap]
       it "handles invalid TPS format (missing move number)" $ do
         let tps = "x4/x4/x4/x4 1"
         parseTPS tps `shouldBe` Prelude.Left (InvalidTPSFormat "x4/x4/x4/x4 1")

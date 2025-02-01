@@ -40,9 +40,8 @@ checkSlide b (B.Slide (pos@(B.Position (x, y)), count, dir, drops, color, crush)
   | count < 1 || count > length (getElem x y b) =
     Left $ InvalidMove "Invalid Count For Stack"
   | dir == B.Up && y + dl > nrows b = Left $ InvalidMove "Not Enough Space Up"
-  | dir == B.Down && y - dl < 0 = Left $ InvalidMove "Not Enough Space Down"
-  | dir == B.Left && x + dl > ncols b =
-    Left $ InvalidMove "Not Enough Space Left"
+  | dir == B.Down && y - dl < 1 = Left $ InvalidMove "Not Enough Space Down"
+  | dir == B.Left && x + dl < 1 = Left $ InvalidMove "Not Enough Space Left"
   | dir == B.Right && y + dl > ncols b =
     Left $ InvalidMove "Not Enough Space Right"
   | color /= B.pc (head $ getElem x y b) =
