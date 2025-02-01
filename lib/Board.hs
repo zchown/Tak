@@ -230,6 +230,17 @@ getSlidePos (Position (x, y)) Down n = (Position (x, y - n), x, y - n)
 getSlidePos (Position (x, y)) Board.Left n = (Position (x - n, y), x - n, y)
 getSlidePos (Position (x, y)) Board.Right n = (Position (x + n, y), x + n, y)
 
+flipMoveColor :: Move -> Move
+flipMoveColor (PlaceFlat (p, c)) = PlaceFlat (p, flipColor c)
+flipMoveColor (PlaceStanding (p, c)) = PlaceStanding (p, flipColor c)
+flipMoveColor (PlaceCap (p, c)) = PlaceCap (p, flipColor c)
+flipMoveColor (Slide (p, n, d, ds, c, crush)) =
+  Slide (p, n, d, ds, flipColor c, crush)
+
+flipColor :: Color -> Color
+flipColor White = Black
+flipColor Black = White
+
 -- -------------------------
 -- -- | Print Functions | --
 -- -------------------------

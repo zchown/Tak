@@ -71,8 +71,8 @@ runPTNTests =
               p2 ptn `shouldBe` Just "Bob"
               size ptn `shouldBe` Just 6
               moves ptn `shouldBe`
-                [ B.PlaceFlat (B.Position (1, 1), B.White)
-                , B.PlaceFlat (B.Position (2, 1), B.Black)
+                [ B.PlaceFlat (B.Position (1, 1), B.Black)
+                , B.PlaceFlat (B.Position (2, 1), B.White)
                 , B.PlaceFlat (B.Position (3, 1), B.White)
                 , B.PlaceFlat (B.Position (4, 1), B.Black)
                 ]
@@ -92,7 +92,7 @@ runPTNTests =
           let result' = parsePTN (pack ptnText)
           case result' of
             Prelude.Right ptn -> do
-              moves ptn `shouldBe` [B.PlaceFlat (B.Position (1, 1), B.White)]
+              moves ptn `shouldBe` [B.PlaceFlat (B.Position (1, 1), B.Black)]
             Prelude.Left e -> error (show e)
         it "parses a PTN string with missing metadata" $ do
           let ptnText =
@@ -112,8 +112,8 @@ runPTNTests =
               ptnResult ptn `shouldBe` Nothing
               size ptn `shouldBe` Nothing
               moves ptn `shouldBe`
-                [ B.PlaceFlat (B.Position (1, 1), B.White)
-                , B.PlaceFlat (B.Position (2, 1), B.Black)
+                [ B.PlaceFlat (B.Position (1, 1), B.Black)
+                , B.PlaceFlat (B.Position (2, 1), B.White)
                 ]
             Prelude.Left e -> error (show e)
         it "fails to parse a PTN string with invalid moves" $ do

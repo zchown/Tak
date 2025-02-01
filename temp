@@ -1,26 +1,3 @@
-Resolving dependencies...
-Build profile: -w ghc-9.2.8 -O1
-In order, the following will be built (use -v for more details):
- - Tak-0.1.0.0 (lib) (first run)
- - Tak-0.1.0.0 (test:Tak-test) (first run)
-Configuring library for Tak-0.1.0.0..
-Preprocessing library for Tak-0.1.0.0..
-Building library for Tak-0.1.0.0..
-[1 of 5] Compiling Board            ( lib/Board.hs, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/build/Board.o, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/build/Board.dyn_o )
-[2 of 5] Compiling Moves            ( lib/Moves.hs, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/build/Moves.o, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/build/Moves.dyn_o )
-[3 of 5] Compiling MyLib            ( lib/MyLib.hs, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/build/MyLib.o, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/build/MyLib.dyn_o )
-[4 of 5] Compiling PTN              ( lib/PTN.hs, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/build/PTN.o, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/build/PTN.dyn_o )
-[5 of 5] Compiling TPS              ( lib/TPS.hs, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/build/TPS.o, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/build/TPS.dyn_o )
-Configuring test suite 'Tak-test' for Tak-0.1.0.0..
-Preprocessing test suite 'Tak-test' for Tak-0.1.0.0..
-Building test suite 'Tak-test' for Tak-0.1.0.0..
-[1 of 6] Compiling TestBoard        ( test/TestBoard.hs, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/t/Tak-test/build/Tak-test/Tak-test-tmp/TestBoard.o )
-[2 of 6] Compiling TestGeneral      ( test/TestGeneral.hs, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/t/Tak-test/build/Tak-test/Tak-test-tmp/TestGeneral.o )
-[3 of 6] Compiling TestMoves        ( test/TestMoves.hs, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/t/Tak-test/build/Tak-test/Tak-test-tmp/TestMoves.o )
-[4 of 6] Compiling TestPTN          ( test/TestPTN.hs, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/t/Tak-test/build/Tak-test/Tak-test-tmp/TestPTN.o )
-[5 of 6] Compiling TestTPS          ( test/TestTPS.hs, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/t/Tak-test/build/Tak-test/Tak-test-tmp/TestTPS.o )
-[6 of 6] Compiling Main             ( test/Main.hs, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/t/Tak-test/build/Tak-test/Tak-test-tmp/Main.o )
-Linking /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/t/Tak-test/build/Tak-test/Tak-test ...
 Loading environment variables...
 Configuring tests...
 Running enabled tests...
@@ -51,7 +28,7 @@ Board Module
     detects a black road through mixed paths [✔]
     prevents road through standing stones [✔]
 
-Finished in 0.0011 seconds
+Finished in 0.0008 seconds
 15 examples, 0 failures
 Running TPS tests...
 
@@ -69,9 +46,13 @@ TPS Parsing
   handles invalid board size (inconsistent rows) [✔]
   handles invalid square format (invalid square) [✔]
   handles empty input [✔]
+Board to TPS Conversion
+  converts an empty 4x4 board to TPS correctly [✔]
+  converts a 6x6 board with pieces to TPS correctly [✔]
+  converts a 6x6 board with pieces to TPS correctly [✔]
 
 Finished in 0.0007 seconds
-13 examples, 0 failures
+16 examples, 0 failures
 Running PTN tests...
 
 PTN Parsing
@@ -149,61 +130,76 @@ Complex TPS Positions
   should handle a TPS position with a complex slide and multiple drops [✔]
   should reject a slide in a TPS position with insufficient pieces [✔]
 
-Finished in 0.0027 seconds
+Finished in 0.0017 seconds
 44 examples, 0 failures
 Running general tests...
 Found PTN files: ["test/ptn/test1","test/ptn/test4","test/ptn/test3","test/ptn/test2","test/ptn/test5"]
 Board state: "x6/x6/x6/x6/x6/x6"
-Validating move: PlaceFlat (Position (6,6),White)
+Validating move: PlaceFlat (Position (6,6),Black)
 
-Board state: "x6/x6/x6/x6/x6/x5,1"
-Validating move: PlaceFlat (Position (6,1),Black)
+Board state: "x5,2/x6/x6/x6/x6/x6"
+Validating move: PlaceFlat (Position (1,6),White)
 
-Board state: "x6/x6/x6/x6/x6/2,x4,1"
+Board state: "1,x4,2/x6/x6/x6/x6/x6"
 Validating move: PlaceFlat (Position (1,1),White)
 
-Board state: "1,x5/x6/x6/x6/x6/2,x4,1"
-Validating move: PlaceFlat (Position (1,6),Black)
+Board state: "1,x4,2/x6/x6/x6/x6/1,x5"
+Validating move: PlaceFlat (Position (6,1),Black)
 
-Board state: "1,x4,2/x6/x6/x6/x6/2,x4,1"
-Validating move: PlaceFlat (Position (4,1),White)
+Board state: "1,x4,2/x6/x6/x6/x6/1,x4,2"
+Validating move: PlaceFlat (Position (1,4),White)
 
-Board state: "1,x4,2/x6/x6/1,x5/x6/2,x4,1"
-Validating move: PlaceFlat (Position (4,2),Black)
+Board state: "1,x4,2/x6/1,x5/x6/x6/1,x4,2"
+Validating move: PlaceFlat (Position (2,4),Black)
 
-Board state: "1,x4,2/x6/x6/1,2,x4/x6/2,x4,1"
-Validating move: Slide (Position (4,1),1,Right,[1],White,False)
+Board state: "1,x4,2/x6/1,2,x4/x6/x6/1,x4,2"
+Validating move: Slide (Position (1,4),1,Right,[1],White,False)
 
-Board state: "1,x4,2/x6/x6/x1,2,x4/1,x5/2,x4,1"
-Validating move: PlaceFlat (Position (4,6),Black)
+Board state: "1,x4,2/x6/x,21,x4/x6/x6/1,x4,2"
+Validating move: PlaceFlat (Position (6,4),Black)
 
-Board state: "1,x4,2/x6/x6/x1,2,x3,2/1,x5/2,x4,1"
-Validating move: PlaceStanding (Position (3,6),White)
+Board state: "1,x4,2/x6/x,21,x3,2/x6/x6/1,x4,2"
+Validating move: PlaceStanding (Position (6,3),White)
 
-Board state: "1,x4,2/x6/x5,S/x1,2,x3,2/1,x5/2,x4,1"
+Board state: "1,x4,2/x6/x,21,x3,2/x5,1S/x6/1,x4,2"
 Validating move: PlaceFlat (Position (4,4),Black)
 
-Board state: "1,x4,2/x6/x5,S/x1,2,x1,2,x1,2/1,x5/2,x4,1"
-Validating move: PlaceFlat (Position (4,1),White)
+Board state: "1,x4,2/x6/x,21,x,2,x,2/x5,1S/x6/1,x4,2"
+Validating move: PlaceFlat (Position (1,4),White)
 
-Board state: "1,x4,2/x6/x5,S/1,2,x1,2,x1,2/1,x5/2,x4,1"
-Validating move: PlaceCap (Position (3,5),Black)
+Board state: "1,x4,2/x6/1,21,x,2,x,2/x5,1S/x6/1,x4,2"
+Validating move: PlaceCap (Position (5,3),Black)
 
-Board state: "1,x4,2/x6/x4,C,S/1,2,x1,2,x1,2/1,x5/2,x4,1"
-Validating move: PlaceCap (Position (5,6),White)
+Board state: "1,x4,2/x6/1,21,x,2,x,2/x4,2C,1S/x6/1,x4,2"
+Validating move: PlaceCap (Position (6,5),White)
 
-Board state: "1,x4,2/x6/x4,C,S/1,2,x1,2,x1,2/1,x4,C/2,x4,1"
+Board state: "1,x4,2/x5,1C/1,21,x,2,x,2/x4,2C,1S/x6/1,x4,2"
 Validating move: PlaceFlat (Position (2,2),Black)
 
-Board state: "1,x4,2/x1,2,x4/x4,C,S/1,2,x1,2,x1,2/1,x4,C/2,x4,1"
-Validating move: PlaceFlat (Position (1,2),White)
+Board state: "1,x4,2/x5,1C/1,21,x,2,x,2/x4,2C,1S/x,2,x4/1,x4,2"
+Validating move: PlaceFlat (Position (2,1),White)
 
-Board state: "1,1,x3,2/x1,2,x4/x4,C,S/1,2,x1,2,x1,2/1,x4,C/2,x4,1"
-Validating move: PlaceFlat (Position (3,4),Black)
+Board state: "1,x4,2/x5,1C/1,21,x,2,x,2/x4,2C,1S/x,2,x4/1,1,x3,2"
+Validating move: PlaceFlat (Position (4,3),Black)
 
-Board state: "1,1,x3,2/x1,2,x4/x3,2,C,S/1,2,x1,2,x1,2/1,x4,C/2,x4,1"
-Validating move: PlaceFlat (Position (3,1),White)
+Board state: "1,x4,2/x5,1C/1,21,x,2,x,2/x3,2,2C,1S/x,2,x4/1,1,x3,2"
+Validating move: PlaceFlat (Position (1,3),White)
 
-Board state: "1,1,x3,2/x1,2,x4/1,x2,2,C,S/1,2,x1,2,x1,2/1,x4,C/2,x4,1"
-Validating move: PlaceFlat (Position (5,1),Black)
+Board state: "1,x4,2/x5,1C/1,21,x,2,x,2/1,x2,2,2C,1S/x,2,x4/1,1,x3,2"
+Validating move: PlaceFlat (Position (1,5),Black)
+
+Board state: "1,x4,2/2,x4,1C/1,21,x,2,x,2/1,x2,2,2C,1S/x,2,x4/1,1,x3,2"
+Validating move: Slide (Position (1,6),1,Down,[1],White,False)
+
+Board state: "x5,2/21,x4,1C/1,21,x,2,x,2/1,x2,2,2C,1S/x,2,x4/1,1,x3,2"
+Validating move: PlaceStanding (Position (1,2),Black)
+
+Board state: "x5,2/21,x4,1C/1,21,x,2,x,2/1,x2,2,2C,1S/2S,2,x4/1,1,x3,2"
+Validating move: Slide (Position (2,1),1,Up,[1],White,False)
+
+Board state: "x5,2/21,x4,1C/1,21,x,2,x,2/1,x2,2,2C,1S/2S,21,x4/1,x4,2"
+Validating move: PlaceFlat (Position (1,6),Black)
+
+Board state: "2,x4,2/21,x4,1C/1,21,x,2,x,2/1,x2,2,2C,1S/2S,21,x4/1,x4,2"
+Validating move: Slide (Position (1,5),2,Up,[1],White,False)
 

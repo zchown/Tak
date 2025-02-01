@@ -47,7 +47,12 @@ parsePTN input = do
           Just str -> read <$> Just str
           Nothing -> Nothing
   let moveLines = filter isMoveLine lines'
-  moves' <- parseMoves moveLines
+  moves' <-
+    case parseMoves moveLines of
+      Left e -> Left e
+      Right [] -> Right []
+      Right [x] -> Right [B.flipMoveColor x]
+      Right (x:y:xs) -> Right (B.flipMoveColor x : B.flipMoveColor y : xs)
   return
     PTN
       { site = site'
@@ -110,7 +115,7 @@ parseSlideMove str color =
           dir' = charToDirection dir
           count = digitToInt countChar
        in case dir' of
-            Right d -> Right $ B.Slide (pos, count, d, [], color, False)
+            Right d -> Right $ B.Slide (pos, count, d, [count], color, False)
             Left err -> Left err
     countChar:col:row:dir:dropsStr ->
       let pos = B.Position (B.letterToCol col, digitToInt row)
