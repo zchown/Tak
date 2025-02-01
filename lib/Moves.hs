@@ -170,7 +170,7 @@ undoMove b (B.Slide (pos, count, dir, drops, _, _))
   | count < 1 || count > ncols b = Left $ InvalidSlideUndo "Invalid Count"
   | not $ checkLength pos (length drops) dir =
     Left $ InvalidSlideUndo "Invalid Length"
-  | otherwise = undoSlide b newPos dir drops []
+  | otherwise = undoSlide b newPos dir (reverse drops) []
   where
     checkLength :: B.Position -> Int -> B.Direction -> Bool
     checkLength (B.Position (_, r)) n B.Up = r + n <= nrows b
@@ -194,7 +194,7 @@ undoSlide ::
   -> [Int]
   -> [B.Piece]
   -> Either InvalidUndo B.Board
-undoSlide b (B.Position (x, y)) _ [] xs = Right $ setElem (reverse xs) (x, y) b
+undoSlide b (B.Position (x, y)) _ [] xs = Right $ setElem xs (x, y) b
 undoSlide b p@(B.Position (x, y)) dir (d:ds) xs
   | d < 1 = Left $ InvalidSlideUndo "Invalid Drop"
   | otherwise = do
@@ -208,9 +208,9 @@ undoSlide b p@(B.Position (x, y)) dir (d:ds) xs
             (nextPos, _, _) = B.getNextPos p $ B.getInverseDir dir
         undoSlide b' nextPos dir ds newXs
 
--- -------------------------
--- -- | Move Generation | --
--- -------------------------
+-------------------------
+-- | Move Generation | --
+-------------------------
 generateAllMoves :: B.GameState -> [B.Move]
 generateAllMoves gs
   | B.moveNumber gs == 1 = firstMovePlacement gs

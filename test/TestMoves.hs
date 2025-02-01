@@ -176,6 +176,17 @@ runMoveTests =
             invalidMove = Slide (Position (3, 3), 2, Up, [1, 1], White, False)
             undoneb = undoMove newb invalidMove
         undoneb `shouldBe` Prelude.Left (InvalidSlideUndo "Not Enough Pieces")
+      it "correctly undo more complex slide move" $ do
+        let b =
+              board $
+              parseTPSHard
+                "221,x4,2/x5,1C/1,21,x,2,x,2/1,x2,2,2C,1S/2S,21,x4/1,x4,2 2 12"
+        let move = Slide (Position (1, 5), 2, Board.Up, [2], White, False)
+        case undoMove b move of
+          Prelude.Left _ -> expectationFailure "Undo failed"
+          Prelude.Right b' -> do
+            getElem 1 5 b' `shouldBe` [Piece White Flat, Piece Black Flat]
+            getElem 1 6 b' `shouldBe` [Piece Black Flat]
     describe "Move Generation" $ do
       it "should generate all valid first moves" $ do
         let gs =
