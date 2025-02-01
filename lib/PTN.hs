@@ -91,29 +91,29 @@ parseSingleMove moveStr color =
     [col, row]
       | isLetter col && isDigit row ->
         Right $
-        B.PlaceFlat (B.Position (digitToInt row, B.letterToCol col), color)
+        B.PlaceFlat (B.Position (B.letterToCol col, digitToInt row), color)
     ['S', col, row]
       | isLetter col && isDigit row ->
         Right $
-        B.PlaceStanding (B.Position (digitToInt row, B.letterToCol col), color)
+        B.PlaceStanding (B.Position (B.letterToCol col, digitToInt row), color)
     ['C', col, row]
       | isLetter col && isDigit row ->
         Right $
-        B.PlaceCap (B.Position (digitToInt row, B.letterToCol col), color)
+        B.PlaceCap (B.Position (B.letterToCol col, digitToInt row), color)
     _ -> parseSlideMove moveStr color
 
 parseSlideMove :: String -> B.Color -> Either PTNParseError B.Move
 parseSlideMove str color =
   case str of
     [countChar, col, row, dir] ->
-      let pos = B.Position (digitToInt row, B.letterToCol col)
+      let pos = B.Position (B.letterToCol col, digitToInt row)
           dir' = charToDirection dir
           count = digitToInt countChar
        in case dir' of
             Right d -> Right $ B.Slide (pos, count, d, [], color, False)
             Left err -> Left err
     countChar:col:row:dir:dropsStr ->
-      let pos = B.Position (digitToInt row, B.letterToCol col)
+      let pos = B.Position (B.letterToCol col, digitToInt row)
           dir' = charToDirection dir
           count = digitToInt countChar
           drops = map digitToInt dropsStr
@@ -121,7 +121,7 @@ parseSlideMove str color =
             Right d -> Right $ B.Slide (pos, count, d, drops, color, False)
             Left err -> Left err
     [col, row, dir] ->
-      let pos = B.Position (digitToInt row, B.letterToCol col)
+      let pos = B.Position (B.letterToCol col, digitToInt row)
           dir' = charToDirection dir
        in case dir' of
             Right d -> Right $ B.Slide (pos, 1, d, [1], color, False)

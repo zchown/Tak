@@ -37,7 +37,7 @@ runPTNTests =
           parseMovePair "1. a1 b1" `shouldBe`
             Prelude.Right
               [ B.PlaceFlat (B.Position (1, 1), B.White)
-              , B.PlaceFlat (B.Position (1, 2), B.Black)
+              , B.PlaceFlat (B.Position (2, 1), B.Black)
               ]
         it "parses a move pair with only White's move (partial move)" $ do
           parseMovePair "1. a1" `shouldBe`
@@ -72,9 +72,9 @@ runPTNTests =
               size ptn `shouldBe` Just 6
               moves ptn `shouldBe`
                 [ B.PlaceFlat (B.Position (1, 1), B.White)
-                , B.PlaceFlat (B.Position (1, 2), B.Black)
-                , B.PlaceFlat (B.Position (1, 3), B.White)
-                , B.PlaceFlat (B.Position (1, 4), B.Black)
+                , B.PlaceFlat (B.Position (2, 1), B.Black)
+                , B.PlaceFlat (B.Position (3, 1), B.White)
+                , B.PlaceFlat (B.Position (4, 1), B.Black)
                 ]
             Prelude.Left e -> error (show e)
         it "parses a PTN string with a partial move (only White's move)" $ do
@@ -113,7 +113,7 @@ runPTNTests =
               size ptn `shouldBe` Nothing
               moves ptn `shouldBe`
                 [ B.PlaceFlat (B.Position (1, 1), B.White)
-                , B.PlaceFlat (B.Position (1, 2), B.Black)
+                , B.PlaceFlat (B.Position (2, 1), B.Black)
                 ]
             Prelude.Left e -> error (show e)
         it "fails to parse a PTN string with invalid moves" $ do
