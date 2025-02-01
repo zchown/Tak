@@ -199,6 +199,24 @@ runMoveTests =
             getElem 4 3 b' `shouldBe` [Piece Black Cap, Piece Black Flat]
             getElem 3 3 b' `shouldBe` []
             getElem 2 3 b' `shouldBe` [Piece White Flat]
+      it "correctly undo more complex slide move" $ do
+        let b =
+              board $
+              parseTPSHard
+                "2212S,1112C,1S,2,2,2/1S,12,x,2,x,2/121,1S,2,x,221C,x/21S,1,x,2221,x,1S/2S,21,221S,1S,1,x/1,1,2,2,2,2 1 35"
+        let move = Slide (Position (2, 5), 4, Board.Up, [4], Black, False)
+        case undoMove b move of
+          Prelude.Left _ -> expectationFailure "Undo failed"
+          Prelude.Right b' -> do
+            getElem 2 5 b' `shouldBe`
+              [ Piece Black Cap
+              , Piece White Flat
+              , Piece White Flat
+              , Piece White Flat
+              , Piece Black Flat
+              , Piece White Flat
+              ]
+            getElem 2 6 b' `shouldBe` []
     describe "Move Generation" $ do
       it "should generate all valid first moves" $ do
         let gs =

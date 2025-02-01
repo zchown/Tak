@@ -194,7 +194,9 @@ undoSlide ::
   -> [Int]
   -> [B.Piece]
   -> Either InvalidUndo B.Board
-undoSlide b (B.Position (x, y)) _ [] xs = Right $ setElem xs (x, y) b
+undoSlide b (B.Position (x, y)) _ [] xs = Right $ setElem final (x, y) b
+  where
+    final = xs ++ getElem x y b
 undoSlide b p@(B.Position (x, y)) dir (d:ds) xs
   | d < 1 = Left $ InvalidSlideUndo "Invalid Drop"
   | otherwise = do
