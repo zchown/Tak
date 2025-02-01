@@ -92,30 +92,35 @@ parseMovePair movePair = do
 
 parseSingleMove :: String -> B.Color -> Either PTNParseError B.Move
 parseSingleMove moveStr color =
-  case moveStr of
-    [col, row]
-      | isLetter col && isDigit row ->
-        Right $
-        B.PlaceFlat (B.Position (B.letterToCol col, digitToInt row), color)
-    ['S', col, row]
-      | isLetter col && isDigit row ->
-        Right $
-        B.PlaceStanding (B.Position (B.letterToCol col, digitToInt row), color)
-    ['C', col, row]
-      | isLetter col && isDigit row ->
-        Right $
-        B.PlaceCap (B.Position (B.letterToCol col, digitToInt row), color)
-    _ -> parseSlideMove moveStr color
+  let (moveStr', crush) =
+        if last moveStr == '*'
+          then (init moveStr, True)
+          else (moveStr, False)
+   in case moveStr' of
+        [col, row]
+          | isLetter col && isDigit row ->
+            Right $
+            B.PlaceFlat (B.Position (B.letterToCol col, digitToInt row), color)
+        ['S', col, row]
+          | isLetter col && isDigit row ->
+            Right $
+            B.PlaceStanding
+              (B.Position (B.letterToCol col, digitToInt row), color)
+        ['C', col, row]
+          | isLetter col && isDigit row ->
+            Right $
+            B.PlaceCap (B.Position (B.letterToCol col, digitToInt row), color)
+        _ -> parseSlideMove moveStr' color crush
 
-parseSlideMove :: String -> B.Color -> Either PTNParseError B.Move
-parseSlideMove str color =
+parseSlideMove :: String -> B.Color -> Bool -> Either PTNParseError B.Move
+parseSlideMove str color crush =
   case str of
     [countChar, col, row, dir] ->
       let pos = B.Position (B.letterToCol col, digitToInt row)
           dir' = charToDirection dir
           count = digitToInt countChar
        in case dir' of
-            Right d -> Right $ B.Slide (pos, count, d, [count], color, False)
+            Right d -> Right $ B.Slide (pos, count, d, [count], color, crush)
             Left err -> Left err
     countChar:col:row:dir:dropsStr ->
       let pos = B.Position (B.letterToCol col, digitToInt row)
@@ -123,13 +128,13 @@ parseSlideMove str color =
           count = digitToInt countChar
           drops = map digitToInt dropsStr
        in case dir' of
-            Right d -> Right $ B.Slide (pos, count, d, drops, color, False)
+            Right d -> Right $ B.Slide (pos, count, d, drops, color, crush)
             Left err -> Left err
     [col, row, dir] ->
       let pos = B.Position (B.letterToCol col, digitToInt row)
           dir' = charToDirection dir
        in case dir' of
-            Right d -> Right $ B.Slide (pos, 1, d, [1], color, False)
+            Right d -> Right $ B.Slide (pos, 1, d, [1], color, crush)
             Left err -> Left err
     _ -> Left PTNSlideError
 
