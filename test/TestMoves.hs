@@ -116,7 +116,7 @@ runMoveTests =
         let move = Slide (Position (3, 3), 3, Board.Right, [2, 1], White, True)
         getElem 3 3 b `shouldBe`
           [Piece White Cap, Piece White Flat, Piece White Flat]
-        getElem 3 5 b `shouldBe` [Piece Black Standing]
+        getElem 5 3 b `shouldBe` [Piece Black Standing]
         checkMove b move `shouldBe` Prelude.Right True
       it "should not allow crush with flat and cap stone" $ do
         let b =
@@ -224,7 +224,7 @@ runMoveTests =
         let b = placeFlat (createEmptyBoard 5) (Position (1, 1)) White
             move = Slide (Position (1, 1), 1, Board.Left, [1], White, False)
         checkMove b move `shouldBe`
-          Prelude.Left (InvalidMove "Not Enough Columns Left")
+          Prelude.Left (InvalidMove "Not Enough Space Left")
       it "should reject sliding a stack with invalid drop counts" $ do
         let b = placeFlat (createEmptyBoard 5) (Position (3, 3)) White
             move = Slide (Position (3, 3), 2, Up, [1, 2], White, False)
@@ -238,48 +238,48 @@ runMoveTests =
       it "should reject sliding a stack with a standing stone in the way" $ do
         let b = placeFlat (createEmptyBoard 5) (Position (3, 3)) White
             b' = placeStanding b (Position (2, 3)) Black
-            move = Slide (Position (3, 3), 1, Up, [1], White, False)
+            move = Slide (Position (3, 3), 1, Board.Left, [1], White, False)
         checkMove b' move `shouldBe`
           Prelude.Left (InvalidMove "Standing In The Way")
       it "should reject sliding a stack with a capstone in the way" $ do
         let b = placeFlat (createEmptyBoard 5) (Position (3, 3)) White
             b' = placeCap b (Position (2, 3)) White
-            move = Slide (Position (3, 3), 1, Up, [1], White, False)
+            move = Slide (Position (3, 3), 1, Board.Left, [1], White, False)
         checkMove b' move `shouldBe` Prelude.Left (InvalidMove "Cap In The Way")
       it "should reject sliding a stack with incorrect crush setting" $ do
         let b = placeCap (createEmptyBoard 5) (Position (3, 3)) White
             b' = placeStanding b (Position (2, 3)) Black
-            move = Slide (Position (3, 3), 1, Up, [1], White, False)
+            move = Slide (Position (3, 3), 1, Board.Left, [1], White, False)
         checkMove b' move `shouldBe`
           Prelude.Left (InvalidMove "Crush not set correctly")
     describe "Complex TPS Positions" $ do
       it "should handle a complex TPS position with multiple stacks" $ do
         let tps = T.pack "[TPS x5/x5/1,2,x,2,1/x5/x5 1 1]"
             b = board $ parseTPSHard tps
-            move = Slide (Position (3, 1), 1, Board.Right, [1], White, False)
+            move = Slide (Position (1, 3), 1, Board.Right, [1], White, False)
         checkMove b move `shouldBe` Prelude.Right True
       it "should handle a TPS position with a capstone and standing stones" $ do
         let tps = T.pack "[TPS x5/x5/1C,2S,x,2,1/x5/x5 1 1]"
             b = board $ parseTPSHard tps
-            move = Slide (Position (3, 1), 1, Board.Right, [1], White, True)
+            move = Slide (Position (1, 3), 1, Board.Right, [1], White, True)
         checkMove b move `shouldBe` Prelude.Right True
       it
         "should reject a slide in a TPS position with a standing stone in the way" $ do
         let tps = T.pack "[TPS x5/x5/1,2S,x,2,1/x5/x5 1 1]"
             b = board $ parseTPSHard tps
-            move = Slide (Position (3, 1), 1, Board.Right, [1], White, False)
+            move = Slide (Position (1, 3), 1, Board.Right, [1], White, False)
         checkMove b move `shouldBe`
           Prelude.Left (InvalidMove "Standing In The Way")
       it "should handle a TPS position with a complex slide and multiple drops" $ do
         let tps = T.pack "[TPS x5/x5/121,2,2,2,1/x5/x5 1 1]"
             b = board $ parseTPSHard tps
             move =
-              Slide (Position (3, 1), 3, Board.Right, [1, 1, 1], White, False)
+              Slide (Position (1, 3), 3, Board.Right, [1, 1, 1], White, False)
         checkMove b move `shouldBe` Prelude.Right True
       it "should reject a slide in a TPS position with insufficient pieces" $ do
         let tps = T.pack "[TPS x5/x5/2121C,2,2,2,1/x5/x5 1 1]"
             b = board $ parseTPSHard tps
             move =
               Slide
-                (Position (3, 1), 4, Board.Right, [1, 1, 1, 1], White, False)
+                (Position (1, 3), 4, Board.Right, [1, 1, 1, 1], White, False)
         checkMove b move `shouldBe` Prelude.Right True

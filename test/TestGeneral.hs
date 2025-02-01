@@ -1,19 +1,19 @@
 module TestGeneral where
 
 import qualified Board as B
-import Control.Monad (filterM, forM_)
+import Control.Monad (forM_)
 import qualified Data.Text.IO as TIO
 import qualified Moves as M
 import qualified PTN as P
-import System.Directory (doesFileExist, listDirectory)
+import System.Directory (listDirectory)
 import System.FilePath ((</>))
 import qualified TPS as T
 
 validateMoves :: B.Board -> [B.Move] -> IO ()
 validateMoves _ [] = return ()
 validateMoves board (move:rest) = do
-  putStrLn $ "Validating move: " ++ show move
   putStrLn $ "Board state: " ++ show (T.boardToTPS board)
+  putStrLn $ "Validating move: " ++ show move ++ "\n"
   case M.makeMove board move of
     Left err -> error $ "Failed to make move: " ++ show err
     Right newBoard -> do
