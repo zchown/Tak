@@ -2,11 +2,38 @@
 
 module TerminalGamePlayer where
 
-import Control.Monad (when)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import System.Directory (doesFileExist)
 import System.Environment (lookupEnv, setEnv)
+
+import qualified Board as B
+import qualified Moves as M
+import qualified PTN as P
+import qualified TPS as T
+
+makeUserMove :: B.GameState -> IO B.GameState
+makeUserMove gs@(B.GameState b c mn p1 p2 r ms) = do
+  putStr $ B.colorString c ++ "Enter your move: "
+  t <- getLine
+  case P.parseSingleMove t c of
+    Left e -> do
+      print e
+      makeUserMove gs
+    Right m -> do
+      if not (B.hasReserves p1 p2 m)
+        then do
+          putStrLn "You don't have enough pieces to make that move."
+          makeUserMove gs
+        else do
+          case M.makeMove b m of
+            Left e -> do
+              print e
+              makeUserMove gs
+            Right b' -> do
+              let (p1', p2') = B.getNewReserves p1 p2 m
+              return $
+                B.GameState b' (B.flipColor c) (mn + 1) p1' p2' r (m : ms)
 
 ----------------------
 -- | Game Options | --
