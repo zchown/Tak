@@ -165,11 +165,12 @@ undoMove :: B.Board -> B.Move -> Either InvalidUndo B.Board
 undoMove b (B.PlaceFlat (pos, _)) = undoPlaceMove b pos
 undoMove b (B.PlaceStanding (pos, _)) = undoPlaceMove b pos
 undoMove b (B.PlaceCap (pos, _)) = undoPlaceMove b pos
-undoMove b (B.Slide (pos, count, dir, drops, _, _))
+undoMove b (B.Slide (pos, count, dir, drops, _, crush))
   | sum drops /= count = Left $ InvalidSlideUndo "Drop Count Mismatch"
   | count < 1 || count > ncols b = Left $ InvalidSlideUndo "Invalid Count"
   | not $ checkLength pos (length drops) dir =
     Left $ InvalidSlideUndo "Invalid Length"
+  | crush = undoSlide (undoCrush b newPos) newPos dir (reverse drops) []
   | otherwise = undoSlide b newPos dir (reverse drops) []
   where
     checkLength :: B.Position -> Int -> B.Direction -> Bool
@@ -178,6 +179,15 @@ undoMove b (B.Slide (pos, count, dir, drops, _, _))
     checkLength (B.Position (c, _)) n B.Left = c - n >= 1
     checkLength (B.Position (c, _)) n B.Right = c + n <= ncols b
     (newPos, _, _) = B.getSlidePos pos dir (length drops)
+
+undoCrush :: B.Board -> B.Position -> B.Board
+undoCrush brd (B.Position (x, y)) = b'
+  where
+    s =
+      case getElem x y brd of
+        (a:b:cs) -> a : B.flipStanding b : cs
+        as -> as
+    b' = setElem s (x, y) brd
 
 undoPlaceMove :: B.Board -> B.Position -> Either InvalidUndo B.Board
 undoPlaceMove b (B.Position (x, y))

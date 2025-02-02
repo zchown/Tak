@@ -241,6 +241,11 @@ flipColor :: Color -> Color
 flipColor White = Black
 flipColor Black = White
 
+flipStanding :: Piece -> Piece
+flipStanding (Piece c Standing) = Piece c Flat
+flipStanding (Piece c Flat) = Piece c Standing
+flipStanding p = p
+
 -- -------------------------
 -- -- | Print Functions | --
 -- -------------------------

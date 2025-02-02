@@ -47,5 +47,6 @@ runGeneralTests = do
   let emptyBoard = B.createEmptyBoard 6
   forM_ files $ \file -> do
     moves <- reanPTNFile file
+    putStrLn $ "Validating moves from PTN file: " ++ file
     validateMoves emptyBoard moves
     putStrLn $ "Passed PTN file: " ++ file

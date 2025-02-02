@@ -217,6 +217,18 @@ runMoveTests =
               , Piece White Flat
               ]
             getElem 2 6 b' `shouldBe` []
+      it "undo crush" $ do
+        let b =
+              board $
+              parseTPSHard
+                "x5,1/x4,1,x/2,x,1,1,1212C,x/1,21,221C,2S,1112,x/2,2,2,1,1,2/2,x,1,x,1,2 1 21"
+        let move = Slide (Position (4, 4), 1, Board.Right, [1], Black, True)
+        case undoMove b move of
+          Prelude.Left _ -> expectationFailure "Undo failed"
+          Prelude.Right b' -> do
+            getElem 4 4 b' `shouldBe` [Piece Black Cap, Piece White Flat]
+            getElem 5 4 b' `shouldBe`
+              [Piece White Standing, Piece Black Flat, Piece White Flat]
     describe "Move Generation" $ do
       it "should generate all valid first moves" $ do
         let gs =
