@@ -208,7 +208,8 @@ colorToText B.Black = "Black"
 getInitialGameState :: Int -> B.GameState
 getInitialGameState size =
   B.GameState
-    { B.board = B.createEmptyBoard size
+    { B.board =
+        B.placeFlat (B.createEmptyBoard size) (B.Position (1, 1)) B.White
     , B.turn = B.White
     , B.moveNumber = 1
     , B.player1 = getInitialReserves size
