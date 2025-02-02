@@ -248,6 +248,30 @@ flipStanding (Piece c Standing) = Piece c Flat
 flipStanding (Piece c Flat) = Piece c Standing
 flipStanding p = p
 
+getNewReserves :: Reserves -> Reserves -> Move -> (Reserves, Reserves)
+getNewReserves (Reserves s1 c1) p2 (PlaceFlat (_, White)) =
+  (Reserves (s1 - 1) c1, p2)
+getNewReserves p1 (Reserves s2 c2) (PlaceFlat (_, Black)) =
+  (p1, Reserves (s2 - 1) c2)
+getNewReserves (Reserves s1 c1) p2 (PlaceStanding (_, White)) =
+  (Reserves (s1 - 1) c1, p2)
+getNewReserves p1 (Reserves s2 c2) (PlaceStanding (_, Black)) =
+  (p1, Reserves (s2 - 1) c2)
+getNewReserves (Reserves s1 c1) p2 (PlaceCap (_, White)) =
+  (Reserves s1 (c1 - 1), p2)
+getNewReserves p1 (Reserves s2 c2) (PlaceCap (_, Black)) =
+  (p1, Reserves s2 (c2 - 1))
+getNewReserves p1 p2 _ = (p1, p2)
+
+hasReserves :: Reserves -> Reserves -> Move -> Bool
+hasReserves (Reserves s _) _ (PlaceFlat (_, White)) = s > 0
+hasReserves _ (Reserves s _) (PlaceFlat (_, Black)) = s > 0
+hasReserves (Reserves s _) _ (PlaceStanding (_, White)) = s > 0
+hasReserves _ (Reserves s _) (PlaceStanding (_, Black)) = s > 0
+hasReserves (Reserves _ c) _ (PlaceCap (_, White)) = c > 0
+hasReserves _ (Reserves _ c) (PlaceCap (_, Black)) = c > 0
+hasReserves _ _ _ = True
+
 -- -------------------------
 -- -- | Print Functions | --
 -- -------------------------
@@ -262,6 +286,10 @@ pieceString (Piece Black Cap) = "2C"
 stackString :: Stack -> String
 stackString [] = "[]"
 stackString xs = (concatMap (\x -> pieceString x ++ " ") . reverse) xs
+
+colorString :: Color -> String
+colorString White = "White"
+colorString Black = "Black"
 
 showSquare :: Square -> (String, Maybe String)
 showSquare [] = ("_", Nothing)
