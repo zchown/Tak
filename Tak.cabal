@@ -45,12 +45,15 @@ library
 executable Tak
     import:           warnings
     main-is:          Main.hs
-    -- other-modules:
+    other-modules:    TerminalGamePlayer
     -- other-extensions:
     build-depends:
         base ^>=4.16.4.0,
-        Tak
-
+        Tak,
+        text,
+        matrix,
+        directory,
+        filepath
     hs-source-dirs:   app
     default-language: Haskell2010
 

@@ -82,12 +82,6 @@ checkGameResult gs =
         Nothing -> checkFullBoard (board gs)
         Just r -> r
     r -> r
-  -- case checkReservesDraw (player1 gs) (player2 gs) of
-  --   Just r -> r
-  --   Nothing ->
-  --     case checkFullBoard (board gs) of
-  --       Just r -> r
-  --       Nothing -> checkGameWin (board gs)
 
 checkFullBoard :: Board -> Result
 checkFullBoard b = go 1 1 (0, 0)
