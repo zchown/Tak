@@ -10,7 +10,7 @@ import System.Environment (lookupEnv, setEnv)
 import qualified Board as B
 import qualified Moves as M
 import qualified PTN as P
-import qualified TPS as T
+import qualified TPS
 
 makeUserMove :: B.GameState -> IO B.GameState
 makeUserMove gs@(B.GameState b c mn p1 p2 r ms) = do
@@ -34,6 +34,16 @@ makeUserMove gs@(B.GameState b c mn p1 p2 r ms) = do
               let (p1', p2') = B.getNewReserves p1 p2 m
               return $
                 B.GameState b' (B.flipColor c) (mn + 1) p1' p2' r (m : ms)
+
+displayGameState :: DisplayType -> B.GameState -> IO ()
+displayGameState d gs@(B.GameState b c mn p1 p2 _ _) = do
+  putStrLn $ "Move number: " ++ show mn
+  putStrLn $ "Reserves: " ++ show p1 ++ " " ++ show p2
+  putStrLn $ "Player to move: " ++ B.colorString c
+  putStrLn "Board:"
+  case d of
+    TPS -> putStrLn $ T.unpack $ TPS.gameStateToTPS gs
+    BPO -> putStrLn $ B.boardString b
 
 ----------------------
 -- | Game Options | --
