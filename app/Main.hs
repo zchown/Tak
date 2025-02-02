@@ -1,7 +1,8 @@
 module Main where
 
-import TerminalGamePlayer
+-- import TerminalGamePlayer
+import GameServer
 
 main :: IO ()
 main = do
-  startGame
+  startServer

@@ -11,7 +11,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
 import qualified Moves as M
-import Network.Wai.Middleware.Cors (simpleCors)
+import Network.Wai.Middleware.Cors (CorsResourcePolicy(..), cors, simpleHeaders)
 import qualified PTN as P
 import qualified TPS
 import Web.Scotty
@@ -65,10 +65,17 @@ initGameStore = newTVarIO Map.empty
 startServer :: IO ()
 startServer = do
   gameStore <- initGameStore
+  putStrLn "Game store initialized"
   scotty 3000 $ do
-    middleware simpleCors
+    middleware $ cors (const $ Just appCorsResourcePolicy)
+    options "/api/game/new" $ do text "OK"
+    options "/api/game/move" $ do text "OK"
+    options "/api/game/:id" $ do text "OK"
     post "/api/game/new" $ do
       req <- jsonData :: ActionM NewGameRequest
+      liftIO $
+        putStrLn $
+        "Received new game request with board size: " ++ show (boardSize req)
       gameId <- liftIO $ createNewGame gameStore (boardSize req)
       json $
         GameResponse
@@ -138,6 +145,19 @@ startServer = do
             , blackReserves = Just $ B.player2 gs
             , gameResult = Just $ B.result gs
             }
+
+appCorsResourcePolicy :: CorsResourcePolicy
+appCorsResourcePolicy =
+  CorsResourcePolicy
+    { corsOrigins = Just (["http://localhost:5173"], True)
+    , corsMethods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    , corsRequestHeaders = simpleHeaders
+    , corsExposedHeaders = Nothing
+    , corsMaxAge = Nothing
+    , corsVaryOrigin = False
+    , corsRequireOrigin = False
+    , corsIgnoreFailures = False
+    }
 
 createNewGame :: GameStore -> Int -> IO Text
 createNewGame store size = do
