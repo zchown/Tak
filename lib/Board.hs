@@ -127,7 +127,7 @@ checkGameWin b
     Road Black
   | any
       (findRoad (transpose b) Black)
-      (filter (validPos Black) [Position (x, 1) | x <- [1 .. ncols b]]) =
+      (filter (validPos Black) [Position (x, 1) | x <- [1 .. nrows b]]) =
     Road Black
   | otherwise = Continue
   where
@@ -301,17 +301,19 @@ showSquare stack =
    in (letter, Just $ letter ++ ": " ++ stackString stack)
 
 boardString :: Board -> String
-boardString b =
+boardString b' =
   unlines $
-  [show (n - i) ++ " |" ++ row i | i <- [1 .. n]] ++
-  ["  " ++ concat ["  " ++ [colToLetter j] ++ "  " | j <- [1 .. m]]] ++
+  [show (n - i + 1) ++ " |" ++ row i | i <- [1 .. n]] ++
+  [" " ++ concat ["    " ++ [colToLetter j] ++ "  " | j <- [1 .. m]]] ++
   (if not (null keys)
      then "Key:" : keys
      else [])
   where
+    b = transpose b'
     n = nrows b
     m = ncols b
-    row i = concat [" " ++ padSquare (square (i + 1) j) ++ " |" | j <- [1 .. m]]
+    row i =
+      concat [" " ++ padSquare (square (n - i + 1) j) ++ " |" | j <- [1 .. m]]
     square i j =
       let (display, _) = showSquare (getElem i j b)
        in display
