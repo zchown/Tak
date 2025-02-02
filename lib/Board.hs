@@ -1,7 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# Language FlexibleInstances #-}
-
+{-# LANGUAGE FlexibleInstances #-}
 
 module Board where
 
@@ -17,6 +16,7 @@ data Stone
   deriving (Show, Eq, Generic)
 
 instance ToJSON Stone
+
 instance FromJSON Stone
 
 data Color
@@ -25,6 +25,7 @@ data Color
   deriving (Show, Eq, Generic)
 
 instance ToJSON Color
+
 instance FromJSON Color
 
 data Piece = Piece
@@ -33,6 +34,7 @@ data Piece = Piece
   } deriving (Show, Eq, Generic)
 
 instance ToJSON Piece
+
 instance FromJSON Piece
 
 data Reserves = Reserves
@@ -41,6 +43,7 @@ data Reserves = Reserves
   } deriving (Show, Eq, Generic)
 
 instance ToJSON Reserves
+
 instance FromJSON Reserves
 
 type Stack = [Piece]
@@ -52,11 +55,13 @@ newtype Position =
   deriving (Show, Eq, Generic)
 
 instance ToJSON Position
+
 instance FromJSON Position
 
 type Board = Matrix Square
 
 instance ToJSON Board
+
 instance FromJSON Board
 
 data Direction
@@ -67,6 +72,7 @@ data Direction
   deriving (Show, Eq, Generic)
 
 instance ToJSON Direction
+
 instance FromJSON Direction
 
 data Result
@@ -77,6 +83,7 @@ data Result
   deriving (Show, Eq, Generic)
 
 instance ToJSON Result
+
 instance FromJSON Result
 
 type Crush = Bool
@@ -91,6 +98,7 @@ data Move
   deriving (Show, Eq, Generic)
 
 instance ToJSON Move
+
 instance FromJSON Move
 
 type History = [Move]
@@ -106,6 +114,7 @@ data GameState = GameState
   } deriving (Show, Eq, Generic)
 
 instance ToJSON GameState
+
 instance FromJSON GameState
 
 --------------------------

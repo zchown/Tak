@@ -5,15 +5,7 @@ module GameServer where
 
 import qualified Board as B
 import Control.Concurrent.STM
-import Control.Concurrent.STM.TVar
-import Control.Monad.IO.Class (liftIO)
-import Data.Aeson
-  ( FromJSON
-  , ToJSON
-  , defaultOptions
-  , genericParseJSON
-  , genericToJSON
-  )
+import Data.Aeson (FromJSON, ToJSON)
 import qualified Data.Map as Map
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -24,7 +16,6 @@ import qualified PTN as P
 import qualified TPS
 import Web.Scotty
 
--- Types for JSON communication
 data GameStatus
   = Success
   | Error
