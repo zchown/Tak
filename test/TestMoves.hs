@@ -238,7 +238,7 @@ runMoveTests =
                 1
                 (Reserves 21 1)
                 (Reserves 21 1)
-                Nothing
+                Continue
                 []
             moves = generateAllMoves gs
         length moves `shouldBe` 25
@@ -250,7 +250,7 @@ runMoveTests =
                 2
                 (Reserves 21 1)
                 (Reserves 21 1)
-                Nothing
+                Continue
                 []
             moves = generateAllMoves gs
         length moves `shouldBe` 75

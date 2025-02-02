@@ -42,8 +42,10 @@ data Direction
   deriving (Show, Eq)
 
 data Result
-  = Win Color
+  = Road Color
+  | FlatWin Color
   | Draw
+  | Continue
   deriving (Show, Eq)
 
 type Crush = Bool
@@ -65,37 +67,43 @@ data GameState = GameState
   , moveNumber :: Int
   , player1 :: Reserves
   , player2 :: Reserves
-  , result :: Maybe Result
+  , result :: Result
   , gameHistory :: History
   } deriving (Show, Eq)
 
 --------------------------
 -- | Check Game State | --
 --------------------------
-checkGameResult :: GameState -> Maybe Result
+checkGameResult :: GameState -> Result
 checkGameResult gs =
-  case checkReservesDraw (player1 gs) (player2 gs) of
-    Just r -> Just r
-    Nothing ->
-      case checkFullBoard (board gs) of
-        Just r -> Just r
-        Nothing -> checkGameWin (board gs)
+  case checkGameWin (board gs) of
+    Continue ->
+      case checkReservesDraw (player1 gs) (player2 gs) of
+        Nothing -> checkFullBoard (board gs)
+        Just r -> r
+    r -> r
+  -- case checkReservesDraw (player1 gs) (player2 gs) of
+  --   Just r -> r
+  --   Nothing ->
+  --     case checkFullBoard (board gs) of
+  --       Just r -> r
+  --       Nothing -> checkGameWin (board gs)
 
-checkFullBoard :: Board -> Maybe Result
+checkFullBoard :: Board -> Result
 checkFullBoard b = go 1 1 (0, 0)
   where
     n = nrows b
     m = ncols b
-    go :: Int -> Int -> (Int, Int) -> Maybe Result
+    go :: Int -> Int -> (Int, Int) -> Result
     go x y c@(wc, bc)
       | x > n = go 1 (y + 1) c
       | y >= m =
         if wc > bc
-          then Just (Win White)
+          then FlatWin White
           else if bc > wc
-                 then Just (Win Black)
-                 else Just Draw
-      | null (getElem x y b) = Nothing
+                 then FlatWin Black
+                 else Draw
+      | null (getElem x y b) = Continue
       | otherwise = go (x + 1) y $ addCount c
       where
         addCount :: (Int, Int) -> (Int, Int)
@@ -105,29 +113,29 @@ checkFullBoard b = go 1 1 (0, 0)
           | otherwise = (wc, bc)
 
 checkReservesDraw :: Reserves -> Reserves -> Maybe Result
-checkReservesDraw (Reserves 0 0) _ = Just Draw
-checkReservesDraw _ (Reserves 0 0) = Just Draw
-checkReservesDraw _ _ = Nothing
+checkReservesDraw (Reserves 0 0) _ = Nothing
+checkReservesDraw _ (Reserves 0 0) = Nothing
+checkReservesDraw _ _ = Just Continue
 
-checkGameWin :: Board -> Maybe Result
+checkGameWin :: Board -> Result
 checkGameWin b
   | any
       (findRoad b White)
       (filter (validPos White) [Position (x, 1) | x <- [1 .. ncols b]]) =
-    Just (Win White)
+    Road White
   | any
       (findRoad (transpose b) White)
       (filter (validPos White) [Position (x, 1) | x <- [1 .. nrows b]]) =
-    Just (Win White)
+    Road White
   | any
       (findRoad b Black)
       (filter (validPos Black) [Position (x, 1) | x <- [1 .. nrows b]]) =
-    Just (Win Black)
+    Road Black
   | any
       (findRoad (transpose b) Black)
       (filter (validPos Black) [Position (x, 1) | x <- [1 .. ncols b]]) =
-    Just (Win Black)
-  | otherwise = Nothing
+    Road Black
+  | otherwise = Continue
   where
     validPos :: Color -> Position -> Bool
     validPos c (Position (x, y)) =

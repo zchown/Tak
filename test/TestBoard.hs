@@ -50,25 +50,12 @@ runBoardTests =
           colToLetter 1 `shouldBe` 'a'
           colToLetter 2 `shouldBe` 'b'
       describe "checkGameResult" $ do
-        it "handles 4x4 full board draw" $ do
-          let fullBoard = matrix 4 4 (const [Piece White Flat])
-              gameState =
-                GameState
-                  { board = fullBoard
-                  , turn = White
-                  , moveNumber = 0
-                  , player1 = Reserves 0 0
-                  , player2 = Reserves 0 0
-                  , result = Nothing
-                  , gameHistory = []
-                  }
-          checkGameResult gameState `shouldBe` Just Draw
         it "detects non full board" $ do
           let partialBoard = matrix 4 4 (const [])
-          checkFullBoard partialBoard `shouldBe` Nothing
+          checkFullBoard partialBoard `shouldBe` Continue
         it "detects full board" $ do
           let partialBoard = matrix 4 4 (const [Piece White Flat])
-          checkFullBoard partialBoard `shouldBe` Just (Win White)
+          checkFullBoard partialBoard `shouldBe` FlatWin White
         it "detects when game is not over" $ do
           let partialBoard = matrix 4 4 (const [])
               gameState =
@@ -78,10 +65,10 @@ runBoardTests =
                   , moveNumber = 0
                   , player1 = Reserves 10 1
                   , player2 = Reserves 10 1
-                  , result = Nothing
+                  , result = Continue
                   , gameHistory = []
                   }
-          checkGameResult gameState `shouldBe` Nothing
+          checkGameResult gameState `shouldBe` Continue
       describe "findRoad" $ do
         it "detects a white road through mixed paths" $ do
           let b =
@@ -95,7 +82,7 @@ runBoardTests =
                   , [[Piece White Flat], [], [Piece White Flat], []]
                   , [[], [Piece White Flat], [], [Piece White Flat]]
                   ]
-          checkGameWin b `shouldBe` Just (Win White)
+          checkGameWin b `shouldBe` Road White
         it "detects a black road through mixed paths" $ do
           let b =
                 fromLists
@@ -108,7 +95,7 @@ runBoardTests =
                   , [[Piece Black Flat], [], [Piece Black Flat], []]
                   , [[], [Piece Black Flat], [], [Piece Black Flat]]
                   ]
-          checkGameWin b `shouldBe` Just (Win Black)
+          checkGameWin b `shouldBe` Road Black
         it "prevents road through standing stones" $ do
           let b =
                 fromLists

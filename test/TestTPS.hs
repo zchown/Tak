@@ -89,7 +89,7 @@ runTPSTests =
                 , moveNumber = 1
                 , player1 = Reserves 15 0
                 , player2 = Reserves 15 0
-                , result = Nothing
+                , result = Continue
                 , gameHistory = []
                 }
             tps = gameStateToTPS gameState

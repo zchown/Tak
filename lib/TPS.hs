@@ -32,7 +32,7 @@ parseTPS t = do
           , moveNumber = mn
           , player1 = getReserves b White
           , player2 = getReserves b Black
-          , result = Nothing
+          , result = Continue
           , gameHistory = []
           }
     _ -> Prelude.Left $ InvalidTPSFormat t
@@ -137,7 +137,8 @@ gameStateToTPS gs =
     ]
 
 boardToTPS :: Board -> Text
-boardToTPS b = T.intercalate "/" $ map rowToTPS ((reverse . L.transpose . toLists) b)
+boardToTPS b =
+  T.intercalate "/" $ map rowToTPS ((reverse . L.transpose . toLists) b)
   where
     rowToTPS :: [Square] -> Text
     rowToTPS row = T.intercalate "," $ compressXs $ map squareToTPS row
@@ -145,7 +146,8 @@ boardToTPS b = T.intercalate "/" $ map rowToTPS ((reverse . L.transpose . toList
     compressXs = concatMap compressGroup . L.group
       where
         compressGroup xs@(x:_)
-          | x == "x" && length xs > 1 = [T.concat [x, T.pack $ show (length xs)]]
+          | x == "x" && length xs > 1 =
+            [T.concat [x, T.pack $ show (length xs)]]
           | otherwise = xs
         compressGroup [] = []
 
@@ -164,4 +166,3 @@ pieceToTPS (Piece Black Cap) = "2C"
 turnToTPS :: Color -> Text
 turnToTPS White = "1"
 turnToTPS Black = "2"
-
