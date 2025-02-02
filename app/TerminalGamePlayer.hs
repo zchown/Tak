@@ -7,7 +7,6 @@ import qualified Data.Text.IO as TIO
 import System.Directory (doesFileExist)
 import System.Environment (lookupEnv, setEnv)
 
--- import System.IO (hflush, stdout)
 import qualified Board as B
 import qualified Moves as M
 import qualified PTN as P

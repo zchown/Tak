@@ -39,6 +39,7 @@ library
                     , sequence
                     , text
                     , parsec
+                    , aeson
     hs-source-dirs:   lib
     default-language: Haskell2010
 
@@ -46,6 +47,7 @@ executable Tak
     import:           warnings
     main-is:          Main.hs
     other-modules:    TerminalGamePlayer
+                      GameServer
     -- other-extensions:
     build-depends:
         base ^>=4.16.4.0,
@@ -53,7 +55,12 @@ executable Tak
         text,
         matrix,
         directory,
-        filepath
+        filepath,
+        scotty,
+        aeson,
+        containers,
+        stm,
+        wai-cors
     hs-source-dirs:   app
     default-language: Haskell2010
 

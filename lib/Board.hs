@@ -1,28 +1,47 @@
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# Language FlexibleInstances #-}
+
+
 module Board where
 
+import Data.Aeson (FromJSON, ToJSON)
 import Data.Char (isLetter, toLower)
 import Data.Matrix
+import GHC.Generics (Generic)
 
 data Stone
   = Flat
   | Standing
   | Cap
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
+
+instance ToJSON Stone
+instance FromJSON Stone
 
 data Color
   = White
   | Black
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
+
+instance ToJSON Color
+instance FromJSON Color
 
 data Piece = Piece
   { pc :: Color
   , ps :: Stone
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
+
+instance ToJSON Piece
+instance FromJSON Piece
 
 data Reserves = Reserves
   { stones :: Int
   , caps :: Int
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
+
+instance ToJSON Reserves
+instance FromJSON Reserves
 
 type Stack = [Piece]
 
@@ -30,23 +49,35 @@ type Square = Stack
 
 newtype Position =
   Position (Int, Int)
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
+
+instance ToJSON Position
+instance FromJSON Position
 
 type Board = Matrix Square
+
+instance ToJSON Board
+instance FromJSON Board
 
 data Direction
   = Up
   | Down
   | Left
   | Right
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
+
+instance ToJSON Direction
+instance FromJSON Direction
 
 data Result
   = Road Color
   | FlatWin Color
   | Draw
   | Continue
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
+
+instance ToJSON Result
+instance FromJSON Result
 
 type Crush = Bool
 
@@ -57,7 +88,10 @@ data Move
   | PlaceStanding (Position, Color)
   | PlaceCap (Position, Color)
   | Slide (Position, Count, Direction, [Int], Color, Crush)
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
+
+instance ToJSON Move
+instance FromJSON Move
 
 type History = [Move]
 
@@ -69,7 +103,10 @@ data GameState = GameState
   , player2 :: Reserves
   , result :: Result
   , gameHistory :: History
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
+
+instance ToJSON GameState
+instance FromJSON GameState
 
 --------------------------
 -- | Check Game State | --
