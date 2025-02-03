@@ -192,6 +192,8 @@ processMove store gId moveStr = do
           if not (B.hasReserves (B.player1 gs) (B.player2 gs) move)
             then return $ Left "Not enough pieces"
             else case M.makeMove (B.board gs) move of
+                   Left (M.InvalidMove "Crush not set correctly") ->
+                     processMove store gId (T.concat [moveStr, T.pack "*"])
                    Left err -> return $ Left $ T.pack $ show err
                    Right newBoard -> do
                      let (p1', p2') =

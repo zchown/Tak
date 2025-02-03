@@ -116,8 +116,8 @@ const createCells = (scene, boardState) => {
 
             const cellMaterial = new BABYLON.StandardMaterial(`cell-material-${x}-${y}`, scene);
             cellMaterial.diffuseTexture = dynamicTexture;
-            cellMaterial.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
-            cellMaterial.emissiveColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+            cellMaterial.specularColor = new BABYLON.Color3(0.3, 0.3, 0.3);
+            cellMaterial.emissiveColor = new BABYLON.Color3(1, 1, 1);
             cell.material = cellMaterial;
 
             cells.push(cell);
@@ -211,7 +211,7 @@ const updatePieces = (scene, newBoardState, cells) => {
             BABYLON.Color3.FromHexString(COLORS.lightPiece) : 
             BABYLON.Color3.FromHexString(COLORS.darkPiece);
         pieceMaterial.diffuseColor = pieceColor;
-        pieceMaterial.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+        pieceMaterial.specularColor = new BABYLON.Color3(0.3, 0.3, 0.3);
         pieceMaterial.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.1);
         pieceMesh.material = pieceMaterial;
 
@@ -434,10 +434,10 @@ const createScene = async () => {
 
     const hemisphericLight = new BABYLON.HemisphericLight(
         "hemisphericLight",
-        new BABYLON.Vector3(0, 1, 1),
+        new BABYLON.Vector3(-5, 3, 1), 
         scene
     );
-    hemisphericLight.intensity = 0.8;
+    hemisphericLight.intensity = 1;
 
     engine.setHardwareScalingLevel(.5)
 
