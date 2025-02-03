@@ -340,12 +340,6 @@ const createMoveInput = (scene, advancedTexture, gameId) => {
 
                 const newBoardState = parseTPS(response.data.board);
                 updateBoard(scene, newBoardState);
-                updateGameState({
-                    currentPlayer: response.data.currentPlayer,
-                    moveNumber: response.data.moveNum,
-                    whiteReserves: response.data.whiteReserves,
-                    blackReserves: response.data.blackReserves
-                });
             } else {
                 messageText.text = response.data.message;
                 messageText.color = "red";
