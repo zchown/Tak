@@ -461,10 +461,10 @@ const createScene = async () => {
         0,
         Math.PI / 4,
         7.5,
-        new BABYLON.Vector3(0, 0, 0),
+        new BABYLON.Vector3(0, 0, -0.5),
         scene
     );
-    camera.lowerRadiusLimit = 3;
+    camera.lowerRadiusLimit = 5;
     camera.upperRadiusLimit = 10;
     camera.attachControl(canvas, true);
 
@@ -492,6 +492,16 @@ const createScene = async () => {
     pipeline.samples = 4;
     pipeline.fxaaEnabled = true;
     pipeline.imageProcessingEnabled = false;
+    pipeline.bloomEnabled = true;
+    pipeline.bloomThreshold = 0.7;
+    pipeline.bloomWeight = 0.05;
+    pipeline.bloomScale = 0.2;
+    pipeline.anisotropicFilteringEnabled = true;
+    pipeline.chromaticAberrationEnabled = true;
+    pipeline.chromaticAberration.aberrationAmount = 0.1;
+    pipeline.vignetteEnabled = true;
+    pipeline.depthOfFieldEnabled = false;
+
 
     return scene;
 };
