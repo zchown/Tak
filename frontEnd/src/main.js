@@ -7,6 +7,7 @@ const engine = new BABYLON.Engine(canvas, true);
 let currentPieces = new Map();
 let gameStatePanel = null;
 let gameHistoryPanel = null;
+let moveInput = null;
 
 const COLORS = {
     lightSquare: '#c8d9e6',
@@ -318,21 +319,6 @@ const updateBoard = (scene, newBoardState, cells) => {
     return updatePieces(scene, newBoardState, cells);
 };
 
-const addCellInteractivity = (scene, board) => {
-    board.forEach((cell) => {
-        cell.actionManager = new BABYLON.ActionManager(scene);
-        cell.actionManager.registerAction(
-            new BABYLON.ExecuteCodeAction(
-                BABYLON.ActionManager.OnPickTrigger,
-                (evt) => {
-                    console.log("Cell clicked:", cell.name);
-                    cell.material.diffuseColor = BABYLON.Color3.FromHexString("#18255b");
-                }
-            )
-        );
-    });
-};
-
 const gameHistoryToText = (gameState) => {
     const history = gameState.gameHistory.reverse();
     let text = "";
@@ -343,10 +329,13 @@ const gameHistoryToText = (gameState) => {
             moveNumber++;
         }
 
-        text += history[i] + " ";
+        text += history[i] 
 
         if (i % 2 == 1) {
             text += "\n";
+        }
+        else {
+            text += "       ";
         }
     }
     return text;
@@ -376,6 +365,7 @@ const createMoveInput = (scene, advancedTexture, gameId, cells, pieces) => {
     inputBox.placeholderColor = "gray";
     inputBox.fontSize = "24px";
     inputBox.paddingTop = "20px";
+    inputBox.autoFocus = true;
     inputContainer.addControl(inputBox);
 
     const messageText = new GUI.TextBlock();
@@ -418,6 +408,7 @@ const createMoveInput = (scene, advancedTexture, gameId, cells, pieces) => {
                 const newBoardState = parseTPS(response.data.board);
                 updateBoard(scene, newBoardState, cells);
                 updateGameStatePanel(response.data);
+                moveInput.inputBox.focus();
 
             } else {
                 messageText.text = response.data.message;
@@ -458,12 +449,12 @@ const createScene = async () => {
 
     const parsedBoard = parseTPS(gameState.board);
     const cells = createCells(scene, parsedBoard);
-    addCellInteractivity(scene, cells);
     let pieces = updatePieces(scene, parsedBoard, cells);
 
     gameStatePanel = createGameStatePanel(scene, gameState);
 
-    const moveInput = createMoveInput(scene, GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"), gameState.gameID, cells, pieces);
+    moveInput = createMoveInput(scene, GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"), gameState.gameID, cells, pieces);
+    moveInput.inputBox.focus();
 
     const camera = new BABYLON.ArcRotateCamera(
         "camera",

@@ -3,13 +3,20 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tak</title>
+    <title>Tak Notation Guide</title>
     <style>
         html, body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #1c2833;
+            overflow-y: auto;
+        }
+        #gameContainer {
+            height: 100vh;
+            position: relative;
             overflow: hidden;
         }
         #renderCanvas {
@@ -17,10 +24,139 @@
             height: 100%;
             display: block;
         }
+        #renderCanvas:focus {
+            outline: none;
+        }
+        #gameExplanation {
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #1c2833;
+            color: white;
+            font-size: 16px;
+            line-height: 1.6;
+            text-align: left;
+        }
+        #gameExplanation h2, #gameExplanation h3 {
+            text-align: left;
+            color: #c8d9e6;
+        }
+        #gameExplanation ul {
+            padding-left: 30px;
+        }
+        #gameExplanation code {
+            background-color: rgba(255,255,255,0.1);
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        #scrollIndicator {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
-    <canvas id="renderCanvas"></canvas>
+    <div id="gameContainer">
+        <canvas id="renderCanvas"></canvas>
+        <div id="scrollIndicator">▼ How To Play ▼</div>
+    </div>
+    <div id="gameExplanation">
+        <h2>Goal of the Game</h2>
+        <p>Create an unbroken path connecting two opposite sides of the board with your flat stones and cap stones. Only stacks where you control the top piece count. Alternatively if all squares are occupied or one player places all their stones then the player with the most flats on the board wins.</p>
+
+        <h2>Tak Move Notation Guide</h2>
+        <p>Understanding move notation is crucial for playing Tak. The notation allows you to precisely describe how you want to place or move stones.</p>
+
+        <h3>Stone Placement Notation</h3>
+        <p>When placing stones, you have three basic formats:</p>
+        <ul>
+            <li><code>a1</code>: Place a flat stone on square a1 (default)</li>
+            <li><code>Sa1</code>: Place a standing stone on square a1</li>
+            <li><code>Ca1</code>: Place a capstone on square a1</li>
+        </ul>
+        <p>Key points:
+            <ul>
+                <li>Flat stones can be placed without the <code>F</code> identifier</li>
+                <li>Use uppercase <code>S</code> for standing stones</li>
+                <li>Use uppercase <code>C</code> for capstones</li>
+            </ul>
+        </p>
+
+        <h3>Stone Movement Notation</h3>
+        <p>Moving stones follows a more complex format: <code>(count)(square)(direction)(drop counts)</code></p>
+        
+        <h4>Basic Movement Examples:</h4>
+        <ul>
+            <li><code>a1></code>: Move 1 stone from a1 to the right</li>
+            <li><code>2a1></code>: Move 2 stones from a1 to the right</li>
+            <li><code>3b2+111</code>: Move 3 stones from b2 upward, dropping 1 stone on each of the next 3 squares</li>
+        </ul>
+
+        <h4>Direction Identifiers:</h4>
+        <ul>
+            <li><code>&gt;</code>: Move right (away from 'a' file)</li>
+            <li><code>&lt;</code>: Move left (toward 'a' file)</li>
+            <li><code>+</code>: Move up (away from '1' rank)</li>
+            <li><code>-</code>: Move down (toward '1' rank)</li>
+        </ul>
+
+        <h4>Advanced Movement Examples:</h4>
+        <ul>
+            <li><code>2d4-2</code>: Move 2 stones from d4 downward</li>
+            <li><code>5e4&lt;23</code>: Move 5 stones from e4 left, dropping 2 then 3 stones</li>
+            <li><code>2d4-2C</code>: Move 2 stones from d4 downward (with a capstone on top)</li>
+        </ul>
+
+        <h3>Sliding Move Restrictions and Stone Placement Rules</h3>
+        <p>Tak has specific rules about how stones can be moved and placed:</p>
+        <ul>
+            <li><strong>Sliding Moves:</strong>
+                <ul>
+                    <li>You can slide stones in any direction (up, down, left, right)</li>
+                    <li>The number of stones you move must match the number of squares you're sliding through</li>
+                    <li>You can distribute the stones across the squares in any way you choose</li>
+                    <li>Example: <code>3a1>111</code> means moving 3 stones and dropping 1 stone on each of the next 3 squares</li>
+                </ul>
+            </li>
+            <li><strong>Stone Placement Restrictions:</strong>
+                <ul>
+                    <li>All pieces must be placed on empty squares</li>
+                    <li>You <em>cannot</em> slide such that:
+                        <ul>
+                            <li>Flat stones are on top of standing stones</li>
+                            <li>Flat stones are on top of capstones</li>
+                            <li>Standing stones are on top of capstones</li>
+                        </ul>
+                    </li>
+                    <li>Capstones can crush standing stones, removing them from the board</li>
+                    <li>When a capstone crushes a standing stone, the standing stone is immediately removed</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3>Important Notation Rules</h3>
+        <ul>
+            <li>Always specify the source square and direction</li>
+            <li>If moving more than one square, list all drop counts</li>
+            <li>Drop counts must add up to the total stones moved</li>
+            <li>For single-square moves, drop counts can be omitted</li>
+        </ul>
+
+    </div>
     <script type="module" src="/src/main.js"></script>
+    <script>
+        document.getElementById('scrollIndicator').addEventListener('click', () => {
+            window.scrollTo({
+                top: window.innerHeight,
+                behavior: 'smooth'
+            });
+        });
+    </script>
 </body>
 </html>
