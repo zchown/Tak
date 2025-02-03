@@ -246,7 +246,7 @@ const createGameStatePanel = (scene, gameState) => {
     gameStatePanel.addControl(currentPlayerLabel);
 
     const moveNumberLabel = new GUI.TextBlock();
-    moveNumberLabel.text = `Move Number: ${gameState.moveNumber}`;
+    moveNumberLabel.text = `Move Number: ${gameState.moveNum}`;
     moveNumberLabel.color = "white";
     moveNumberLabel.fontSize = "36px";
     moveNumberLabel.height = "50px";
@@ -282,7 +282,7 @@ const createGameStatePanel = (scene, gameState) => {
 
 const updateGameStatePanel = (gameState) => {
     gameStatePanel.currentPlayerLabel.text = `Current Player: ${gameState.currentPlayer}`;
-    gameStatePanel.moveNumberLabel.text = `Move Number: ${gameState.moveNumber}`;
+    gameStatePanel.moveNumberLabel.text = `Move Number: ${gameState.moveNum}`;
     console.log(gameState);
     const wrt = "Stones: " + gameState.whiteReserves.stones + " Caps: " + gameState.whiteReserves.caps;
     gameStatePanel.whiteReservesLabel.text = "White Reserves: " + wrt;
