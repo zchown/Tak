@@ -120,6 +120,7 @@ const createBoard = (scene, boardState) => {
 
             const stack = boardState.board[y][x];
             if (stack.length > 0) {
+                let stackHeight = 0;
                 for (let i = 0; i < stack.length; i++) {
                     const piece = stack[i];
                     let pieceMesh;
@@ -135,6 +136,8 @@ const createBoard = (scene, boardState) => {
                                 },
                                 scene
                             );
+                            stackHeight += 0.15;
+                            pieceMesh.position.y = stackHeight;
                             break;
                         case "Standing":
                             pieceMesh = BABYLON.MeshBuilder.CreateBox(
@@ -147,28 +150,36 @@ const createBoard = (scene, boardState) => {
                                 scene
                             );
                             pieceMesh.rotation.y = Math.PI / 4;
+                            stackHeight += cellSize * pieceScale - 0.15;
+                            pieceMesh.position.y = stackHeight;
                             break;
                         case "Cap":
                             pieceMesh = BABYLON.MeshBuilder.CreateCylinder(
                                 `piece-${x}-${y}-${i}`,
                                 {
-                                    height: cellSize * pieceScale,
-                                    diameter: cellSize * pieceScale
+                                    height: cellSize * pieceScale * 0.75,
+                                    diameter: cellSize * pieceScale * 0.75
                                 },
                                 scene
                             );
+                            stackHeight += cellSize * pieceScale * 0.75;
+                            pieceMesh.position.y = stackHeight - 0.1;
                             break;
                     }
 
                     pieceMesh.position.x = cell.position.x;
                     pieceMesh.position.z = cell.position.z;
-                    pieceMesh.position.y = 0.1 + i * 0.15;
+                    pieceMesh.renderOutline = true;
+                    pieceMesh.outlineColor = BABYLON.Color3.Black();
+                    pieceMesh.outlineWidth = 0.01;
+                    // pieceMesh.forceSharedVertices();
 
                     const pieceMaterial = new BABYLON.StandardMaterial("piece-material", scene);
                     const pieceColor = piece.color === "White" ? 
                         BABYLON.Color3.FromHexString(COLORS.lightPiece) : 
                         BABYLON.Color3.FromHexString(COLORS.darkPiece);
                     pieceMaterial.diffuseColor = pieceColor;
+                    pieceMaterial.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
                     pieceMesh.material = pieceMaterial;
                 }
             }
@@ -226,12 +237,6 @@ const createScene = async () => {
         scene
     );
     camera.attachControl(canvas, true);
-
-    const light = new BABYLON.DirectionalLight(
-        "light",
-        new BABYLON.Vector3(-0.5, -0.75, 0),
-        scene
-    );
 
     return scene;
 };
