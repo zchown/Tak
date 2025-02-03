@@ -173,7 +173,7 @@ const updatePieces = (scene, newBoardState, cells) => {
                     },
                     scene
                 );
-                pieceMesh.position.y = 0.1 + index * 0.15;
+                pieceMesh.position.y = 0.1 + index * 0.1;
                 break;
             case "Standing":
                 pieceMesh = BABYLON.MeshBuilder.CreateBox(
@@ -186,7 +186,7 @@ const updatePieces = (scene, newBoardState, cells) => {
                     scene
                 );
                 pieceMesh.rotation.y = Math.PI / 4;
-                pieceMesh.position.y = 0.25 + index * 0.15;
+                pieceMesh.position.y = 0.25 + index * 0.1;
                 break;
             case "Cap":
                 pieceMesh = BABYLON.MeshBuilder.CreateCylinder(
@@ -197,7 +197,7 @@ const updatePieces = (scene, newBoardState, cells) => {
                     },
                     scene
                 );
-                pieceMesh.position.y = 0.2 + index * 0.15;
+                pieceMesh.position.y = 0.25 + index * 0.1;
                 break;
         }
         pieceMesh.position.x = cells[y * boardSize + x].position.x;
@@ -212,7 +212,6 @@ const updatePieces = (scene, newBoardState, cells) => {
             BABYLON.Color3.FromHexString(COLORS.darkPiece);
         pieceMaterial.diffuseColor = pieceColor;
         pieceMaterial.specularColor = new BABYLON.Color3(0.3, 0.3, 0.3);
-        pieceMaterial.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.1);
         pieceMesh.material = pieceMaterial;
 
         currentPieces.set(p, pieceMesh);
@@ -437,17 +436,24 @@ const createScene = async () => {
         new BABYLON.Vector3(-5, 3, 1), 
         scene
     );
-    hemisphericLight.intensity = 1;
+    hemisphericLight.intensity = 0.7;
 
-    engine.setHardwareScalingLevel(.5)
+    const hemisphericLight2 = new BABYLON.HemisphericLight(
+        "hemisphericLight2",
+        new BABYLON.Vector3(-1, 3, -2), 
+        scene
+    );
+    hemisphericLight2.intensity = 0.7;
 
-    const ppp = new BABYLON.PassPostProcess("pass", 1, camera)
-    ppp.samples = engine.getCaps().maxMSAASamples
+    engine.setHardwareScalingLevel(0.5);
 
-    const pipeline = new BABYLON.DefaultRenderingPipeline("defaultPipeline", true, scene, [camera])
-    pipeline.samples = 4
-    pipeline.fxaaEnabled = true
-    pipeline.imageProcessingEnabled = false
+    const ppp = new BABYLON.PassPostProcess("pass", 1, camera);
+    ppp.samples = engine.getCaps().maxMSAASamples;
+
+    const pipeline = new BABYLON.DefaultRenderingPipeline("defaultPipeline", true, scene, [camera]);
+    pipeline.samples = 4;
+    pipeline.fxaaEnabled = true;
+    pipeline.imageProcessingEnabled = false;
 
     return scene;
 };
