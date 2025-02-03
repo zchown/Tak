@@ -6,6 +6,7 @@ const canvas = document.getElementById("renderCanvas");
 const engine = new BABYLON.Engine(canvas, true);
 let currentPieces = new Map();
 let gameStatePanel = null;
+let gameHistoryPanel = null;
 
 const COLORS = {
     lightSquare: '#c8d9e6',
@@ -229,7 +230,7 @@ const createGameStatePanel = (scene, gameState) => {
     mainContainer.paddingLeft = "20px";
     advancedTexture.addControl(mainContainer);
 
-    const gameStatePanel = new GUI.StackPanel();
+    gameStatePanel = new GUI.StackPanel();
     gameStatePanel.width = "100%";
     gameStatePanel.height = "225px";
     gameStatePanel.paddingTop = "20px";
@@ -244,17 +245,8 @@ const createGameStatePanel = (scene, gameState) => {
     currentPlayerLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
     gameStatePanel.addControl(currentPlayerLabel);
 
-    const moveNumberLabel = new GUI.TextBlock();
-    moveNumberLabel.text = `Move Number: ${gameState.moveNum}`;
-    moveNumberLabel.color = "white";
-    moveNumberLabel.fontSize = "36px";
-    moveNumberLabel.height = "50px";
-    moveNumberLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-    gameStatePanel.addControl(moveNumberLabel);
-
     const whiteReservesLabel = new GUI.TextBlock();
-    const wrt = "Stones: " + gameState.whiteReserves.stones + " Caps: " + gameState.whiteReserves.caps;
-    whiteReservesLabel.text = "White Reserves: " + wrt;
+    whiteReservesLabel.text = `White Reserves: Stones: ${gameState.whiteReserves.stones} Caps: ${gameState.whiteReserves.caps}`;
     whiteReservesLabel.color = "white";
     whiteReservesLabel.fontSize = "36px";
     whiteReservesLabel.height = "50px";
@@ -262,31 +254,60 @@ const createGameStatePanel = (scene, gameState) => {
     gameStatePanel.addControl(whiteReservesLabel);
 
     const blackReservesLabel = new GUI.TextBlock();
-    const brt = "Stones: " + gameState.blackReserves.stones + " Caps: " + gameState.blackReserves.caps;
-    blackReservesLabel.text = "Black Reserves: " + brt;
+    blackReservesLabel.text = `Black Reserves: Stones: ${gameState.blackReserves.stones} Caps: ${gameState.blackReserves.caps}`;
     blackReservesLabel.color = "white";
     blackReservesLabel.fontSize = "36px";
     blackReservesLabel.height = "50px";
     blackReservesLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
     gameStatePanel.addControl(blackReservesLabel);
 
+    gameHistoryPanel = new GUI.StackPanel();
+    gameHistoryPanel.width = "100%";
+    gameHistoryPanel.height = "300px";
+    gameHistoryPanel.paddingTop = "10px";
+    gameHistoryPanel.background = "rgba(0, 0, 0, 0.7)";
+    mainContainer.addControl(gameHistoryPanel);
+
+    const historyLabel = new GUI.TextBlock();
+    historyLabel.text = "Game History";
+    historyLabel.color = "white";
+    historyLabel.fontSize = "50px";
+    historyLabel.height = "50px";
+    historyLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    gameHistoryPanel.addControl(historyLabel);
+
+    const scrollViewer = new GUI.ScrollViewer();
+    scrollViewer.width = "100%";
+    scrollViewer.height = "250px";
+    scrollViewer.thickness = 0;
+    gameHistoryPanel.addControl(scrollViewer);
+
+    const historyText = new GUI.TextBlock();
+    historyText.text = gameHistoryToText(gameState);
+    historyText.color = "white";
+    historyText.fontSize = "36px";
+    historyText.textWrapping = GUI.TextWrapping.WordWrap;
+    historyText.resizeToFit = true;
+    scrollViewer.addControl(historyText);
+
     return {
         panel: mainContainer,
         currentPlayerLabel,
-        moveNumberLabel,
         whiteReservesLabel,
         blackReservesLabel,
+        historyText,
+        scrollViewer,
     };
 };
 
 const updateGameStatePanel = (gameState) => {
     gameStatePanel.currentPlayerLabel.text = `Current Player: ${gameState.currentPlayer}`;
-    gameStatePanel.moveNumberLabel.text = `Move Number: ${gameState.moveNum}`;
     console.log(gameState);
     const wrt = "Stones: " + gameState.whiteReserves.stones + " Caps: " + gameState.whiteReserves.caps;
     gameStatePanel.whiteReservesLabel.text = "White Reserves: " + wrt;
     const brt = "Stones: " + gameState.blackReserves.stones + " Caps: " + gameState.blackReserves.caps;
     gameStatePanel.blackReservesLabel.text = "Black Reserves: " + brt;
+    gameStatePanel.historyText.text = gameHistoryToText(gameState);
 }
 
 const updateBoard = (scene, newBoardState, cells) => {
@@ -310,6 +331,29 @@ const addCellInteractivity = (scene, board) => {
             )
         );
     });
+};
+
+const gameHistoryToText = (gameState) => {
+    const history = gameState.gameHistory.reverse();
+    let text = "";
+    let moveNumber = 1;
+    for (let i = 0; i < history.length; i++) {
+        if (i % 2 == 0) {
+            text += moveNumber + ". "
+            moveNumber++;
+        }
+
+        text += history[i] + " ";
+
+        if (i % 2 == 1) {
+            text += "\n";
+        }
+    }
+    return text;
+};
+
+const moveToAlgebraic = (move) => {
+
 };
 
 const createMoveInput = (scene, advancedTexture, gameId, cells, pieces) => {
@@ -446,7 +490,6 @@ const createScene = async () => {
     );
     hemisphericLight2.intensity = 0.7;
     hemisphericLight2.diffuse = new BABYLON.Color3(0.5, 0.5, 0.5);
-    
 
     engine.setHardwareScalingLevel(0.5);
 

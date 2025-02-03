@@ -43,7 +43,7 @@ data GameResponse = GameResponse
   , whiteReserves :: Maybe B.Reserves
   , blackReserves :: Maybe B.Reserves
   , gameResult :: Maybe B.Result
-  , gameHistory :: Maybe [B.Move]
+  , gameHistory :: Maybe [Text]
   , gameID :: Maybe Text
   } deriving (Show, Generic)
 
@@ -124,7 +124,7 @@ startServer = do
             , whiteReserves = Just $ B.player1 gs
             , blackReserves = Just $ B.player2 gs
             , gameResult = Just $ B.result gs
-            , gameHistory = Just $ B.gameHistory gs
+            , gameHistory = Just $ map P.moveToText (B.gameHistory gs)
             , gameID = Just gId
             }
     get "/api/game/:id" $ do
@@ -156,7 +156,7 @@ startServer = do
             , whiteReserves = Just $ B.player1 gs
             , blackReserves = Just $ B.player2 gs
             , gameResult = Just $ B.result gs
-            , gameHistory = Just $ B.gameHistory gs
+            , gameHistory = Just $ map P.moveToText (B.gameHistory gs)
             , gameID = Just gId
             }
 

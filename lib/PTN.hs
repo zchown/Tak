@@ -153,3 +153,27 @@ extractField fieldName ls =
     Just line ->
       Right $ Just $ T.unpack $ T.drop (length fieldName + 3) (T.init line)
     Nothing -> Right Nothing
+
+directionToChar :: B.Direction -> Char
+directionToChar B.Up = '+'
+directionToChar B.Down = '-'
+directionToChar B.Right = '>'
+directionToChar B.Left = '<'
+
+moveToText :: B.Move -> Text
+moveToText (B.PlaceFlat ((B.Position (x, y)), color)) =
+  T.pack $ B.colToLetter x : show y
+moveToText (B.PlaceStanding ((B.Position (x, y)), color)) =
+  T.pack $ "S" ++ [B.colToLetter x] ++ show y
+moveToText (B.PlaceCap ((B.Position (x, y)), color)) =
+  T.pack $ "C" ++ [B.colToLetter x] ++ show y
+moveToText (B.Slide ((B.Position (x, y)), count, dir, drops, color, crush)) =
+  T.pack $
+  show count ++
+  [B.colToLetter x] ++
+  show y ++
+  [directionToChar dir] ++
+  concatMap show drops ++
+  (if crush
+     then "*"
+     else "")
