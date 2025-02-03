@@ -103,7 +103,7 @@ const createCells = (scene, boardState) => {
             ctx.fillStyle = isLightSquare ? COLORS.lightSquare : COLORS.darkSquare;
             ctx.fillRect(0, 0, textureSize, textureSize);
 
-            ctx.font = "bold 96px Arial";
+            ctx.font = "bold 160px Arial";
             ctx.fillStyle = isLightSquare ? COLORS.darkSquare : COLORS.lightSquare;
             ctx.textAlign = "right";
             ctx.textBaseline = "bottom";
