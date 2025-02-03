@@ -184,7 +184,7 @@ processMove :: GameStore -> Text -> Text -> IO (Either Text B.GameState)
 processMove store gId moveStr = do
   maybeGame <- getGame store gId
   case maybeGame of
-    Nothing ->  return $ Left "Game not found"
+    Nothing -> return $ Left "Game not found"
     Just gs -> do
       case P.parseSingleMove (T.unpack (T.strip moveStr)) (B.turn gs) of
         Left err -> return $ Left $ T.pack $ show err

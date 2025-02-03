@@ -4,6 +4,8 @@ import axios from "axios";
 
 const canvas = document.getElementById("renderCanvas");
 const engine = new BABYLON.Engine(canvas, true);
+let boardState = null;
+let currentPieces = new Map();
 
 const COLORS = {
     lightSquare: '#c8d9e6',
@@ -125,88 +127,101 @@ const createCells = (scene, boardState) => {
     return cells;
 };
 
-const createPieces = (scene, boardState, cells) => {
-    const boardSize = boardState.board.length;
+const createPieceKey = (x, y, index, piece) => {
+    return `${x}-${y}-${index}-${piece.color}-${piece.type}`;
+}
+
+const updatePieces = (scene, newBoardState, cells) => {
+    const boardSize = newBoardState.board.length;
     const cellSize = 1;
     const pieceScale = 0.5;
-    const pieces = [];
+    const newPieces = new Map();
 
+    const neededKeys = new Set();
     for (let y = 0; y < boardSize; y++) {
         for (let x = 0; x < boardSize; x++) {
-            const cellIndex = y * boardSize + x;
-            const cell = cells[cellIndex];
-            const stack = boardState.board[y][x];
-
-            if (stack.length > 0) {
-                let stackHeight = 0;
-                for (let i = 0; i < stack.length; i++) {
-                    const piece = stack[i];
-                    let pieceMesh;
-
-                    switch (piece.type) {
-                        case "Flat":
-                            pieceMesh = BABYLON.MeshBuilder.CreateBox(
-                                `piece-${x}-${y}-${i}`,
-                                {
-                                    width: cellSize * pieceScale,
-                                    height: 0.1,
-                                    depth: cellSize * pieceScale
-                                },
-                                scene
-                            );
-                            stackHeight += 0.15;
-                            pieceMesh.position.y = stackHeight;
-                            break;
-                        case "Standing":
-                            pieceMesh = BABYLON.MeshBuilder.CreateBox(
-                                `piece-${x}-${y}-${i}`,
-                                {
-                                    width: 0.1,
-                                    height: cellSize * pieceScale,
-                                    depth: cellSize * pieceScale
-                                },
-                                scene
-                            );
-                            pieceMesh.rotation.y = Math.PI / 4;
-                            stackHeight += cellSize * pieceScale - 0.15;
-                            pieceMesh.position.y = stackHeight;
-                            break;
-                        case "Cap":
-                            pieceMesh = BABYLON.MeshBuilder.CreateCylinder(
-                                `piece-${x}-${y}-${i}`,
-                                {
-                                    height: cellSize * pieceScale * 0.75,
-                                    diameter: cellSize * pieceScale * 0.75
-                                },
-                                scene
-                            );
-                            stackHeight += cellSize * pieceScale * 0.75;
-                            pieceMesh.position.y = stackHeight - 0.1;
-                            break;
-                    }
-
-                    pieceMesh.position.x = cell.position.x;
-                    pieceMesh.position.z = cell.position.z;
-                    pieceMesh.renderOutline = true;
-                    pieceMesh.outlineColor = BABYLON.Color3.Black();
-                    pieceMesh.outlineWidth = 0.01;
-
-                    const pieceMaterial = new BABYLON.StandardMaterial("piece-material", scene);
-                    const pieceColor = piece.color === "White" ? 
-                        BABYLON.Color3.FromHexString(COLORS.lightPiece) : 
-                        BABYLON.Color3.FromHexString(COLORS.darkPiece);
-                    pieceMaterial.diffuseColor = pieceColor;
-                    pieceMaterial.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
-                    pieceMaterial.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-                    pieceMesh.material = pieceMaterial;
-
-                    pieces.push(pieceMesh);
-                }
-            }
+            const stack = newBoardState.board[y][x];
+            stack.forEach((piece, index) => {
+                neededKeys.add(createPieceKey(x, y, index, piece));
+            });
         }
     }
 
-    return pieces;
+    console.log("Needed keys:", neededKeys);
+    console.log("Current pieces:", currentPieces);
+
+    currentPieces.forEach((mesh, key) => {
+        if (!neededKeys.has(key)) {
+            console.log("Disposing mesh:", key);
+            mesh.dispose();
+            currentPieces.delete(key);
+        }
+    });
+
+    console.log("Current pieces:", currentPieces);
+    console.log("Needed keys:", neededKeys);
+
+    for (const p of neededKeys) {
+        let [x, y, index, color, type] = p.split("-");
+        x = parseInt(x, 10);
+        y = parseInt(y, 10);
+        let pieceMesh;
+        switch (type) {
+            case "Flat":
+                pieceMesh = BABYLON.MeshBuilder.CreateBox(
+                    `piece-${p}`,
+                    {
+                        width: cellSize * pieceScale,
+                        height: 0.1,
+                        depth: cellSize * pieceScale
+                    },
+                    scene
+                );
+                pieceMesh.position.y = 0.1 + index * 0.15;
+                break;
+            case "Standing":
+                pieceMesh = BABYLON.MeshBuilder.CreateBox(
+                    `piece-${p}`,
+                    {
+                        width: 0.1,
+                        height: cellSize * pieceScale,
+                        depth: cellSize * pieceScale
+                    },
+                    scene
+                );
+                pieceMesh.rotation.y = Math.PI / 4;
+                pieceMesh.position.y = 0.25 + index * 0.15;
+                break;
+            case "Cap":
+                pieceMesh = BABYLON.MeshBuilder.CreateCylinder(
+                    `piece-${p}`,
+                    {
+                        height: cellSize * pieceScale * 0.75,
+                        diameter: cellSize * pieceScale * 0.75
+                    },
+                    scene
+                );
+                pieceMesh.position.y = 0.2 + index * 0.15;
+                break;
+        }
+        pieceMesh.position.x = cells[y * boardSize + x].position.x;
+        pieceMesh.position.z = cells[y * boardSize + x].position.z;
+        pieceMesh.renderOutline = true;
+        pieceMesh.outlineColor = BABYLON.Color3.Black();
+        pieceMesh.outlineWidth = 0.01;
+        
+        const pieceMaterial = new BABYLON.StandardMaterial("piece-material", scene);
+        const pieceColor = color === "White" ? 
+            BABYLON.Color3.FromHexString(COLORS.lightPiece) : 
+            BABYLON.Color3.FromHexString(COLORS.darkPiece);
+        pieceMaterial.diffuseColor = pieceColor;
+        pieceMaterial.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+        pieceMaterial.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+        pieceMesh.material = pieceMaterial;
+
+        currentPieces.set(p, pieceMesh);
+    };
+
 };
 
 const createGameStatePanel = (scene, gameState) => {
@@ -275,7 +290,7 @@ const updateBoard = (scene, newBoardState, cells) => {
     );
     existingPieces.forEach(piece => piece.dispose());
 
-    return createPieces(scene, newBoardState, cells);
+    return updatePieces(scene, newBoardState, cells);
 };
 
 const addCellInteractivity = (scene, board) => {
@@ -353,16 +368,9 @@ const createMoveInput = (scene, advancedTexture, gameId, cells, pieces) => {
                 inputBox.text = "";
 
                 const newBoardState = parseTPS(response.data.board);
-                // updateBoard(scene, newBoardState);
-                pieces = updateBoard(scene, newBoardState, cells);
-
-                currentPlayerLabel.text = `Current Player: ${newBoardState.currentPlayer}`;
-                moveNumberLabel.text = `Move Number: ${newBoardState.moveNumber}`;
-                whiteReservesLabel.text = "White Reserves: " + 
-                    `Stones: ${response.data.whiteReserves.stones} Caps: ${response.data.whiteReserves.caps}`;
-                blackReservesLabel.text = "Black Reserves: " +
-                    `Stones: ${response.data.blackReserves.stones} Caps: ${response.data.blackReserves.caps}`;
-
+                updateBoard(scene, newBoardState, cells);
+                // updateGameStatePanel({
+                
             } else {
                 messageText.text = response.data.message;
                 messageText.color = "red";
@@ -403,7 +411,7 @@ const createScene = async () => {
     const parsedBoard = parseTPS(gameState.board);
     const cells = createCells(scene, parsedBoard);
     addCellInteractivity(scene, cells);
-    let pieces = createPieces(scene, parsedBoard, cells);
+    let pieces = updatePieces(scene, parsedBoard, cells);
 
     const { currentPlayerLabel, moveNumberLabel, whiteReservesLabel, blackReservesLabel } =
         createGameStatePanel(scene, {
