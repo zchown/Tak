@@ -70,11 +70,10 @@ const parseTPS = (tps) => {
     };
 };
 
-const createBoard = (scene, boardState) => {
+const createCells = (scene, boardState) => {
     const boardSize = boardState.board.length;
     const cellSize = 1;
-    const pieceScale = 0.5;
-    const board = [];
+    const cells = [];
 
     for (let y = 0; y < boardSize; y++) {
         for (let x = 0; x < boardSize; x++) {
@@ -119,7 +118,25 @@ const createBoard = (scene, boardState) => {
             cellMaterial.emissiveColor = new BABYLON.Color3(0.5, 0.5, 0.5);
             cell.material = cellMaterial;
 
+            cells.push(cell);
+        }
+    }
+
+    return cells;
+};
+
+const createPieces = (scene, boardState, cells) => {
+    const boardSize = boardState.board.length;
+    const cellSize = 1;
+    const pieceScale = 0.5;
+    const pieces = [];
+
+    for (let y = 0; y < boardSize; y++) {
+        for (let x = 0; x < boardSize; x++) {
+            const cellIndex = y * boardSize + x;
+            const cell = cells[cellIndex];
             const stack = boardState.board[y][x];
+
             if (stack.length > 0) {
                 let stackHeight = 0;
                 for (let i = 0; i < stack.length; i++) {
@@ -182,14 +199,14 @@ const createBoard = (scene, boardState) => {
                     pieceMaterial.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
                     pieceMaterial.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.1);
                     pieceMesh.material = pieceMaterial;
+
+                    pieces.push(pieceMesh);
                 }
             }
-
-            board.push(cell);
         }
     }
 
-    return board;
+    return pieces;
 };
 
 const createGameStatePanel = (scene, gameState) => {
@@ -252,16 +269,13 @@ const createGameStatePanel = (scene, gameState) => {
     };
 };
 
-const updateBoard = (scene, newBoardState) => {
+const updateBoard = (scene, newBoardState, cells) => {
     const existingPieces = scene.meshes.filter(mesh => 
-        mesh.name.startsWith('piece-') || mesh.name.startsWith('cell-')
+        mesh.name.startsWith('piece-')
     );
     existingPieces.forEach(piece => piece.dispose());
 
-    const newBoard = createBoard(scene, newBoardState);
-    addCellInteractivity(scene, newBoard);
-
-    return newBoard;
+    return createPieces(scene, newBoardState, cells);
 };
 
 const addCellInteractivity = (scene, board) => {
@@ -279,7 +293,7 @@ const addCellInteractivity = (scene, board) => {
     });
 };
 
-const createMoveInput = (scene, advancedTexture, gameId) => {
+const createMoveInput = (scene, advancedTexture, gameId, cells, pieces) => {
     const inputContainer = new GUI.StackPanel();
     inputContainer.width = "650px";
     inputContainer.height = "200px";
@@ -339,7 +353,16 @@ const createMoveInput = (scene, advancedTexture, gameId) => {
                 inputBox.text = "";
 
                 const newBoardState = parseTPS(response.data.board);
-                updateBoard(scene, newBoardState);
+                // updateBoard(scene, newBoardState);
+                pieces = updateBoard(scene, newBoardState, cells);
+
+                currentPlayerLabel.text = `Current Player: ${newBoardState.currentPlayer}`;
+                moveNumberLabel.text = `Move Number: ${newBoardState.moveNumber}`;
+                whiteReservesLabel.text = "White Reserves: " + 
+                    `Stones: ${response.data.whiteReserves.stones} Caps: ${response.data.whiteReserves.caps}`;
+                blackReservesLabel.text = "Black Reserves: " +
+                    `Stones: ${response.data.blackReserves.stones} Caps: ${response.data.blackReserves.caps}`;
+
             } else {
                 messageText.text = response.data.message;
                 messageText.color = "red";
@@ -378,8 +401,9 @@ const createScene = async () => {
     }
 
     const parsedBoard = parseTPS(gameState.board);
-    const board = updateBoard(scene, parsedBoard);
-    addCellInteractivity(scene, board);
+    const cells = createCells(scene, parsedBoard);
+    addCellInteractivity(scene, cells);
+    let pieces = createPieces(scene, parsedBoard, cells);
 
     const { currentPlayerLabel, moveNumberLabel, whiteReservesLabel, blackReservesLabel } =
         createGameStatePanel(scene, {
@@ -389,7 +413,7 @@ const createScene = async () => {
             blackReserves: gameState.blackReserves,
         });
 
-    const moveInput = createMoveInput(scene, GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"), gameState.gameID);
+    const moveInput = createMoveInput(scene, GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"), gameState.gameID, cells, pieces);
 
     const camera = new BABYLON.ArcRotateCamera(
         "camera",
