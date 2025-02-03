@@ -26,6 +26,7 @@ const fetchGameState = async () => {
 const parseTPS = (tps) => {
     const [boardPart, turnStr, moveNumberStr] = tps.split(" ");
     const rows = boardPart.split("/");
+
     const board = rows.map((row) => {
         const cells = [];
         const squares = row.split(",");
@@ -71,7 +72,7 @@ const parseTPS = (tps) => {
 const createBoard = (scene, boardState) => {
     const boardSize = boardState.board.length;
     const cellSize = 1;
-    const pieceScale = 0.6;
+    const pieceScale = 0.5;
     const board = [];
 
     for (let y = 0; y < boardSize; y++) {
@@ -81,8 +82,8 @@ const createBoard = (scene, boardState) => {
                 { width: cellSize, height: 0.1, depth: cellSize },
                 scene
             );
-            cell.position.x = x * cellSize - (boardSize * cellSize) / 2;
-            cell.position.z = y * cellSize - (boardSize * cellSize) / 2;
+            cell.position.z = x * cellSize - (boardSize * cellSize) / 2;
+            cell.position.x = y * cellSize - (boardSize * cellSize) / 2;
             cell.position.y = 0;
 
             const textureSize = 512;
@@ -103,8 +104,8 @@ const createBoard = (scene, boardState) => {
             ctx.textAlign = "right";
             ctx.textBaseline = "bottom";
 
-            const columnLabel = String.fromCharCode(97 + y);
-            const rowLabel = (boardSize - x).toString();
+            const columnLabel = String.fromCharCode(97 + x);
+            const rowLabel = (boardSize - y).toString();
             const labelText = `${columnLabel}${rowLabel}`;
 
             const padding = 20;
@@ -145,6 +146,7 @@ const createBoard = (scene, boardState) => {
                                 },
                                 scene
                             );
+                            pieceMesh.rotation.y = Math.PI / 4;
                             break;
                         case "Cap":
                             pieceMesh = BABYLON.MeshBuilder.CreateCylinder(
@@ -227,7 +229,7 @@ const createScene = async () => {
 
     const light = new BABYLON.DirectionalLight(
         "light",
-        new BABYLON.Vector3(-1, -1, 0),
+        new BABYLON.Vector3(-0.5, -0.75, 0),
         scene
     );
 

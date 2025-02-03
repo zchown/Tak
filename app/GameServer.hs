@@ -211,7 +211,8 @@ getInitialGameState size =
     { B.board =
         B.board $
         TPS.parseTPSHard $
-        T.pack "1,2,x3/1S,2S,x3/1C,2C,x3/12,21,x3/12S,21S,x3 1 1"
+        T.pack
+          "x2,12S,x,2S/12,12,2,12112,2/x,1112112C,2,1,x/x,221S,1,2221C,1/x,11S,1,2,1 1 40"
     , B.turn = B.White
     , B.moveNumber = 1
     , B.player1 = getInitialReserves size
