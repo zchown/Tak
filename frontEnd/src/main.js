@@ -103,8 +103,8 @@ const createBoard = (scene, boardState) => {
             ctx.textAlign = "right";
             ctx.textBaseline = "bottom";
 
-            const columnLabel = String.fromCharCode(97 + x);
-            const rowLabel = (boardSize - y).toString();
+            const columnLabel = String.fromCharCode(97 + y);
+            const rowLabel = (boardSize - x).toString();
             const labelText = `${columnLabel}${rowLabel}`;
 
             const padding = 20;
@@ -113,8 +113,8 @@ const createBoard = (scene, boardState) => {
 
             const cellMaterial = new BABYLON.StandardMaterial(`cell-material-${x}-${y}`, scene);
             cellMaterial.diffuseTexture = dynamicTexture;
-            cellMaterial.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-            cellMaterial.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+            cellMaterial.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+            cellMaterial.emissiveColor = new BABYLON.Color3(0.5, 0.5, 0.5);
             cell.material = cellMaterial;
 
             const stack = boardState.board[y][x];
@@ -193,7 +193,7 @@ const addCellInteractivity = (scene, board) => {
                 BABYLON.ActionManager.OnPickTrigger,
                 (evt) => {
                     console.log("Cell clicked:", cell.name);
-                    cell.material.diffuseColor = new BABYLON.Color3(1, 0, 0);
+                    cell.material.diffuseColor = BABYLON.Color3.FromHexString("#18255b");
                 }
             )
         );
@@ -217,9 +217,9 @@ const createScene = async () => {
 
     const camera = new BABYLON.ArcRotateCamera(
         "camera",
-        -Math.PI / 2,
-        Math.PI / 2.5,
-        10,
+        0,
+        Math.PI / 4,
+        7.5,
         new BABYLON.Vector3(0, 0, 0),
         scene
     );
