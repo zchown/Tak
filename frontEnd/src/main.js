@@ -316,7 +316,7 @@ const addCellInteractivity = (scene, board) => {
 const createMoveInput = (scene, advancedTexture, gameId, cells, pieces) => {
     const inputContainer = new GUI.StackPanel();
     inputContainer.width = "650px";
-    inputContainer.height = "200px";
+    inputContainer.height = "250px";
     inputContainer.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
     inputContainer.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
     inputContainer.paddingRight = "20px";
@@ -336,14 +336,14 @@ const createMoveInput = (scene, advancedTexture, gameId, cells, pieces) => {
     inputContainer.addControl(inputBox);
 
     const messageText = new GUI.TextBlock();
-    messageText.height = "30px";
+    messageText.height = "50px";
     messageText.color = "white";
-    messageText.fontSize = "18px";
+    messageText.fontSize = "28px";
     inputContainer.addControl(messageText);
 
     const submitButton = GUI.Button.CreateSimpleButton("submitMove", "Submit Move");
     submitButton.width = "150px";
-    submitButton.height = "40px";
+    submitButton.height = "50px";
     submitButton.color = "white";
     submitButton.background = "#567c8d";
     submitButton.fontSize = "20px";
