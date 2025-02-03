@@ -44,6 +44,7 @@ data GameResponse = GameResponse
   , blackReserves :: Maybe B.Reserves
   , gameResult :: Maybe B.Result
   , gameHistory :: Maybe [B.Move]
+  , gameID :: Maybe Text
   } deriving (Show, Generic)
 
 instance FromJSON GameResponse
@@ -90,10 +91,13 @@ startServer = do
           , blackReserves = Just $ getInitialReserves (boardSize req)
           , gameResult = Just B.Continue
           , gameHistory = Just []
+          , gameID = Just gameId
           }
     post "/api/game/move" $ do
       MoveRequest gId moveStr <- jsonData
+      liftIO $ putStrLn $ "Received move request :" ++ show (gId, moveStr)
       result <- liftIO $ processMove gameStore gId moveStr
+      liftIO $ putStrLn $ "Move processed"
       case result of
         Left err ->
           json $
@@ -107,6 +111,7 @@ startServer = do
             , blackReserves = Nothing
             , gameResult = Nothing
             , gameHistory = Nothing
+            , gameID = Just gId
             }
         Right gs ->
           json $
@@ -120,6 +125,7 @@ startServer = do
             , blackReserves = Just $ B.player2 gs
             , gameResult = Just $ B.result gs
             , gameHistory = Just $ B.gameHistory gs
+            , gameID = Just gId
             }
     get "/api/game/:id" $ do
       gId <- param "id"
@@ -137,6 +143,7 @@ startServer = do
             , blackReserves = Nothing
             , gameResult = Nothing
             , gameHistory = Nothing
+            , gameID = Just gId
             }
         Just gs ->
           json $
@@ -150,6 +157,7 @@ startServer = do
             , blackReserves = Just $ B.player2 gs
             , gameResult = Just $ B.result gs
             , gameHistory = Just $ B.gameHistory gs
+            , gameID = Just gId
             }
 
 appCorsResourcePolicy :: CorsResourcePolicy
@@ -176,9 +184,9 @@ processMove :: GameStore -> Text -> Text -> IO (Either Text B.GameState)
 processMove store gId moveStr = do
   maybeGame <- getGame store gId
   case maybeGame of
-    Nothing -> return $ Left "Game not found"
+    Nothing ->  return $ Left "Game not found"
     Just gs -> do
-      case P.parseSingleMove (T.unpack moveStr) (B.turn gs) of
+      case P.parseSingleMove (T.unpack (T.strip moveStr)) (B.turn gs) of
         Left err -> return $ Left $ T.pack $ show err
         Right move ->
           if not (B.hasReserves (B.player1 gs) (B.player2 gs) move)
@@ -214,11 +222,7 @@ colorToText B.Black = "Black"
 getInitialGameState :: Int -> B.GameState
 getInitialGameState size =
   B.GameState
-    { B.board =
-        B.board $
-        TPS.parseTPSHard $
-        T.pack
-          "x2,12S,x,2S/12,12,2,12112,2/x,1112112C,2,1,x/x,221S,1,2221C,1/x,11S,1,2,1 1 40"
+    { B.board = B.createEmptyBoard size
     , B.turn = B.White
     , B.moveNumber = 1
     , B.player1 = getInitialReserves size

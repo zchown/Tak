@@ -252,6 +252,18 @@ const createGameStatePanel = (scene, gameState) => {
     };
 };
 
+const updateBoard = (scene, newBoardState) => {
+    const existingPieces = scene.meshes.filter(mesh => 
+        mesh.name.startsWith('piece-') || mesh.name.startsWith('cell-')
+    );
+    existingPieces.forEach(piece => piece.dispose());
+
+    const newBoard = createBoard(scene, newBoardState);
+    addCellInteractivity(scene, newBoard);
+
+    return newBoard;
+};
+
 const addCellInteractivity = (scene, board) => {
     board.forEach((cell) => {
         cell.actionManager = new BABYLON.ActionManager(scene);
@@ -314,10 +326,12 @@ const createMoveInput = (scene, advancedTexture, gameId) => {
         }
 
         try {
+            console.log("Sending move request:", { gameId, moveNotation });
             const response = await axios.post("http://localhost:3000/api/game/move", {
                 gameId,
                 moveNotation
             });
+            console.log("Move response:", response.data);
 
             if (response.data.responseStatus === "Success") {
                 messageText.text = "Move successful!";
@@ -357,6 +371,7 @@ const createMoveInput = (scene, advancedTexture, gameId) => {
     };
 };
 
+
 const createScene = async () => {
     const scene = new BABYLON.Scene(engine);
 
@@ -369,7 +384,7 @@ const createScene = async () => {
     }
 
     const parsedBoard = parseTPS(gameState.board);
-    const board = createBoard(scene, parsedBoard);
+    const board = updateBoard(scene, parsedBoard);
     addCellInteractivity(scene, board);
 
     const { currentPlayerLabel, moveNumberLabel, whiteReservesLabel, blackReservesLabel } =
@@ -380,7 +395,7 @@ const createScene = async () => {
             blackReserves: gameState.blackReserves,
         });
 
-    const moveInput = createMoveInput(scene, GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"), gameState.gameId);
+    const moveInput = createMoveInput(scene, GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"), gameState.gameID);
 
     const camera = new BABYLON.ArcRotateCamera(
         "camera",
