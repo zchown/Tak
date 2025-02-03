@@ -17,7 +17,7 @@ const COLORS = {
 const fetchGameState = async () => {
     try {
         const response = await axios.post("http://localhost:3000/api/game/new", {
-            boardSize: 5,
+            boardSize: 6,
         });
         return response.data;
     } catch (error) {
@@ -400,9 +400,9 @@ const createMoveInput = (scene, advancedTexture, gameId, cells, pieces) => {
     };
 };
 
-
 const createScene = async () => {
     const scene = new BABYLON.Scene(engine);
+    scene.clearColor = BABYLON.Color3.FromHexString("#1c2833");
 
     const gameState = await fetchGameState();
     console.log("Game State:", gameState);
@@ -430,6 +430,7 @@ const createScene = async () => {
         scene
     );
     camera.attachControl(canvas, true);
+    camera.maxZ = 1000;
 
     const hemisphericLight = new BABYLON.HemisphericLight(
         "hemisphericLight",
@@ -444,6 +445,8 @@ const createScene = async () => {
         scene
     );
     hemisphericLight2.intensity = 0.7;
+    hemisphericLight2.diffuse = new BABYLON.Color3(0.5, 0.5, 0.5);
+    
 
     engine.setHardwareScalingLevel(0.5);
 

@@ -224,11 +224,7 @@ colorToText B.Black = "Black"
 getInitialGameState :: Int -> B.GameState
 getInitialGameState size =
   B.GameState
-    -- { B.board = B.createEmptyBoard size
-    { B.board =
-        B.board $
-        TPS.parseTPSHard
-          "x2,12S,x,2S/12,12,2,12112,2/x,1112112C,2,1,x/x,221S,1,2221C,1/x,11S,1,2,1 1 40"
+    { B.board = B.createEmptyBoard size
     , B.turn = B.White
     , B.moveNumber = 1
     , B.player1 = getInitialReserves size
