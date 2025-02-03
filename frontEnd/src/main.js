@@ -4,8 +4,8 @@ import axios from "axios";
 
 const canvas = document.getElementById("renderCanvas");
 const engine = new BABYLON.Engine(canvas, true);
-let boardState = null;
 let currentPieces = new Map();
+let gameStatePanel = null;
 
 const COLORS = {
     lightSquare: '#c8d9e6',
@@ -205,7 +205,7 @@ const updatePieces = (scene, newBoardState, cells) => {
         pieceMesh.renderOutline = true;
         pieceMesh.outlineColor = BABYLON.Color3.Black();
         pieceMesh.outlineWidth = 0.01;
-        
+
         const pieceMaterial = new BABYLON.StandardMaterial("piece-material", scene);
         const pieceColor = color === "White" ? 
             BABYLON.Color3.FromHexString(COLORS.lightPiece) : 
@@ -279,6 +279,16 @@ const createGameStatePanel = (scene, gameState) => {
         blackReservesLabel,
     };
 };
+
+const updateGameStatePanel = (gameState) => {
+    gameStatePanel.currentPlayerLabel.text = `Current Player: ${gameState.currentPlayer}`;
+    gameStatePanel.moveNumberLabel.text = `Move Number: ${gameState.moveNumber}`;
+    console.log(gameState);
+    const wrt = "Stones: " + gameState.whiteReserves.stones + " Caps: " + gameState.whiteReserves.caps;
+    gameStatePanel.whiteReservesLabel.text = "White Reserves: " + wrt;
+    const brt = "Stones: " + gameState.blackReserves.stones + " Caps: " + gameState.blackReserves.caps;
+    gameStatePanel.blackReservesLabel.text = "Black Reserves: " + brt;
+}
 
 const updateBoard = (scene, newBoardState, cells) => {
     const existingPieces = scene.meshes.filter(mesh => 
@@ -364,8 +374,8 @@ const createMoveInput = (scene, advancedTexture, gameId, cells, pieces) => {
 
                 const newBoardState = parseTPS(response.data.board);
                 updateBoard(scene, newBoardState, cells);
-                // updateGameStatePanel({
-                
+                updateGameStatePanel(response.data);
+
             } else {
                 messageText.text = response.data.message;
                 messageText.color = "red";
@@ -408,13 +418,7 @@ const createScene = async () => {
     addCellInteractivity(scene, cells);
     let pieces = updatePieces(scene, parsedBoard, cells);
 
-    const { currentPlayerLabel, moveNumberLabel, whiteReservesLabel, blackReservesLabel } =
-        createGameStatePanel(scene, {
-            currentPlayer: gameState.currentPlayer,
-            moveNumber: gameState.moveNum,
-            whiteReserves: gameState.whiteReserves,
-            blackReserves: gameState.blackReserves,
-        });
+    gameStatePanel = createGameStatePanel(scene, gameState);
 
     const moveInput = createMoveInput(scene, GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"), gameState.gameID, cells, pieces);
 
