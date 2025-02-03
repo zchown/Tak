@@ -147,9 +147,6 @@ const updatePieces = (scene, newBoardState, cells) => {
         }
     }
 
-    console.log("Needed keys:", neededKeys);
-    console.log("Current pieces:", currentPieces);
-
     currentPieces.forEach((mesh, key) => {
         if (!neededKeys.has(key)) {
             console.log("Disposing mesh:", key);
@@ -158,10 +155,9 @@ const updatePieces = (scene, newBoardState, cells) => {
         }
     });
 
-    console.log("Current pieces:", currentPieces);
-    console.log("Needed keys:", neededKeys);
+    const newKeys = new Set([...neededKeys].filter(x => !currentPieces.has(x)));
 
-    for (const p of neededKeys) {
+    for (const p of newKeys) {
         let [x, y, index, color, type] = p.split("-");
         x = parseInt(x, 10);
         y = parseInt(y, 10);
@@ -288,7 +284,6 @@ const updateBoard = (scene, newBoardState, cells) => {
     const existingPieces = scene.meshes.filter(mesh => 
         mesh.name.startsWith('piece-')
     );
-    existingPieces.forEach(piece => piece.dispose());
 
     return updatePieces(scene, newBoardState, cells);
 };
