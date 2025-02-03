@@ -1,4 +1,5 @@
 import * as BABYLON from "@babylonjs/core";
+import * as GUI from "@babylonjs/gui";
 import axios from "axios";
 
 const canvas = document.getElementById("renderCanvas");
@@ -86,7 +87,7 @@ const createBoard = (scene, boardState) => {
             cell.position.x = y * cellSize - (boardSize * cellSize) / 2;
             cell.position.y = 0;
 
-            const textureSize = 512;
+            const textureSize = 1024;
             const dynamicTexture = new BABYLON.DynamicTexture(
                 `cell-texture-${x}-${y}`,
                 textureSize,
@@ -99,7 +100,7 @@ const createBoard = (scene, boardState) => {
             ctx.fillStyle = isLightSquare ? COLORS.lightSquare : COLORS.darkSquare;
             ctx.fillRect(0, 0, textureSize, textureSize);
 
-            ctx.font = "bold 48px Arial";
+            ctx.font = "bold 96px Arial";
             ctx.fillStyle = isLightSquare ? COLORS.darkSquare : COLORS.lightSquare;
             ctx.textAlign = "right";
             ctx.textBaseline = "bottom";
@@ -172,7 +173,6 @@ const createBoard = (scene, boardState) => {
                     pieceMesh.renderOutline = true;
                     pieceMesh.outlineColor = BABYLON.Color3.Black();
                     pieceMesh.outlineWidth = 0.01;
-                    // pieceMesh.forceSharedVertices();
 
                     const pieceMaterial = new BABYLON.StandardMaterial("piece-material", scene);
                     const pieceColor = piece.color === "White" ? 
@@ -180,6 +180,7 @@ const createBoard = (scene, boardState) => {
                         BABYLON.Color3.FromHexString(COLORS.darkPiece);
                     pieceMaterial.diffuseColor = pieceColor;
                     pieceMaterial.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+                    pieceMaterial.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.1);
                     pieceMesh.material = pieceMaterial;
                 }
             }
@@ -188,14 +189,67 @@ const createBoard = (scene, boardState) => {
         }
     }
 
-    const hemisphericLight = new BABYLON.HemisphericLight(
-        "hemisphericLight",
-        new BABYLON.Vector3(0, 1, 0),
-        scene
-    );
-    hemisphericLight.intensity = 0.7;
-
     return board;
+};
+
+const createGameStatePanel = (scene, gameState) => {
+    const advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+    const mainContainer = new GUI.StackPanel();
+    mainContainer.width = "650px";
+    mainContainer.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    mainContainer.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    mainContainer.paddingLeft = "20px";
+    advancedTexture.addControl(mainContainer);
+
+    const gameStatePanel = new GUI.StackPanel();
+    gameStatePanel.width = "100%";
+    gameStatePanel.height = "225px";
+    gameStatePanel.paddingTop = "20px";
+    gameStatePanel.background = "rgba(0, 0, 0, 0.7)";
+    mainContainer.addControl(gameStatePanel);
+
+    const currentPlayerLabel = new GUI.TextBlock();
+    currentPlayerLabel.text = `Current Player: ${gameState.currentPlayer}`;
+    currentPlayerLabel.color = "white";
+    currentPlayerLabel.fontSize = "36px";
+    currentPlayerLabel.height = "50px";
+    currentPlayerLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    gameStatePanel.addControl(currentPlayerLabel);
+
+    const moveNumberLabel = new GUI.TextBlock();
+    moveNumberLabel.text = `Move Number: ${gameState.moveNumber}`;
+    moveNumberLabel.color = "white";
+    moveNumberLabel.fontSize = "36px";
+    moveNumberLabel.height = "50px";
+    moveNumberLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    gameStatePanel.addControl(moveNumberLabel);
+
+    const whiteReservesLabel = new GUI.TextBlock();
+    const wrt = "Stones: " + gameState.whiteReserves.stones + " Caps: " + gameState.whiteReserves.caps;
+    whiteReservesLabel.text = "White Reserves: " + wrt;
+    whiteReservesLabel.color = "white";
+    whiteReservesLabel.fontSize = "36px";
+    whiteReservesLabel.height = "50px";
+    whiteReservesLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    gameStatePanel.addControl(whiteReservesLabel);
+
+    const blackReservesLabel = new GUI.TextBlock();
+    const brt = "Stones: " + gameState.blackReserves.stones + " Caps: " + gameState.blackReserves.caps;
+    blackReservesLabel.text = "Black Reserves: " + brt;
+    blackReservesLabel.color = "white";
+    blackReservesLabel.fontSize = "36px";
+    blackReservesLabel.height = "50px";
+    blackReservesLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    gameStatePanel.addControl(blackReservesLabel);
+
+    return {
+        panel: mainContainer,
+        currentPlayerLabel,
+        moveNumberLabel,
+        whiteReservesLabel,
+        blackReservesLabel,
+    };
 };
 
 const addCellInteractivity = (scene, board) => {
@@ -213,6 +267,96 @@ const addCellInteractivity = (scene, board) => {
     });
 };
 
+const createMoveInput = (scene, advancedTexture, gameId) => {
+    const inputContainer = new GUI.StackPanel();
+    inputContainer.width = "650px";
+    inputContainer.height = "200px";
+    inputContainer.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    inputContainer.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    inputContainer.paddingRight = "20px";
+    inputContainer.paddingTop = "20px";
+    inputContainer.background = "rgba(0, 0, 0, 0.0)";
+    advancedTexture.addControl(inputContainer);
+
+    const inputBox = new GUI.InputText();
+    inputBox.width = "500px";
+    inputBox.height = "100px";
+    inputBox.color = "white";
+    inputBox.background = "black";
+    inputBox.placeholderText = "Enter move (e.g., a1, Sa1, Ca1)";
+    inputBox.placeholderColor = "gray";
+    inputBox.fontSize = "24px";
+    inputBox.paddingTop = "20px";
+    inputContainer.addControl(inputBox);
+
+    const messageText = new GUI.TextBlock();
+    messageText.height = "30px";
+    messageText.color = "white";
+    messageText.fontSize = "18px";
+    inputContainer.addControl(messageText);
+
+    const submitButton = GUI.Button.CreateSimpleButton("submitMove", "Submit Move");
+    submitButton.width = "150px";
+    submitButton.height = "40px";
+    submitButton.color = "white";
+    submitButton.background = "#567c8d";
+    submitButton.fontSize = "20px";
+    submitButton.cornerRadius = 5;
+    submitButton.thickness = 2;
+    inputContainer.addControl(submitButton);
+
+    const submitMove = async () => {
+        const moveNotation = inputBox.text.trim();
+        if (!moveNotation) {
+            messageText.text = "Please enter a move";
+            messageText.color = "red";
+            return;
+        }
+
+        try {
+            const response = await axios.post("http://localhost:3000/api/game/move", {
+                gameId,
+                moveNotation
+            });
+
+            if (response.data.responseStatus === "Success") {
+                messageText.text = "Move successful!";
+                messageText.color = "green";
+                inputBox.text = "";
+
+                const newBoardState = parseTPS(response.data.board);
+                updateBoard(scene, newBoardState);
+                updateGameState({
+                    currentPlayer: response.data.currentPlayer,
+                    moveNumber: response.data.moveNum,
+                    whiteReserves: response.data.whiteReserves,
+                    blackReserves: response.data.blackReserves
+                });
+            } else {
+                messageText.text = response.data.message;
+                messageText.color = "red";
+            }
+        } catch (error) {
+            messageText.text = "Error submitting move: " + (error.response?.data?.message || error.message);
+            messageText.color = "red";
+        }
+    };
+
+    submitButton.onPointerUpObservable.add(submitMove);
+    inputBox.onKeyboardEventProcessedObservable.add((eventData) => {
+        if (eventData.key === "Enter") {
+            submitMove();
+        }
+    });
+
+    return {
+        container: inputContainer,
+        inputBox,
+        messageText,
+        submitButton
+    };
+};
+
 const createScene = async () => {
     const scene = new BABYLON.Scene(engine);
 
@@ -228,6 +372,16 @@ const createScene = async () => {
     const board = createBoard(scene, parsedBoard);
     addCellInteractivity(scene, board);
 
+    const { currentPlayerLabel, moveNumberLabel, whiteReservesLabel, blackReservesLabel } =
+        createGameStatePanel(scene, {
+            currentPlayer: gameState.currentPlayer,
+            moveNumber: gameState.moveNum,
+            whiteReserves: gameState.whiteReserves,
+            blackReserves: gameState.blackReserves,
+        });
+
+    const moveInput = createMoveInput(scene, GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"), gameState.gameId);
+
     const camera = new BABYLON.ArcRotateCamera(
         "camera",
         0,
@@ -237,6 +391,23 @@ const createScene = async () => {
         scene
     );
     camera.attachControl(canvas, true);
+
+    const hemisphericLight = new BABYLON.HemisphericLight(
+        "hemisphericLight",
+        new BABYLON.Vector3(0, 1, 1),
+        scene
+    );
+    hemisphericLight.intensity = 0.8;
+
+    engine.setHardwareScalingLevel(.5)
+
+    const ppp = new BABYLON.PassPostProcess("pass", 1, camera)
+    ppp.samples = engine.getCaps().maxMSAASamples
+
+    const pipeline = new BABYLON.DefaultRenderingPipeline("defaultPipeline", true, scene, [camera])
+    pipeline.samples = 4
+    pipeline.fxaaEnabled = true
+    pipeline.imageProcessingEnabled = false
 
     return scene;
 };

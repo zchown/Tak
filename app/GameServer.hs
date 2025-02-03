@@ -43,6 +43,7 @@ data GameResponse = GameResponse
   , whiteReserves :: Maybe B.Reserves
   , blackReserves :: Maybe B.Reserves
   , gameResult :: Maybe B.Result
+  , gameHistory :: Maybe [B.Move]
   } deriving (Show, Generic)
 
 instance FromJSON GameResponse
@@ -88,6 +89,7 @@ startServer = do
           , whiteReserves = Just $ getInitialReserves (boardSize req)
           , blackReserves = Just $ getInitialReserves (boardSize req)
           , gameResult = Just B.Continue
+          , gameHistory = Just []
           }
     post "/api/game/move" $ do
       MoveRequest gId moveStr <- jsonData
@@ -104,6 +106,7 @@ startServer = do
             , whiteReserves = Nothing
             , blackReserves = Nothing
             , gameResult = Nothing
+            , gameHistory = Nothing
             }
         Right gs ->
           json $
@@ -116,6 +119,7 @@ startServer = do
             , whiteReserves = Just $ B.player1 gs
             , blackReserves = Just $ B.player2 gs
             , gameResult = Just $ B.result gs
+            , gameHistory = Just $ B.gameHistory gs
             }
     get "/api/game/:id" $ do
       gId <- param "id"
@@ -132,6 +136,7 @@ startServer = do
             , whiteReserves = Nothing
             , blackReserves = Nothing
             , gameResult = Nothing
+            , gameHistory = Nothing
             }
         Just gs ->
           json $
@@ -144,6 +149,7 @@ startServer = do
             , whiteReserves = Just $ B.player1 gs
             , blackReserves = Just $ B.player2 gs
             , gameResult = Just $ B.result gs
+            , gameHistory = Just $ B.gameHistory gs
             }
 
 appCorsResourcePolicy :: CorsResourcePolicy
