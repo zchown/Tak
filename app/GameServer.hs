@@ -209,7 +209,9 @@ getInitialGameState :: Int -> B.GameState
 getInitialGameState size =
   B.GameState
     { B.board =
-        B.placeFlat (B.createEmptyBoard size) (B.Position (1, 1)) B.White
+        B.board $
+        TPS.parseTPSHard $
+        T.pack "1,2,x3/1S,2S,x3/1C,2C,x3/12,21,x3/12S,21S,x3 1 1"
     , B.turn = B.White
     , B.moveNumber = 1
     , B.player1 = getInitialReserves size

@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric #-}
+-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
 
