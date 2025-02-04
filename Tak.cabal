@@ -83,5 +83,5 @@ test-suite Tak-test
         directory,
         filepath,
         text,
-        Tak
+        Tak,
     buildable = True

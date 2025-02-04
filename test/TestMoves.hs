@@ -267,6 +267,33 @@ runMoveTests =
             b' = placeStanding b (Position (2, 3)) Black
             moves = slideMoves b' White
         length moves `shouldBe` 4
+      it "generates all possible moves in complex TPS position" $ do
+        let tps =
+              T.pack
+                "2S,2S,2S,2S,2S,2S/1S,1S,1S,1S,1S,1S/2S,2S,2S,2S,2S,2S/1S,1S,1S,1S,1S,1S/2S,2S,2S,2S,2S,2S/11,x5 1 2"
+            b = board $ parseTPSHard tps
+            moves =
+              generateAllMoves
+                (GameState b White 2 (Reserves 21 1) (Reserves 21 1) Continue [])
+        length moves `shouldBe` 18
+      it "generates all possible moves in complex TPS position" $ do
+        let tps =
+              T.pack
+                "2,2,21S,2,2,2/2,x,222221,2,2,x/1,1,2221C,x,111112C,2S/x,1,2S,x2,121211212/1,1,1212S,1S,2,1S/x2,2,1,21,1 1 42"
+            b = board $ parseTPSHard tps
+            moves =
+              generateAllMoves
+                (GameState
+                   b
+                   White
+                   42
+                   (Reserves 21 0)
+                   (Reserves 21 1)
+                   Continue
+                   [])
+            moves' = slideMoves b White
+        -- moves' `shouldBe` []
+        length moves `shouldBe` 140
     describe "Edge Cases" $ do
       it "should reject placing a stone outside the board boundaries" $ do
         let b = createEmptyBoard 5

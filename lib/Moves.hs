@@ -226,7 +226,7 @@ undoSlide b p@(B.Position (x, y)) dir (d:ds) xs
 generateAllMoves :: B.GameState -> [B.Move]
 generateAllMoves gs
   | B.moveNumber gs == 1 = firstMovePlacement gs
-  | otherwise = nub $ placementMoves gs ++ slideMoves (B.board gs) (B.turn gs)
+  | otherwise = placementMoves gs ++ slideMoves (B.board gs) (B.turn gs)
 
 -- First move must place opponent's flat stone on any empty square
 firstMovePlacement :: B.GameState -> [B.Move]
@@ -334,10 +334,10 @@ canCrush board startPos@(B.Position (x, y)) dir drops =
         _ -> False
 
 numSteps :: B.Direction -> B.Position -> B.Board -> Int
-numSteps B.Up (B.Position (x, _)) b = nrows b - x
-numSteps B.Down (B.Position (x, _)) _ = x - 1
-numSteps B.Left (B.Position (_, y)) _ = y - 1
-numSteps B.Right (B.Position (_, y)) b = ncols b - y
+numSteps B.Up (B.Position (_, y)) b = nrows b - y
+numSteps B.Down (B.Position (_, y)) _ = y - 1
+numSteps B.Left (B.Position (x, _)) _ = x - 1
+numSteps B.Right (B.Position (x, _)) b = ncols b - x
 
 isValidSlide ::
      B.Board
