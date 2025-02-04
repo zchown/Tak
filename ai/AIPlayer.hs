@@ -66,8 +66,9 @@ instance ToJSON GameResponse
 startAIPlayer :: IO ()
 startAIPlayer = do
   putStrLn "AI Player started..."
-  forever $ do
-    threadDelay 10000
+  forever $
+    -- threadDelay 10000
+   do
     maybeGameState <- fetchGameState myGameId
     case maybeGameState of
       Just gs -> do
