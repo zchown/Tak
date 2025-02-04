@@ -4,14 +4,18 @@
 module GameServer where
 
 import qualified Board as B
+import Control.Concurrent (forkIO)
 import Control.Concurrent.STM
-import Data.Aeson (FromJSON, ToJSON)
+import Control.Monad (forever)
+import Data.Aeson (FromJSON, ToJSON, decode, encode)
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.Map as Map
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
 import qualified Moves as M
 import Network.Wai.Middleware.Cors (CorsResourcePolicy(..), cors, simpleHeaders)
+import qualified Network.WebSockets as WS
 import qualified PTN as P
 import qualified TPS
 import Web.Scotty
@@ -61,72 +65,78 @@ instance ToJSON NewGameRequest
 
 type GameStore = TVar (Map.Map Text B.GameState)
 
+type Client = (Text, WS.Connection)
+
+type ClientStore = TVar (Map.Map Text [Client])
+
 initGameStore :: IO GameStore
 initGameStore = newTVarIO Map.empty
+
+initClientStore :: IO ClientStore
+initClientStore = newTVarIO Map.empty
 
 startServer :: IO ()
 startServer = do
   gameStore <- initGameStore
+  clientStore <- initClientStore
   putStrLn "Game store initialized"
+  forkIO $ WS.runServer "127.0.0.1" 9160 $ websocketApp gameStore clientStore
   scotty 3000 $ do
     middleware $ cors (const $ Just appCorsResourcePolicy)
-    options "/api/game/new" $ do text "OK"
-    options "/api/game/move" $ do text "OK"
-    options "/api/game/:id" $ do text "OK"
+    options "/api/game/new" $ text "OK"
+    options "/api/game/move" $ text "OK"
+    options "/api/game/:id" $ text "OK"
     post "/api/game/new" $ do
-      req <- jsonData :: ActionM NewGameRequest
-      liftIO $
-        putStrLn $
-        "Received new game request with board size: " ++ show (boardSize req)
+      req <- jsonData
       gameId <- liftIO $ createNewGame gameStore (boardSize req)
       json $
         GameResponse
-          { responseStatus = Success
-          , message = "New game created"
-          , board =
-              Just $ TPS.gameStateToTPS $ getInitialGameState (boardSize req)
-          , currentPlayer = Just "White"
-          , moveNum = Just 1
-          , whiteReserves = Just $ getInitialReserves (boardSize req)
-          , blackReserves = Just $ getInitialReserves (boardSize req)
-          , gameResult = Just B.Continue
-          , gameHistory = Just []
-          , gameID = Just gameId
-          }
+          Success
+          "New game created"
+          (Just $ TPS.gameStateToTPS $ getInitialGameState (boardSize req))
+          (Just "White")
+          (Just 1)
+          (Just $ getInitialReserves (boardSize req))
+          (Just $ getInitialReserves (boardSize req))
+          (Just B.Continue)
+          (Just [])
+          (Just gameId)
     post "/api/game/move" $ do
       MoveRequest gId moveStr <- jsonData
-      liftIO $ putStrLn $ "Received move request :" ++ show (gId, moveStr)
       result <- liftIO $ processMove gameStore gId moveStr
-      liftIO $ putStrLn $ "Move processed"
       case result of
         Left err ->
           json $
           GameResponse
-            { responseStatus = Error
-            , message = err
-            , board = Nothing
-            , currentPlayer = Nothing
-            , moveNum = Nothing
-            , whiteReserves = Nothing
-            , blackReserves = Nothing
-            , gameResult = Nothing
-            , gameHistory = Nothing
-            , gameID = Just gId
-            }
-        Right gs ->
+            Error
+            err
+            Nothing
+            Nothing
+            Nothing
+            Nothing
+            Nothing
+            Nothing
+            Nothing
+            (Just gId)
+        Right gs -> do
+          clients <- liftIO $ atomically $ readTVar clientStore
+          case Map.lookup gId clients of
+            Just clients' ->
+              liftIO $
+              mapM_ (\(_, ws) -> WS.sendTextData ws (encode gs)) clients'
+            Nothing -> return ()
           json $
-          GameResponse
-            { responseStatus = Success
-            , message = "Move processed successfully"
-            , board = Just $ TPS.gameStateToTPS gs
-            , currentPlayer = Just $ colorToText (B.turn gs)
-            , moveNum = Just $ B.moveNumber gs
-            , whiteReserves = Just $ B.player1 gs
-            , blackReserves = Just $ B.player2 gs
-            , gameResult = Just $ B.result gs
-            , gameHistory = Just $ map P.moveToText (B.gameHistory gs)
-            , gameID = Just gId
-            }
+            GameResponse
+              Success
+              "Move processed successfully"
+              (Just $ TPS.gameStateToTPS gs)
+              (Just $ colorToText (B.turn gs))
+              (Just $ B.moveNumber gs)
+              (Just $ B.player1 gs)
+              (Just $ B.player2 gs)
+              (Just $ B.result gs)
+              (Just $ map P.moveToText (B.gameHistory gs))
+              (Just gId)
     get "/api/game/:id" $ do
       gId <- param "id"
       maybeGame <- liftIO $ getGame gameStore gId
@@ -134,44 +144,65 @@ startServer = do
         Nothing ->
           json $
           GameResponse
-            { responseStatus = Error
-            , message = "Game not found"
-            , board = Nothing
-            , currentPlayer = Nothing
-            , moveNum = Nothing
-            , whiteReserves = Nothing
-            , blackReserves = Nothing
-            , gameResult = Nothing
-            , gameHistory = Nothing
-            , gameID = Just gId
-            }
+            Error
+            "Game not found"
+            Nothing
+            Nothing
+            Nothing
+            Nothing
+            Nothing
+            Nothing
+            Nothing
+            (Just gId)
         Just gs ->
           json $
           GameResponse
-            { responseStatus = Success
-            , message = "Game state retrieved"
-            , board = Just $ TPS.gameStateToTPS gs
-            , currentPlayer = Just $ colorToText (B.turn gs)
-            , moveNum = Just $ B.moveNumber gs
-            , whiteReserves = Just $ B.player1 gs
-            , blackReserves = Just $ B.player2 gs
-            , gameResult = Just $ B.result gs
-            , gameHistory = Just $ map P.moveToText (B.gameHistory gs)
-            , gameID = Just gId
-            }
+            Success
+            "Game state retrieved"
+            (Just $ TPS.gameStateToTPS gs)
+            (Just $ colorToText (B.turn gs))
+            (Just $ B.moveNumber gs)
+            (Just $ B.player1 gs)
+            (Just $ B.player2 gs)
+            (Just $ B.result gs)
+            (Just $ map P.moveToText (B.gameHistory gs))
+            (Just gId)
+
+websocketApp :: GameStore -> ClientStore -> WS.ServerApp
+websocketApp gameStore clientStore pending = do
+  conn <- WS.acceptRequest pending
+  msg <- WS.receiveData conn
+  case decode msg of
+    Just (MoveRequest gId _) -> do
+      atomically $
+        modifyTVar clientStore $ Map.insertWith (++) gId [(gId, conn)]
+      forever $ do
+        msg' <- WS.receiveData conn
+        case decode msg' of
+          Just (MoveRequest gId' moveStr) -> do
+            result <- processMove gameStore gId' moveStr
+            case result of
+              Right gs -> do
+                clients <- atomically $ readTVar clientStore
+                case Map.lookup gId' clients of
+                  Just clients' ->
+                    mapM_ (\(_, ws) -> WS.sendTextData ws (encode gs)) clients'
+                  Nothing -> return ()
+              Left _ -> return ()
+          Nothing -> return ()
+    Nothing -> return ()
 
 appCorsResourcePolicy :: CorsResourcePolicy
 appCorsResourcePolicy =
   CorsResourcePolicy
-    { corsOrigins = Just (["http://localhost:5173"], True)
-    , corsMethods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-    , corsRequestHeaders = simpleHeaders
-    , corsExposedHeaders = Nothing
-    , corsMaxAge = Nothing
-    , corsVaryOrigin = False
-    , corsRequireOrigin = False
-    , corsIgnoreFailures = False
-    }
+    (Just (["http://localhost:5173"], True))
+    ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    simpleHeaders
+    Nothing
+    Nothing
+    False
+    False
+    False
 
 createNewGame :: GameStore -> Int -> IO Text
 createNewGame store size = do
@@ -216,10 +247,7 @@ processMove store gId moveStr = do
                      return $ Right newState
 
 getGame :: GameStore -> Text -> IO (Maybe B.GameState)
-getGame store gId =
-  atomically $ do
-    games <- readTVar store
-    return $ Map.lookup gId games
+getGame store gId = atomically $ Map.lookup gId <$> readTVar store
 
 colorToText :: B.Color -> Text
 colorToText B.White = "White"
