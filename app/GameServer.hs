@@ -8,7 +8,6 @@ import Control.Concurrent (forkIO)
 import Control.Concurrent.STM
 import Control.Monad (forever)
 import Data.Aeson (FromJSON, ToJSON, decode, encode)
-import qualified Data.ByteString.Lazy as BL
 import qualified Data.Map as Map
 import Data.Text (Text)
 import qualified Data.Text as T

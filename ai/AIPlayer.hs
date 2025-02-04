@@ -15,13 +15,17 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Vector as V
 import GHC.Generics (Generic)
+import qualified MoveGen as MG
 import qualified Moves as M
 import Network.HTTP.Simple
 import qualified PTN
-import System.Random (randomRIO)
+
 import qualified TPS
 
--- API Configuration
+whiteStrategy = MG.generateRandomMove
+
+blackStrategy = MG.generateRandomMove
+
 apiBaseUrl :: String
 apiBaseUrl = "http://localhost:3000/api/game"
 
@@ -73,7 +77,7 @@ startAIPlayer = do
     case maybeGameState of
       Just gs -> do
         putStrLn "Fetched game state successfully."
-        submitRandomMove gs myGameId
+        submitMove gs myGameId
       Nothing -> putStrLn "Failed to fetch game state."
 
 fetchGameState :: Text -> IO (Maybe GameResponse)
@@ -92,12 +96,15 @@ fetchGameState gId = do
       putStrLn "Failed to decode game state"
       return Nothing
 
-submitRandomMove :: GameResponse -> Text -> IO ()
-submitRandomMove gr gId = do
+submitMove :: GameResponse -> Text -> IO ()
+submitMove gr gId = do
   let maybeGameState = gameResponseToGameState gr
   case maybeGameState of
     Just gs -> do
-      move <- generateRandomMove gs
+      move <-
+        case B.turn gs of
+          B.White -> whiteStrategy gs
+          B.Black -> blackStrategy gs
       let reqBody = encode $ MoveRequest gId move
       request <- parseRequest (apiBaseUrl ++ "/move")
       let request' =
@@ -109,20 +116,27 @@ submitRandomMove gr gId = do
       -- putStrLn $ "Response: " ++ BL.unpack (getResponseBody response)
     Nothing -> putStrLn "Failed to convert game response to game state."
 
+--
+-- submitRandomMove :: GameResponse -> Text -> IO ()
+-- submitRandomMove gr gId = do
+--   let maybeGameState = gameResponseToGameState gr
+--   case maybeGameState of
+--     Just gs -> do
+--       move <- MG.generateRandomMove gs
+--       let reqBody = encode $ MoveRequest gId move
+--       request <- parseRequest (apiBaseUrl ++ "/move")
+--       let request' =
+--             setRequestBodyLBS reqBody $
+--             setRequestMethod "POST" $
+--             setRequestHeader "Content-Type" ["application/json"] request
+--       response <- httpLBS request'
+--       putStrLn $ "Submitted move: " ++ T.unpack move
+--       -- putStrLn $ "Response: " ++ BL.unpack (getResponseBody response)
+--     Nothing -> putStrLn "Failed to convert game response to game state."
+--
 gameResponseToGameState :: GameResponse -> Maybe B.GameState
 gameResponseToGameState gr = do
   boardText <- board gr
   case TPS.parseTPS boardText of
     Left _ -> Nothing
     Right gs -> Just gs
-
-generateRandomMove :: B.GameState -> IO Text
-generateRandomMove gs = do
-  let moves = M.generateAllMoves gs
-  if null moves
-    then return "No valid moves"
-    else do
-      randomIndex <- randomRIO (0, length moves - 1)
-      putStrLn $ "Moves generated: " ++ show (length moves)
-      let move = moves V.! randomIndex
-      return $ PTN.moveToText move

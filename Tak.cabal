@@ -68,6 +68,9 @@ executable TakAI
     import:           warnings
     main-is:          Main.hs
     other-modules:    AIPlayer
+                      MoveGen
+                      Searches
+                      Eval
     build-depends:
         base ^>=4.16.4.0,
         Tak,
