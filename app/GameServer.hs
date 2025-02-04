@@ -190,7 +190,7 @@ processMove store gId moveStr = do
         Left err -> return $ Left $ T.pack $ show err
         Right move' -> do
           let move =
-                if length (B.gameHistory gs) > 2
+                if length (B.gameHistory gs) >= 2
                   then move'
                   else B.flipMoveColor move'
           if not (B.hasReserves (B.player1 gs) (B.player2 gs) move)
