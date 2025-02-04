@@ -2,6 +2,9 @@ module TestBoard where
 
 import Board
 import Data.Matrix
+import Data.Text (Text)
+import qualified Data.Text as T
+import qualified TPS
 import Test.Hspec
 
 runBoardTests :: IO ()
@@ -69,32 +72,19 @@ runBoardTests =
                   , gameHistory = []
                   }
           checkGameResult gameState `shouldBe` Continue
+        it "check f1 bug?" $ do
+          let b = TPS.parseTPSHard $ T.pack "x6/x6/x6/x6/x6/x5,1 2 2"
+          checkGameResult b `shouldBe` Continue
       describe "findRoad" $ do
         it "detects a white road through mixed paths" $ do
           let b =
-                fromLists
-                  [ [ [Piece White Flat]
-                    , []
-                    , [Piece White Flat]
-                    , [Piece White Flat]
-                    ]
-                  , [[], [Piece White Flat], [], [Piece White Flat]]
-                  , [[Piece White Flat], [], [Piece White Flat], []]
-                  , [[], [Piece White Flat], [], [Piece White Flat]]
-                  ]
+                board $
+                TPS.parseTPSHard $ T.pack "x6/x6/x6/x6/x6/1,1,1,1,1,1 2 2"
           checkGameWin b `shouldBe` Road White
         it "detects a black road through mixed paths" $ do
           let b =
-                fromLists
-                  [ [ [Piece Black Flat]
-                    , []
-                    , [Piece Black Flat]
-                    , [Piece Black Flat]
-                    ]
-                  , [[], [Piece Black Flat], [], [Piece Black Flat]]
-                  , [[Piece Black Flat], [], [Piece Black Flat], []]
-                  , [[], [Piece Black Flat], [], [Piece Black Flat]]
-                  ]
+                board $
+                TPS.parseTPSHard $ T.pack "2,x5/2,x5/2,x5/2,x5/2,x5/2,x5 2 2"
           checkGameWin b `shouldBe` Road Black
         it "prevents road through standing stones" $ do
           let b =

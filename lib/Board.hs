@@ -202,7 +202,7 @@ findRoad b c startPos = go [startPos] []
     go :: [Position] -> [Position] -> Bool
     go [] _ = False
     go (pos@(Position (i, j)):stack) visited
-      | i == n = True
+      | j == n = True
       | otherwise =
         let neighbors =
               [ Position (i, j + 1) -- Up
@@ -211,7 +211,7 @@ findRoad b c startPos = go [startPos] []
               , Position (i + 1, j) -- Right
               ]
             validNeighbors = filter (`checkValid` visited) neighbors
-            newStack = validNeighbors ++ stack
+            newStack = stack ++ validNeighbors
             newVisited = pos : visited
          in Position (i, n) `elem` validNeighbors || go newStack newVisited
 

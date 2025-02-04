@@ -22,7 +22,7 @@ import qualified PTN
 
 import qualified TPS
 
-whiteStrategy = MG.generateRandomMove
+whiteStrategy = MG.stupidEval1
 
 blackStrategy = MG.generateRandomMove
 
@@ -71,7 +71,7 @@ startAIPlayer :: IO ()
 startAIPlayer = do
   putStrLn "AI Player started..."
   forever $
-    -- threadDelay 10000
+    -- threadDelay 50000
    do
     maybeGameState <- fetchGameState myGameId
     case maybeGameState of
@@ -116,24 +116,6 @@ submitMove gr gId = do
       -- putStrLn $ "Response: " ++ BL.unpack (getResponseBody response)
     Nothing -> putStrLn "Failed to convert game response to game state."
 
---
--- submitRandomMove :: GameResponse -> Text -> IO ()
--- submitRandomMove gr gId = do
---   let maybeGameState = gameResponseToGameState gr
---   case maybeGameState of
---     Just gs -> do
---       move <- MG.generateRandomMove gs
---       let reqBody = encode $ MoveRequest gId move
---       request <- parseRequest (apiBaseUrl ++ "/move")
---       let request' =
---             setRequestBodyLBS reqBody $
---             setRequestMethod "POST" $
---             setRequestHeader "Content-Type" ["application/json"] request
---       response <- httpLBS request'
---       putStrLn $ "Submitted move: " ++ T.unpack move
---       -- putStrLn $ "Response: " ++ BL.unpack (getResponseBody response)
---     Nothing -> putStrLn "Failed to convert game response to game state."
---
 gameResponseToGameState :: GameResponse -> Maybe B.GameState
 gameResponseToGameState gr = do
   boardText <- board gr
