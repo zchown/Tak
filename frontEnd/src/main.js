@@ -195,7 +195,7 @@ const updatePieces = (scene, newBoardState, cells) => {
                     const segmentAngle = Math.PI / 2; 
                     const totalAngle = 2 * Math.PI; 
                     const largerAngle = totalAngle - segmentAngle; 
-                    const segmentHeight = 0.1;
+                    const segmentHeight = 0.12;
 
                     pieceMesh = new BABYLON.Mesh(`piece-${p}`, scene);
                     const positions = [];
@@ -249,9 +249,9 @@ const updatePieces = (scene, newBoardState, cells) => {
                         pieceMesh.rotation.z = - Math.PI / 2;
                         pieceMesh.rotation.y = Math.PI / 4;
                     }
-                    pieceMesh.position.y = 0.25 + index * 0.1; 
+                    pieceMesh.position.y = 0.25 + index * 0.12; 
                 } else {
-                    pieceMesh.position.y = 0.1 + index * 0.1; 
+                    pieceMesh.position.y = 0.1 + index * 0.12; 
                     pieceMesh.rotation.y = Math.random() * Math.PI * 2;
                 }
                 break;
@@ -264,14 +264,20 @@ const updatePieces = (scene, newBoardState, cells) => {
                     },
                     scene
                 );
-                pieceMesh.position.y = 0.25 + index * 0.1;
+                pieceMesh.position.y = 0.25 + index * 0.12;
                 break;
         }
         pieceMesh.position.x = cells[y * boardSize + x].position.x;
         pieceMesh.position.z = cells[y * boardSize + x].position.z;
-        pieceMesh.renderOutline = true;
-        pieceMesh.outlineColor = BABYLON.Color3.Black();
-        pieceMesh.outlineWidth = 0.01;
+
+        pieceMesh.convertToFlatShadedMesh();
+        pieceMesh.enableEdgesRendering();
+        pieceMesh.edgesWidth = 2.0;
+        if (color == "Black") { 
+            pieceMesh.edgesColor = new BABYLON.Color4(0.8, 0.8, 0.8, 0.8); 
+        } else {
+            pieceMesh.edgesColor = new BABYLON.Color4(0.2, 0.2, 0.2, 0.8);
+        }
 
         const pieceMaterial = new BABYLON.StandardMaterial("piece-material", scene);
         const pieceColor = color === "White" ? 

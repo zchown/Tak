@@ -71,6 +71,11 @@ executable TakAI
         text,
         matrix,
         aeson,
+        scotty,
+        stm,
+        containers,
+        wai-cors,
+        vector,
         random,
     hs-source-dirs:   ai
     default-language: Haskell2010
