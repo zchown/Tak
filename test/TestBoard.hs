@@ -52,10 +52,10 @@ runBoardTests =
       describe "checkGameResult" $ do
         it "detects non full board" $ do
           let partialBoard = matrix 4 4 (const [])
-          checkFullBoard partialBoard `shouldBe` Continue
+          checkFullBoard partialBoard False `shouldBe` Continue
         it "detects full board" $ do
           let partialBoard = matrix 4 4 (const [Piece White Flat])
-          checkFullBoard partialBoard `shouldBe` FlatWin White
+          checkFullBoard partialBoard False `shouldBe` FlatWin White
         it "detects when game is not over" $ do
           let partialBoard = matrix 4 4 (const [])
               gameState =
@@ -109,3 +109,27 @@ runBoardTests =
                   , [[], [], [], []]
                   ]
           findRoad b White (Position (1, 1)) `shouldBe` False
+      it "detects reserve game end" $ do
+        let gameState =
+              GameState
+                { board = createEmptyBoard 6
+                , turn = White
+                , moveNumber = 0
+                , player1 = Reserves 0 0
+                , player2 = Reserves 10 1
+                , result = Continue
+                , gameHistory = []
+                }
+        checkGameResult gameState `shouldBe` Draw
+      it "detects flat win" $ do
+        let gameState =
+              GameState
+                { board = placeFlat (createEmptyBoard 6) (Position (1, 1)) White
+                , turn = White
+                , moveNumber = 0
+                , player1 = Reserves 0 0
+                , player2 = Reserves 10 1
+                , result = Continue
+                , gameHistory = []
+                }
+        checkGameResult gameState `shouldBe` FlatWin White

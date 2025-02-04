@@ -125,12 +125,15 @@ checkGameResult gs =
   case checkGameWin (board gs) of
     Continue ->
       case checkReservesDraw (player1 gs) (player2 gs) of
-        Nothing -> checkFullBoard (board gs)
-        Just r -> r
+        Nothing ->
+          case checkFullBoard (board gs) True of
+            Continue -> Draw
+            x -> x
+        _ -> checkFullBoard (board gs) False
     r -> r
 
-checkFullBoard :: Board -> Result
-checkFullBoard b = go 1 1 (0, 0)
+checkFullBoard :: Board -> Bool -> Result
+checkFullBoard b f = go 1 1 (0, 0)
   where
     n = nrows b
     m = ncols b
@@ -143,7 +146,8 @@ checkFullBoard b = go 1 1 (0, 0)
           else if bc > wc
                  then FlatWin Black
                  else Draw
-      | null (getElem x y b) = Continue
+      | not f && null (getElem x y b) = Continue
+      | null (getElem x y b) = go (x + 1) y c
       | otherwise = go (x + 1) y $ addCount c
       where
         addCount :: (Int, Int) -> (Int, Int)

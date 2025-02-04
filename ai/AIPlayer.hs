@@ -66,9 +66,8 @@ instance ToJSON GameResponse
 startAIPlayer :: IO ()
 startAIPlayer = do
   putStrLn "AI Player started..."
-  forever $
-    -- threadDelay 1000
-   do
+  forever $ do
+    threadDelay 10000
     maybeGameState <- fetchGameState myGameId
     case maybeGameState of
       Just gs -> do
@@ -123,5 +122,6 @@ generateRandomMove gs = do
     then return "No valid moves"
     else do
       randomIndex <- randomRIO (0, length moves - 1)
+      putStrLn $ "Moves generated: " ++ show (length moves)
       let move = moves V.! randomIndex
       return $ PTN.moveToText move

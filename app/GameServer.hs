@@ -284,7 +284,16 @@ processMove store gId moveStr = do
                              , B.moveNumber = B.moveNumber gs + 1
                              , B.player1 = p1'
                              , B.player2 = p2'
-                             , B.result = B.checkGameResult gs
+                             , B.result =
+                                 B.checkGameResult $
+                                 B.GameState
+                                   newBoard
+                                   (B.turn gs)
+                                   1
+                                   p1'
+                                   p2'
+                                   B.Continue
+                                   []
                              , B.gameHistory = move : B.gameHistory gs
                              }
                      atomically $ modifyTVar store $ Map.insert gId newState

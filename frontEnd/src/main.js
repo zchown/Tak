@@ -8,6 +8,8 @@ let currentPieces = new Map();
 let gameStatePanel = null;
 let gameHistoryPanel = null;
 let moveInput = null;
+let whiteWins = 0;
+let blackWins = 0;
 
 const COLORS = {
     lightSquare: '#c8d9e6',
@@ -295,12 +297,40 @@ const updatePieces = (scene, newBoardState, cells) => {
 const createGameStatePanel = (scene, gameState) => {
     const advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
+    // Initialize win counters for White and Black
+    whiteWins = 0;
+    blackWins = 0;
+
     const mainContainer = new GUI.StackPanel();
     mainContainer.width = "650px";
     mainContainer.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
     mainContainer.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
     mainContainer.paddingLeft = "20px";
     advancedTexture.addControl(mainContainer);
+
+    // Add a new panel for win counters
+    const winCounterPanel = new GUI.StackPanel();
+    winCounterPanel.width = "100%";
+    winCounterPanel.height = "100px";
+    winCounterPanel.paddingTop = "10px";
+    winCounterPanel.background = "rgba(0, 0, 0, 0.7)";
+    mainContainer.addControl(winCounterPanel);
+
+    const whiteWinsLabel = new GUI.TextBlock();
+    whiteWinsLabel.text = `White Wins: ${whiteWins}`;
+    whiteWinsLabel.color = "white";
+    whiteWinsLabel.fontSize = "36px";
+    whiteWinsLabel.height = "50px";
+    whiteWinsLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    winCounterPanel.addControl(whiteWinsLabel);
+
+    const blackWinsLabel = new GUI.TextBlock();
+    blackWinsLabel.text = `Black Wins: ${blackWins}`;
+    blackWinsLabel.color = "white";
+    blackWinsLabel.fontSize = "36px";
+    blackWinsLabel.height = "50px";
+    blackWinsLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    winCounterPanel.addControl(blackWinsLabel);
 
     gameStatePanel = new GUI.StackPanel();
     gameStatePanel.width = "100%";
@@ -369,6 +399,8 @@ const createGameStatePanel = (scene, gameState) => {
         blackReservesLabel,
         historyText,
         scrollViewer,
+        whiteWinsLabel,
+        blackWinsLabel,
     };
 };
 
@@ -380,7 +412,36 @@ const updateGameStatePanel = (gameState) => {
     const brt = "Stones: " + gameState.blackReserves.stones + " Caps: " + gameState.blackReserves.caps;
     gameStatePanel.blackReservesLabel.text = "Black Reserves: " + brt;
     gameStatePanel.historyText.text = gameHistoryToText(gameState);
-}
+
+    moveInput.messageText.text = "";
+    moveInput.inputBox.text = "";
+    moveInput.inputBox.focus();
+
+    // Check if the game result is not "continue"
+    if (gameState.gameResult && gameState.gameResult.tag !== "Continue") {
+        // Update the win counters
+        if (gameState.gameResult.contents === "White") {
+            whiteWins++;
+        } else if (gameState.gameResult.contents === "Black") {
+            blackWins++;
+        }
+
+        gameStatePanel.whiteWinsLabel.text = `White Wins: ${whiteWins}`;
+        gameStatePanel.blackWinsLabel.text = `Black Wins: ${blackWins}`;
+
+        resetBoard();
+    }
+};
+
+const resetBoard = async () => {
+    console.log("Resetting board...");
+    const newGameState = await fetchGameState();
+    if (newGameState) {
+        const parsedBoard = parseTPS(newGameState.board);
+        updateBoard(scene, parsedBoard, cells);
+        updateGameStatePanel(newGameState);
+    }
+};
 
 const updateBoard = (scene, newBoardState, cells) => {
     const existingPieces = scene.meshes.filter(mesh => 
@@ -469,25 +530,10 @@ const createMoveInput = (scene, advancedTexture, gameId, cells, pieces) => {
                 moveGameId: gameId,
                 moveNotation
             });
-            // console.log("Move response:", response.data);
-            //
-            // if (response.data.responseStatus === "Success" || response.data.message == "Move processed successfully") {
-            //     messageText.text = "Move successful!";
-            //     messageText.color = "green";
-            //     inputBox.text = "";
-            //
-            //     const newBoardState = parseTPS(response.data.board);
-            //     updateBoard(scene, newBoardState, cells);
-            //     updateGameStatePanel(response.data);
-            //     moveInput.inputBox.focus();
-            //
-            // } else {
-            //     messageText.text = response.data.message;
-            //     messageText.color = "red";
-            // }
-        } catch (error) {
+        } catch (error) { 
+            // this is scuffed it alwyas seems to get an error but like sometimes its not actually
+            // the game gets updated and it works so just leave this here for now until it breaks
             messageText.text = (error.response?.data?.message || error.message);
-            // messageText.color = "red";
         }
     };
 
@@ -546,7 +592,7 @@ const connectWebSocket = (gameId, scene, cells) => {
 const createScene = async () => {
     const scene = new BABYLON.Scene(engine);
     scene.clearColor = BABYLON.Color3.FromHexString("#1c2833");
-    
+
 
     const gameState = await fetchGameState();
     console.log("Game State:", gameState);
