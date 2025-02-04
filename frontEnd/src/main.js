@@ -166,29 +166,94 @@ const updatePieces = (scene, newBoardState, cells) => {
         let pieceMesh;
         switch (type) {
             case "Flat":
-                pieceMesh = BABYLON.MeshBuilder.CreateBox(
-                    `piece-${p}`,
-                    {
-                        width: cellSize * pieceScale,
-                        height: 0.1,
-                        depth: cellSize * pieceScale
-                    },
-                    scene
-                );
-                pieceMesh.position.y = 0.1 + index * 0.1;
-                break;
-            case "Standing":
-                pieceMesh = BABYLON.MeshBuilder.CreateBox(
-                    `piece-${p}`,
-                    {
-                        width: 0.1,
-                        height: cellSize * pieceScale,
-                        depth: cellSize * pieceScale
-                    },
-                    scene
-                );
-                pieceMesh.rotation.y = Math.PI / 4;
-                pieceMesh.position.y = 0.25 + index * 0.1;
+            case "Standing": 
+                if (color === "White") {
+                    pieceMesh = BABYLON.MeshBuilder.CreateBox(
+                        `piece-${p}`,
+                        {
+                            width: cellSize * pieceScale,
+                            height: 0.1,
+                            depth: cellSize * pieceScale
+                        },
+                        scene
+                    );
+                    const vertices = pieceMesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+                    const newVertices = [];
+                    for (let i = 0; i < vertices.length; i += 3) {
+                        const x = vertices[i];
+                        const y = vertices[i + 1];
+                        const z = vertices[i + 2];
+                        if (z > 0) {
+                            newVertices.push(x * 0.8, y, z * 0.8);
+                        } else {
+                            newVertices.push(x, y, z);
+                        }
+                    }
+                    pieceMesh.setVerticesData(BABYLON.VertexBuffer.PositionKind, newVertices);
+                } else {
+                    const radius = (cellSize * pieceScale) / 2;
+                    const segmentAngle = Math.PI / 2; 
+                    const totalAngle = 2 * Math.PI; 
+                    const largerAngle = totalAngle - segmentAngle; 
+                    const segmentHeight = 0.1;
+
+                    pieceMesh = new BABYLON.Mesh(`piece-${p}`, scene);
+                    const positions = [];
+                    const indices = [];
+
+                    for (let i = 0; i <= 24; i++) {
+                        const theta = (segmentAngle / 2) + (i / 24) * largerAngle;
+                        const xPos = radius * Math.cos(theta);
+                        const zPos = radius * Math.sin(theta);
+                        positions.push(xPos, -0.05, zPos);
+                    }
+
+                    for (let i = 0; i <= 24; i++) {
+                        const theta = (segmentAngle / 2) + (i / 24) * largerAngle;
+                        const xPos = radius * Math.cos(theta);
+                        const zPos = radius * Math.sin(theta);
+                        positions.push(xPos, segmentHeight -0.05, zPos);
+                    }
+
+                    for (let i = 0; i < 24; i++) {
+                        indices.push(i, i + 1, 25 + i);
+                        indices.push(i + 1, 25 + i + 1, 25 + i);
+                    }
+
+                    for (let i = 1; i < 24; i++) {
+                        indices.push(0, i, i + 1);
+                    }
+
+                    for (let i = 1; i < 24; i++) {
+                        indices.push(25, 25 + i, 25 + i + 1);
+                    }
+
+                    const startBottom = 0;
+                    const endBottom = 24;
+                    const startTop = 25; 
+                    const endTop = 49; 
+
+                    indices.push(endBottom, startBottom, startTop);
+                    indices.push(endBottom, startTop, endTop);
+
+                    pieceMesh.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions);
+                    pieceMesh.setIndices(indices);
+                }
+
+                if (type === "Standing") {
+                    if (color == "White") {
+                        pieceMesh.rotation.x = - Math.PI / 2; 
+                        pieceMesh.rotation.y = - Math.PI / 4;
+                    }
+                    else {
+                        pieceMesh.rotation.z = - Math.PI / 2;
+                        pieceMesh.rotation.y = Math.PI / 4;
+                    }
+                    pieceMesh.position.y = 0.25 + index * 0.1; 
+                } else {
+                    pieceMesh.position.y = 0.1 + index * 0.1; 
+                    pieceMesh.rotation.y = Math.random() * Math.PI * 2;
+                }
                 break;
             case "Cap":
                 pieceMesh = BABYLON.MeshBuilder.CreateCylinder(
@@ -214,11 +279,11 @@ const updatePieces = (scene, newBoardState, cells) => {
             BABYLON.Color3.FromHexString(COLORS.darkPiece);
         pieceMaterial.diffuseColor = pieceColor;
         pieceMaterial.specularColor = new BABYLON.Color3(0.3, 0.3, 0.3);
+        pieceMaterial.backFaceCulling = false;
         pieceMesh.material = pieceMaterial;
 
         currentPieces.set(p, pieceMesh);
     };
-
 };
 
 const createGameStatePanel = (scene, gameState) => {
