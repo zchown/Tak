@@ -292,7 +292,6 @@ runMoveTests =
                    Continue
                    [])
             moves' = slideMoves b White
-        -- moves' `shouldBe` []
         length moves `shouldBe` 140
     describe "Edge Cases" $ do
       it "should reject placing a stone outside the board boundaries" $ do

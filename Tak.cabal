@@ -1,17 +1,13 @@
 cabal-version:      3.0
 name:               Tak
 version:            0.1.0.0
--- synopsis:
--- description:
 license:            MIT
 license-file:       LICENSE
 author:             zchown
 maintainer:         91749140+zchown@users.noreply.github.com
--- copyright:
 category:           Game
 build-type:         Simple
 extra-doc-files:    CHANGELOG.md
--- extra-source-files:
 
 common warnings
     ghc-options: -Wall 
@@ -32,14 +28,16 @@ library
                       TPS
                       Moves
                       PTN
-    -- other-modules: 
-    -- other-extensions:
     build-depends:    base ^>=4.16.4.0
                     , matrix 
                     , sequence
                     , text
                     , parsec
                     , aeson
+                    , vector
+                    , parallel
+                    , deepseq
+                    , split
     hs-source-dirs:   lib
     default-language: Haskell2010
 
@@ -48,7 +46,6 @@ executable Tak
     main-is:          Main.hs
     other-modules:    TerminalGamePlayer
                       GameServer
-    -- other-extensions:
     build-depends:
         base ^>=4.16.4.0,
         Tak,
@@ -64,6 +61,20 @@ executable Tak
     hs-source-dirs:   app
     default-language: Haskell2010
 
+executable TakAI
+    import:           warnings
+    main-is:          AIPlayer.hs
+    other-modules:    
+    build-depends:
+        base ^>=4.16.4.0,
+        Tak,
+        text,
+        matrix,
+        aeson,
+        random,
+    hs-source-dirs:   ai
+    default-language: Haskell2010
+
 test-suite Tak-test
     import:           warnings
     default-language: Haskell2010
@@ -72,7 +83,6 @@ test-suite Tak-test
                       TestPTN
                       TestMoves
                       TestGeneral
-    -- other-extensions:
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
     main-is:          Main.hs
@@ -83,5 +93,5 @@ test-suite Tak-test
         directory,
         filepath,
         text,
-        Tak,
+        Tak
     buildable = True

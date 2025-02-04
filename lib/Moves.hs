@@ -1,8 +1,12 @@
 module Moves where
 
 import qualified Board as B
-import Data.List (nub)
+import Control.DeepSeq
+import Control.Parallel.Strategies
+import qualified Data.List.Split as Split
 import Data.Matrix
+import qualified Data.Vector as V
+import GHC.Conc (numCapabilities)
 
 newtype InvalidMove =
   InvalidMove String
@@ -223,10 +227,60 @@ undoSlide b p@(B.Position (x, y)) dir (d:ds) xs
 -------------------------
 -- | Move Generation | --
 -------------------------
-generateAllMoves :: B.GameState -> [B.Move]
+generateAllMoves :: B.GameState -> V.Vector B.Move
 generateAllMoves gs
-  | B.moveNumber gs == 1 = firstMovePlacement gs
-  | otherwise = placementMoves gs ++ slideMoves (B.board gs) (B.turn gs)
+  | B.moveNumber gs == 1 = V.fromList $ firstMovePlacement gs
+  | otherwise = V.fromList $ parallelGenerateMoves gs
+
+parallelGenerateMoves :: B.GameState -> [B.Move]
+parallelGenerateMoves gs =
+  let placementResults = placementMoves gs
+      slideResults = parallelSlideMoves (B.board gs) (B.turn gs)
+   in placementResults ++ slideResults
+
+parallelSlideMoves :: B.Board -> B.Color -> [B.Move]
+parallelSlideMoves board color =
+  let controlledPos = controlledPositions board color
+      chunks =
+        Split.chunksOf
+          (max 1 (length controlledPos `div` numCapabilities))
+          controlledPos
+      slideChunks =
+        chunks |> map (map (generateSlidesForPosition board color)) |>
+        parMap rdeepseq concat
+   in concat slideChunks
+
+(|>) :: a -> (a -> b) -> b
+(|>) = flip ($)
+
+instance NFData B.Position where
+  rnf (B.Position (x, y)) = rnf x `seq` rnf y
+
+instance NFData B.Piece where
+  rnf (B.Piece color ps) = rnf color `seq` rnf ps
+
+instance NFData B.Color where
+  rnf B.White = ()
+  rnf B.Black = ()
+
+instance NFData B.Stone where
+  rnf B.Flat = ()
+  rnf B.Standing = ()
+  rnf B.Cap = ()
+
+instance NFData B.Direction where
+  rnf B.Up = ()
+  rnf B.Down = ()
+  rnf B.Left = ()
+  rnf B.Right = ()
+
+instance NFData B.Move where
+  rnf (B.PlaceFlat (pos, color)) = rnf pos `seq` rnf color
+  rnf (B.PlaceStanding (pos, color)) = rnf pos `seq` rnf color
+  rnf (B.PlaceCap (pos, color)) = rnf pos `seq` rnf color
+  rnf (B.Slide (pos, count, dir, drops, color, crush)) =
+    rnf pos `seq`
+    rnf count `seq` rnf dir `seq` rnf drops `seq` rnf color `seq` rnf crush
 
 -- First move must place opponent's flat stone on any empty square
 firstMovePlacement :: B.GameState -> [B.Move]
