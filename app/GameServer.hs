@@ -188,7 +188,11 @@ processMove store gId moveStr = do
     Just gs -> do
       case P.parseSingleMove (T.unpack (T.strip moveStr)) (B.turn gs) of
         Left err -> return $ Left $ T.pack $ show err
-        Right move ->
+        Right move' -> do
+          let move =
+                if length (B.gameHistory gs) > 2
+                  then move'
+                  else B.flipMoveColor move'
           if not (B.hasReserves (B.player1 gs) (B.player2 gs) move)
             then return $ Left "Not enough pieces"
             else case M.makeMove (B.board gs) move of
