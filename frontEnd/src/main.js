@@ -270,13 +270,13 @@ const updatePieces = (scene, newBoardState, cells) => {
         pieceMesh.position.x = cells[y * boardSize + x].position.x;
         pieceMesh.position.z = cells[y * boardSize + x].position.z;
 
-        pieceMesh.convertToFlatShadedMesh();
+        // pieceMesh.convertToFlatShadedMesh();
         pieceMesh.enableEdgesRendering();
-        pieceMesh.edgesWidth = 2.0;
+        pieceMesh.edgesWidth = 2.5;
         if (color == "Black") { 
-            pieceMesh.edgesColor = new BABYLON.Color4(0.8, 0.8, 0.8, 0.8); 
+            pieceMesh.edgesColor = new BABYLON.Color4(0.8, 0.8, 0.8, 1); 
         } else {
-            pieceMesh.edgesColor = new BABYLON.Color4(0.2, 0.2, 0.2, 0.8);
+            pieceMesh.edgesColor = new BABYLON.Color4(0, 0, 0, 1);
         }
 
         const pieceMaterial = new BABYLON.StandardMaterial("piece-material", scene);
