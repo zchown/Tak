@@ -39,6 +39,7 @@ instance ToJSON ConnectionMessage
 data MoveRequest = MoveRequest
   { moveGameId :: Text
   , moveNotation :: Text
+  , moveColor :: Text
   } deriving (Show, Generic)
 
 instance FromJSON MoveRequest
@@ -109,8 +110,8 @@ startServer = do
           (Just [])
           (Just gameId)
     post "/api/game/move" $ do
-      MoveRequest gId moveStr <- jsonData
-      result <- liftIO $ processMove gameStore gId moveStr
+      MoveRequest gId moveStr turn <- jsonData
+      result <- liftIO $ processMove gameStore gId moveStr turn
       case result of
         Left err -> do
           let errorResponse =
@@ -125,9 +126,7 @@ startServer = do
                   Nothing
                   Nothing
                   (Just gId)
-          -- Send error response to the client making the move
           json errorResponse
-          -- Broadcast the error response to all clients
           clients <- liftIO $ atomically $ readTVar clientStore
           case Map.lookup gId clients of
             Just clients' ->
@@ -149,9 +148,7 @@ startServer = do
                   (Just $ B.result gs)
                   (Just $ map P.moveToText (B.gameHistory gs))
                   (Just gId)
-          -- Send success response to the client making the move
           json successResponse
-          -- Broadcast the success response to all clients
           clients <- liftIO $ atomically $ readTVar clientStore
           case Map.lookup gId clients of
             Just clients' ->
@@ -206,8 +203,8 @@ websocketApp gameStore clientStore pending = do
       forever $ do
         msg' <- WS.receiveData conn
         case decode msg' of
-          Just (MoveRequest gId' moveStr) -> do
-            result <- processMove gameStore gId' moveStr
+          Just (MoveRequest gId' moveStr turn) -> do
+            result <- processMove gameStore gId' moveStr turn
             case result of
               Right gs -> do
                 clients <- atomically $ readTVar clientStore
@@ -254,49 +251,65 @@ createNewGame store size = do
   atomically $ modifyTVar store $ Map.insert gid initialState
   return gid
 
-processMove :: GameStore -> Text -> Text -> IO (Either Text B.GameState)
-processMove store gId moveStr = do
+processMove :: GameStore -> Text -> Text -> Text -> IO (Either Text B.GameState)
+processMove store gId moveStr turn = do
   maybeGame <- getGame store gId
   case maybeGame of
     Nothing -> return $ Left "Game not found"
     Just gs -> do
-      case P.parseSingleMove (T.unpack (T.strip moveStr)) (B.turn gs) of
+      case P.parseSingleMove
+             (T.unpack (T.strip moveStr))
+             (B.stringColor (T.unpack turn)) of
         Left err -> return $ Left $ T.pack $ show err
         Right move' -> do
           let move =
                 if length (B.gameHistory gs) >= 2
                   then move'
                   else B.flipMoveColor move'
-          if not (B.hasReserves (B.player1 gs) (B.player2 gs) move)
-            then return $ Left "Not enough pieces"
-            else case M.makeMove (B.board gs) move of
-                   Left (M.InvalidMove "Crush not set correctly") ->
-                     processMove store gId (T.concat [moveStr, T.pack "*"])
-                   Left err -> return $ Left $ T.pack $ show err
-                   Right newBoard -> do
-                     let (p1', p2') =
-                           B.getNewReserves (B.player1 gs) (B.player2 gs) move
-                     let newState =
-                           B.GameState
-                             { B.board = newBoard
-                             , B.turn = B.flipColor (B.turn gs)
-                             , B.moveNumber = B.moveNumber gs + 1
-                             , B.player1 = p1'
-                             , B.player2 = p2'
-                             , B.result =
-                                 B.checkGameResult $
-                                 B.GameState
-                                   newBoard
-                                   (B.turn gs)
-                                   1
-                                   p1'
-                                   p2'
-                                   B.Continue
-                                   []
-                             , B.gameHistory = move : B.gameHistory gs
-                             }
-                     atomically $ modifyTVar store $ Map.insert gId newState
-                     return $ Right newState
+          if B.turn gs /= B.getMoveColor move'
+            then do
+              putStrLn $
+                " Not your turn: " ++
+                show (B.turn gs) ++ " vs " ++ show (B.getMoveColor move')
+              return $ Left "Not your turn"
+            else if not (B.hasReserves (B.player1 gs) (B.player2 gs) move)
+                   then return $ Left "Not enough pieces"
+                   else case M.makeMove (B.board gs) move of
+                          Left (M.InvalidMove "Crush not set correctly") ->
+                            processMove
+                              store
+                              gId
+                              (T.concat [moveStr, T.pack "*"])
+                              turn
+                          Left err -> return $ Left $ T.pack $ show err
+                          Right newBoard -> do
+                            let (p1', p2') =
+                                  B.getNewReserves
+                                    (B.player1 gs)
+                                    (B.player2 gs)
+                                    move
+                            let newState =
+                                  B.GameState
+                                    { B.board = newBoard
+                                    , B.turn = B.flipColor (B.turn gs)
+                                    , B.moveNumber = B.moveNumber gs + 1
+                                    , B.player1 = p1'
+                                    , B.player2 = p2'
+                                    , B.result =
+                                        B.checkGameResult $
+                                        B.GameState
+                                          newBoard
+                                          (B.turn gs)
+                                          1
+                                          p1'
+                                          p2'
+                                          B.Continue
+                                          []
+                                    , B.gameHistory = move : B.gameHistory gs
+                                    }
+                            atomically $
+                              modifyTVar store $ Map.insert gId newState
+                            return $ Right newState
 
 getGame :: GameStore -> Text -> IO (Maybe B.GameState)
 getGame store gId = atomically $ Map.lookup gId <$> readTVar store

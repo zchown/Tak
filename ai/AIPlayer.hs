@@ -44,6 +44,7 @@ instance ToJSON GameStatus
 data MoveRequest = MoveRequest
   { moveGameId :: Text
   , moveNotation :: Text
+  , moveColor :: Text
   } deriving (Show, Generic)
 
 instance ToJSON MoveRequest
@@ -70,9 +71,8 @@ instance ToJSON GameResponse
 startAIPlayer :: IO ()
 startAIPlayer = do
   putStrLn "AI Player started..."
-  forever $
-    -- threadDelay 50000
-   do
+  forever $ do
+    threadDelay 150000
     maybeGameState <- fetchGameState myGameId
     case maybeGameState of
       Just gs -> do
@@ -105,7 +105,8 @@ submitMove gr gId = do
         case B.turn gs of
           B.White -> whiteStrategy gs
           B.Black -> blackStrategy gs
-      let reqBody = encode $ MoveRequest gId move
+      let reqBody =
+            encode $ MoveRequest gId move $ T.pack $ B.colorString (B.turn gs)
       request <- parseRequest (apiBaseUrl ++ "/move")
       let request' =
             setRequestBodyLBS reqBody $

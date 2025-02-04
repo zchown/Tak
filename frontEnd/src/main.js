@@ -297,7 +297,6 @@ const updatePieces = (scene, newBoardState, cells) => {
 const createGameStatePanel = (scene, gameState) => {
     const advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
-    // Initialize win counters for White and Black
     whiteWins = 0;
     blackWins = 0;
 
@@ -308,7 +307,6 @@ const createGameStatePanel = (scene, gameState) => {
     mainContainer.paddingLeft = "20px";
     advancedTexture.addControl(mainContainer);
 
-    // Add a new panel for win counters
     const winCounterPanel = new GUI.StackPanel();
     winCounterPanel.width = "100%";
     winCounterPanel.height = "100px";
@@ -417,9 +415,7 @@ const updateGameStatePanel = (gameState) => {
     moveInput.inputBox.text = "";
     moveInput.inputBox.focus();
 
-    // Check if the game result is not "continue"
     if (gameState.gameResult && gameState.gameResult.tag !== "Continue") {
-        // Update the win counters
         if (gameState.gameResult.contents === "White") {
             whiteWins++;
         } else if (gameState.gameResult.contents === "Black") {
@@ -518,6 +514,7 @@ const createMoveInput = (scene, advancedTexture, gameId, cells, pieces) => {
 
     const submitMove = async () => {
         const moveNotation = inputBox.text.trim();
+        const turn = gameStatePanel.currentPlayerLabel.text.split(": ")[1];
         if (!moveNotation) {
             messageText.text = "Please enter a move";
             messageText.color = "red";
@@ -525,13 +522,14 @@ const createMoveInput = (scene, advancedTexture, gameId, cells, pieces) => {
         }
 
         try {
-            console.log("Sending move request:", { gameId, moveNotation });
+            console.log("Sending move request:", { gameId, moveNotation, turn });
             const response = await axios.post("http://localhost:3000/api/game/move", {
                 moveGameId: gameId,
-                moveNotation
+                moveNotation: moveNotation,
+                moveColor: turn
             });
         } catch (error) { 
-            // this is scuffed it alwyas seems to get an error but like sometimes its not actually
+            // this is scuffed it always seems to get an error but like sometimes its not actually
             // the game gets updated and it works so just leave this here for now until it breaks
             messageText.text = (error.response?.data?.message || error.message);
         }

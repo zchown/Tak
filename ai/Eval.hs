@@ -12,8 +12,8 @@ stupidEval gs@(B.GameState b c _ _ _ _ _) = do
   case checkForWinScore gs of
     Just score -> score
     _ ->
-      -(length (M.controlledPositions b c)) +
-      (length (M.controlledPositions b (B.flipColor c)))
+      length (M.controlledPositions b (B.flipColor c)) -
+      length (M.controlledPositions b c)
 
 checkForWinScore :: B.GameState -> Maybe Int
 checkForWinScore gs

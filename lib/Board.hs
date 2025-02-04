@@ -282,6 +282,12 @@ getSlidePos (Position (x, y)) Down n = (Position (x, y - n), x, y - n)
 getSlidePos (Position (x, y)) Board.Left n = (Position (x - n, y), x - n, y)
 getSlidePos (Position (x, y)) Board.Right n = (Position (x + n, y), x + n, y)
 
+getMoveColor :: Move -> Color
+getMoveColor (PlaceFlat (_, c)) = c
+getMoveColor (PlaceStanding (_, c)) = c
+getMoveColor (PlaceCap (_, c)) = c
+getMoveColor (Slide (_, _, _, _, c, _)) = c
+
 flipMoveColor :: Move -> Move
 flipMoveColor (PlaceFlat (p, c)) = PlaceFlat (p, flipColor c)
 flipMoveColor (PlaceStanding (p, c)) = PlaceStanding (p, flipColor c)
@@ -340,6 +346,10 @@ stackString xs = (concatMap (\x -> pieceString x ++ " ") . reverse) xs
 colorString :: Color -> String
 colorString White = "White"
 colorString Black = "Black"
+
+stringColor :: String -> Color
+stringColor "White" = White
+stringColor _ = Black
 
 showSquare :: Square -> (String, Maybe String)
 showSquare [] = ("_", Nothing)
