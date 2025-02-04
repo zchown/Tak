@@ -57,7 +57,10 @@ executable Tak
         aeson,
         containers,
         stm,
-        wai-cors
+        wai-cors,
+        network,
+        bytestring,
+        websockets
     hs-source-dirs:   app
     default-language: Haskell2010
 
