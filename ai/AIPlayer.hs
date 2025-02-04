@@ -66,8 +66,9 @@ instance ToJSON GameResponse
 startAIPlayer :: IO ()
 startAIPlayer = do
   putStrLn "AI Player started..."
-  forever $ do
-    threadDelay 100000 -- 1 second delay
+  forever $
+    -- threadDelay 1000
+   do
     maybeGameState <- fetchGameState myGameId
     case maybeGameState of
       Just gs -> do
@@ -79,12 +80,13 @@ fetchGameState :: Text -> IO (Maybe GameResponse)
 fetchGameState gId = do
   let url = apiBaseUrl ++ "/" ++ T.unpack gId
   request <- parseRequest url
-  putStrLn $ show request
+  -- putStrLn $ show request
   response <- httpLBS request
   let result = decode (getResponseBody response)
   case result of
-    Just gs -> do
-      putStrLn $ "Fetched game state: " ++ show gs
+    Just gs
+      -- putStrLn $ "Fetched game state: " ++ show gs
+     -> do
       return result
     Nothing -> do
       putStrLn "Failed to decode game state"
@@ -104,7 +106,7 @@ submitRandomMove gr gId = do
             setRequestHeader "Content-Type" ["application/json"] request
       response <- httpLBS request'
       putStrLn $ "Submitted move: " ++ T.unpack move
-      putStrLn $ "Response: " ++ BL.unpack (getResponseBody response)
+      -- putStrLn $ "Response: " ++ BL.unpack (getResponseBody response)
     Nothing -> putStrLn "Failed to convert game response to game state."
 
 gameResponseToGameState :: GameResponse -> Maybe B.GameState

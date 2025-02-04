@@ -469,25 +469,25 @@ const createMoveInput = (scene, advancedTexture, gameId, cells, pieces) => {
                 moveGameId: gameId,
                 moveNotation
             });
-            console.log("Move response:", response.data);
-
-            if (response.data.responseStatus === "Success") {
-                messageText.text = "Move successful!";
-                messageText.color = "green";
-                inputBox.text = "";
-
-                const newBoardState = parseTPS(response.data.board);
-                updateBoard(scene, newBoardState, cells);
-                updateGameStatePanel(response.data);
-                moveInput.inputBox.focus();
-
-            } else {
-                messageText.text = response.data.message;
-                messageText.color = "red";
-            }
+            // console.log("Move response:", response.data);
+            //
+            // if (response.data.responseStatus === "Success" || response.data.message == "Move processed successfully") {
+            //     messageText.text = "Move successful!";
+            //     messageText.color = "green";
+            //     inputBox.text = "";
+            //
+            //     const newBoardState = parseTPS(response.data.board);
+            //     updateBoard(scene, newBoardState, cells);
+            //     updateGameStatePanel(response.data);
+            //     moveInput.inputBox.focus();
+            //
+            // } else {
+            //     messageText.text = response.data.message;
+            //     messageText.color = "red";
+            // }
         } catch (error) {
-            messageText.text = "Error submitting move: " + (error.response?.data?.message || error.message);
-            messageText.color = "red";
+            messageText.text = (error.response?.data?.message || error.message);
+            // messageText.color = "red";
         }
     };
 
