@@ -66,8 +66,8 @@ executable Tak
 
 executable TakAI
     import:           warnings
-    main-is:          AIPlayer.hs
-    other-modules:    
+    main-is:          Main.hs
+    other-modules:    AIPlayer
     build-depends:
         base ^>=4.16.4.0,
         Tak,
@@ -80,6 +80,9 @@ executable TakAI
         wai-cors,
         vector,
         random,
+        bytestring,
+        network,
+        http-conduit
     hs-source-dirs:   ai
     default-language: Haskell2010
 

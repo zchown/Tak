@@ -29,8 +29,16 @@ instance FromJSON GameStatus
 
 instance ToJSON GameStatus
 
-data MoveRequest = MoveRequest
+data ConnectionMessage = ConnectionMessage
   { gameId :: Text
+  } deriving (Show, Generic)
+
+instance FromJSON ConnectionMessage
+
+instance ToJSON ConnectionMessage
+
+data MoveRequest = MoveRequest
+  { moveGameId :: Text
   , moveNotation :: Text
   } deriving (Show, Generic)
 
@@ -105,38 +113,54 @@ startServer = do
       MoveRequest gId moveStr <- jsonData
       result <- liftIO $ processMove gameStore gId moveStr
       case result of
-        Left err ->
-          json $
-          GameResponse
-            Error
-            err
-            Nothing
-            Nothing
-            Nothing
-            Nothing
-            Nothing
-            Nothing
-            Nothing
-            (Just gId)
-        Right gs -> do
+        Left err -> do
+          let errorResponse =
+                GameResponse
+                  Error
+                  err
+                  Nothing
+                  Nothing
+                  Nothing
+                  Nothing
+                  Nothing
+                  Nothing
+                  Nothing
+                  (Just gId)
+          -- Send error response to the client making the move
+          json errorResponse
+          -- Broadcast the error response to all clients
           clients <- liftIO $ atomically $ readTVar clientStore
           case Map.lookup gId clients of
             Just clients' ->
               liftIO $
-              mapM_ (\(_, ws) -> WS.sendTextData ws (encode gs)) clients'
+              mapM_
+                (\(_, ws) -> WS.sendTextData ws (encode errorResponse))
+                clients'
             Nothing -> return ()
-          json $
-            GameResponse
-              Success
-              "Move processed successfully"
-              (Just $ TPS.gameStateToTPS gs)
-              (Just $ colorToText (B.turn gs))
-              (Just $ B.moveNumber gs)
-              (Just $ B.player1 gs)
-              (Just $ B.player2 gs)
-              (Just $ B.result gs)
-              (Just $ map P.moveToText (B.gameHistory gs))
-              (Just gId)
+        Right gs -> do
+          let successResponse =
+                GameResponse
+                  Success
+                  "Move processed successfully"
+                  (Just $ TPS.gameStateToTPS gs)
+                  (Just $ colorToText (B.turn gs))
+                  (Just $ B.moveNumber gs)
+                  (Just $ B.player1 gs)
+                  (Just $ B.player2 gs)
+                  (Just $ B.result gs)
+                  (Just $ map P.moveToText (B.gameHistory gs))
+                  (Just gId)
+          -- Send success response to the client making the move
+          json successResponse
+          -- Broadcast the success response to all clients
+          clients <- liftIO $ atomically $ readTVar clientStore
+          case Map.lookup gId clients of
+            Just clients' ->
+              liftIO $
+              mapM_
+                (\(_, ws) -> WS.sendTextData ws (encode successResponse))
+                clients'
+            Nothing -> return ()
     get "/api/game/:id" $ do
       gId <- param "id"
       maybeGame <- liftIO $ getGame gameStore gId
@@ -170,10 +194,14 @@ startServer = do
 
 websocketApp :: GameStore -> ClientStore -> WS.ServerApp
 websocketApp gameStore clientStore pending = do
+  putStrLn "New WebSocket connection pending"
   conn <- WS.acceptRequest pending
+  putStrLn "WebSocket connection accepted"
   msg <- WS.receiveData conn
+  putStrLn $ "Received initial message: " ++ show msg
   case decode msg of
-    Just (MoveRequest gId _) -> do
+    Just (ConnectionMessage gId) -> do
+      putStrLn $ "Successfully connected client to game: " ++ show gId
       atomically $
         modifyTVar clientStore $ Map.insertWith (++) gId [(gId, conn)]
       forever $ do
@@ -188,25 +216,41 @@ websocketApp gameStore clientStore pending = do
                   Just clients' ->
                     mapM_ (\(_, ws) -> WS.sendTextData ws (encode gs)) clients'
                   Nothing -> return ()
-              Left _ -> return ()
-          Nothing -> return ()
-    Nothing -> return ()
+              Left err ->
+                WS.sendTextData conn $
+                encode $
+                GameResponse
+                  Error
+                  err
+                  Nothing
+                  Nothing
+                  Nothing
+                  Nothing
+                  Nothing
+                  Nothing
+                  Nothing
+                  (Just gId')
+          Nothing -> putStrLn "Failed to decode move message"
+    Nothing -> do
+      putStrLn "Failed to decode initial connection message"
+      return ()
 
 appCorsResourcePolicy :: CorsResourcePolicy
 appCorsResourcePolicy =
   CorsResourcePolicy
-    (Just (["http://localhost:5173"], True))
-    ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-    simpleHeaders
-    Nothing
-    Nothing
-    False
-    False
-    False
+    { corsOrigins = Just (["http://localhost:5173"], True)
+    , corsMethods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    , corsRequestHeaders = simpleHeaders
+    , corsExposedHeaders = Nothing
+    , corsMaxAge = Nothing
+    , corsVaryOrigin = False
+    , corsRequireOrigin = False
+    , corsIgnoreFailures = False
+    }
 
 createNewGame :: GameStore -> Int -> IO Text
 createNewGame store size = do
-  let gid = "game-" <> T.pack (show size)
+  let gid = "game" <> T.pack (show size)
   let initialState = getInitialGameState size
   atomically $ modifyTVar store $ Map.insert gid initialState
   return gid
@@ -256,11 +300,7 @@ colorToText B.Black = "Black"
 getInitialGameState :: Int -> B.GameState
 getInitialGameState size =
   B.GameState
-    -- { B.board = B.createEmptyBoard size
-    { B.board =
-        B.board $
-        TPS.parseTPSHard
-          "2,2,21S,2,2,2/2,x,222221,2,2,x/1,1,2221C,x,111112C,2S/x,1,2S,x2,121211212/1,1,1212S,1S,2,1S/x2,2,1,21,1 1 42"
+    { B.board = B.createEmptyBoard size
     , B.turn = B.White
     , B.moveNumber = 1
     , B.player1 = getInitialReserves size

@@ -48,7 +48,8 @@ cleanTPS =
   T.strip .
   T.replace "[TPS " "" .
   -- the x, and x/ are useful to make parsing easier
-  T.replace "]" "" . T.replace "x," "x1," . T.replace "x/" "x1/"
+  T.replace "]" "" .
+  T.replace "x," "x1," . T.replace "x/" "x1/" . T.replace "x " "x1 "
 
 splitTPS :: Text -> Either ParseError [Text]
 splitTPS t =

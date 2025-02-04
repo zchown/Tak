@@ -270,13 +270,13 @@ const updatePieces = (scene, newBoardState, cells) => {
         pieceMesh.position.x = cells[y * boardSize + x].position.x;
         pieceMesh.position.z = cells[y * boardSize + x].position.z;
 
-        // pieceMesh.convertToFlatShadedMesh();
+        pieceMesh.convertToFlatShadedMesh();
         pieceMesh.enableEdgesRendering();
         pieceMesh.edgesWidth = 2.5;
         if (color == "Black") { 
             pieceMesh.edgesColor = new BABYLON.Color4(0.8, 0.8, 0.8, 1); 
         } else {
-            pieceMesh.edgesColor = new BABYLON.Color4(0, 0, 0, 1);
+            pieceMesh.edgesColor = new BABYLON.Color4(0, 0, 0, 0.8);
         }
 
         const pieceMaterial = new BABYLON.StandardMaterial("piece-material", scene);
@@ -466,7 +466,7 @@ const createMoveInput = (scene, advancedTexture, gameId, cells, pieces) => {
         try {
             console.log("Sending move request:", { gameId, moveNotation });
             const response = await axios.post("http://localhost:3000/api/game/move", {
-                gameId,
+                moveGameId: gameId,
                 moveNotation
             });
             console.log("Move response:", response.data);
@@ -506,9 +506,47 @@ const createMoveInput = (scene, advancedTexture, gameId, cells, pieces) => {
     };
 };
 
+const connectWebSocket = (gameId, scene, cells) => {
+    console.log("Attempting to connect WebSocket...");
+    const ws = new WebSocket(`ws://localhost:9160`);
+
+    ws.onopen = () => {
+        console.log("WebSocket connection established");
+        ws.send(JSON.stringify({ gameId: gameId}));
+    };
+
+    ws.onmessage = (event) => {
+        console.log("Raw message received:", event.data);
+        try {
+            const gameState = JSON.parse(event.data);
+            console.log("Parsed game state update:", gameState);
+            const parsedBoard = parseTPS(gameState.board);
+            updateBoard(scene, parsedBoard, cells);
+            updateGameStatePanel(gameState);
+        } catch (error) {
+            console.error("Error processing message:", error);
+        }
+    };
+
+    ws.onclose = (event) => {
+        console.log("WebSocket connection closed", {
+            code: event.code,
+            reason: event.reason,
+            wasClean: event.wasClean
+        });
+    };
+
+    ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
+    };
+
+    return ws;
+};
+
 const createScene = async () => {
     const scene = new BABYLON.Scene(engine);
     scene.clearColor = BABYLON.Color3.FromHexString("#1c2833");
+    
 
     const gameState = await fetchGameState();
     console.log("Game State:", gameState);
@@ -518,9 +556,12 @@ const createScene = async () => {
         return scene;
     }
 
+
     const parsedBoard = parseTPS(gameState.board);
     const cells = createCells(scene, parsedBoard);
     let pieces = updatePieces(scene, parsedBoard, cells);
+
+    const ws = connectWebSocket(gameState.gameID, scene, cells);
 
     gameStatePanel = createGameStatePanel(scene, gameState);
 
@@ -582,6 +623,7 @@ const init = async () => {
 
     engine.runRenderLoop(() => {
         scene.render();
+
     });
 
     window.addEventListener("resize", () => {

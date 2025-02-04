@@ -79,6 +79,9 @@ runTPSTests =
       it "handles empty input" $ do
         let tps = ""
         parseTPS tps `shouldBe` Prelude.Left (InvalidTPSFormat "")
+      -- it "handles weird test" $ do
+      --   let tps = "x6/x3,2,x,2S/x6/x6/x,1C,x4/1,x3,1,x 2 6"
+      --   parseTPS tps `shouldBe` Prelude.Left (InvalidPiece '1')
     describe "Board to TPS Conversion" $ do
       it "converts an empty 4x4 board to TPS correctly" $ do
         let emptyBoard = createEmptyBoard 4
