@@ -94,7 +94,7 @@ alphaBeta eval gs depth
         r =
           case B.checkGameResult gs' of
             B.FlatWin B.White -> color * flatWin
-            B.FlatWin B.Black -> -color * (-flatWin)
+            B.FlatWin B.Black -> color * (-flatWin)
             B.Road B.White -> color * roadWin
-            B.Road B.Black -> -color * (-roadWin)
+            B.Road B.Black -> color * (-roadWin)
             _ -> 0

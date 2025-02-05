@@ -33,7 +33,7 @@ bestEval :: B.GameState -> Int
 bestEval gs@(B.GameState b _ _ _ _ _ _) = do
   case checkForWinScore gs of
     Just score -> score
-    _ -> (7 * fcd) + pc + (2 * buddies) + (5 * lr) + res + (3 * center)
+    _ -> (9 * fcd) + (2 * pc) + (3 * buddies) + (7 * lr) + res + (2 * center)
   where
     whiteControlled = M.controlledPositions b B.White
     blackControlled = M.controlledPositions b B.Black
@@ -117,5 +117,8 @@ encourageCenterPlay :: B.Board -> [B.Position] -> Int
 encourageCenterPlay board positions = sum $ map foo positions
   where
     center = ncols board `div` 2
+    center2 = (ncols board + 2) `div` 2
     foo :: B.Position -> Int
-    foo (B.Position (x, y)) = abs (x - center) + abs (y - center)
+    foo (B.Position (x, y)) =
+      abs (x - center) + abs (y - center) + abs (x - center2) +
+      abs (y - center2)

@@ -426,7 +426,8 @@ const updateGameStatePanel = (gameState) => {
     moveInput.inputBox.text = "";
     moveInput.inputBox.focus();
 
-    if (gameState.gameResult && gameState.gameResult.tag !== "Continue") {
+    if (gameState.gameResult && !(gameState.gameResult.tag === "Continue")) {
+        console.log("Game Over");
         if (gameState.gameResult.contents === "White") {
             if (gameState.gameResult.tag === "Road") {
                 whiteRoadWins++;
