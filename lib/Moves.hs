@@ -5,7 +5,6 @@ import Control.DeepSeq
 import Control.Parallel.Strategies
 import qualified Data.List.Split as Split
 import Data.Matrix
-import qualified Data.Vector as V
 import GHC.Conc (numCapabilities)
 
 newtype InvalidMove =
@@ -227,10 +226,10 @@ undoSlide b p@(B.Position (x, y)) dir (d:ds) xs
 -------------------------
 -- | Move Generation | --
 -------------------------
-generateAllMoves :: B.GameState -> V.Vector B.Move
+generateAllMoves :: B.GameState -> [B.Move]
 generateAllMoves gs
-  | B.moveNumber gs <= 2 = V.fromList $ firstMovePlacement gs
-  | otherwise = V.fromList $ parallelGenerateMoves gs
+  | B.moveNumber gs <= 2 = firstMovePlacement gs
+  | otherwise = parallelGenerateMoves gs
 
 parallelGenerateMoves :: B.GameState -> [B.Move]
 parallelGenerateMoves gs =
@@ -242,9 +241,7 @@ parallelSlideMoves :: B.Board -> B.Color -> [B.Move]
 parallelSlideMoves board color =
   let controlledPos = controlledPositions board color
       chunks =
-        Split.chunksOf
-          (max 1 (length controlledPos `div` numCapabilities))
-          controlledPos
+        Split.chunksOf (max 1 (length controlledPos `div` 6)) controlledPos
       slideChunks =
         chunks |> map (map (generateSlidesForPosition board color)) |>
         parMap rdeepseq concat

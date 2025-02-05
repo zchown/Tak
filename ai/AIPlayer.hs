@@ -17,7 +17,7 @@ import Network.HTTP.Simple
 
 import qualified TPS
 
-whiteStrategy = MG.alphaBetaBest90
+whiteStrategy = MG.alphaBetaBest90'
 
 blackStrategy = MG.alphaBetaBest90
 

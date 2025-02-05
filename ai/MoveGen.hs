@@ -6,7 +6,6 @@ module MoveGen where
 
 import qualified Board as B
 import Data.Text (Text)
-import qualified Data.Vector as V
 import qualified Eval as E
 import qualified Moves as M
 import qualified PTN
@@ -21,7 +20,7 @@ generateRandomMove gs = do
     else do
       randomIndex <- randomRIO (0, length moves - 1)
       putStrLn $ "Moves generated: " ++ show (length moves)
-      let move = moves V.! randomIndex
+      let move = moves !! randomIndex
       return $ PTN.moveToText move
 
 percentageRandomMove ::
@@ -46,13 +45,19 @@ generatorPattern search eval gs depth = do
     Nothing -> return "No valid moves"
 
 betterEval :: B.GameState -> IO Text
-betterEval = generatorPattern S.negaMax E.betterEval 2
+betterEval = generatorPattern S.negaMax E.betterEval 4
 
 bestEval :: B.GameState -> IO Text
-bestEval = generatorPattern S.negaMax E.bestEval 3
+bestEval = generatorPattern S.negaMax E.bestEval 4
 
 alphaBetaBest :: B.GameState -> IO Text
-alphaBetaBest = generatorPattern S.alphaBeta E.bestEval 3
+alphaBetaBest = generatorPattern S.alphaBeta E.bestEval 4
+
+alphaBetaBest' :: B.GameState -> IO Text
+alphaBetaBest' = generatorPattern S.alphaBeta E.bestEval' 4
+
+alphaBetaBest90' :: B.GameState -> IO Text
+alphaBetaBest90' = percentageRandomMove alphaBetaBest' 90
 
 bestEval90 :: B.GameState -> IO Text
 bestEval90 = percentageRandomMove bestEval 90

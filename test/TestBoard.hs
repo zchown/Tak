@@ -113,7 +113,23 @@ runBoardTests =
                 , result = Continue
                 , gameHistory = []
                 }
-        checkGameResult gameState `shouldBe` Continue
+        checkGameResult gameState `shouldBe` Road Black
+      it "uses cap for road" $ do
+        let gameState =
+              GameState
+                { board =
+                    board $
+                    TPS.parseTPSHard $
+                    T.pack
+                      "2,x4,1/1,1,1,1,1,x/1,1,12,2,x2/2,2,2C,2,2,2/x6/1,x5 1 21"
+                , turn = White
+                , moveNumber = 0
+                , player1 = Reserves 10 1
+                , player2 = Reserves 10 1
+                , result = Continue
+                , gameHistory = []
+                }
+        checkGameResult gameState `shouldBe` Road Black
       it "detects reserve game end" $ do
         let gameState =
               GameState

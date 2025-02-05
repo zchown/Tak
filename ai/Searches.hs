@@ -3,7 +3,8 @@
 module Searches where
 
 import qualified Board as B
-import qualified Data.Vector as V
+import Data.List
+import Data.Maybe
 import Eval
 import qualified Moves as M
 
@@ -13,7 +14,7 @@ negaMax eval gs depth
   | null moves = Nothing
   | otherwise =
     let !bestMove =
-          V.foldl'
+          foldl'
             (\acc@(score, _) m ->
                let !score' = negaMax' (M.doMove gs m) (depth - 1) c
                 in if score' > score
@@ -31,22 +32,16 @@ negaMax eval gs depth
     negaMax' :: B.GameState -> Int -> Int -> Int
     negaMax' gs' depth' color
       | depth' == 0 = color * eval gs'
-      | r /= 0 = r
+      | isJust r = (fromJust r) * color
       | otherwise =
-        V.foldl'
+        foldl'
           (\alpha m ->
              max alpha (-negaMax' (M.doMove gs' m) (depth' - 1) (-color)))
           (-roadWin)
           moves
       where
         !moves = M.generateAllMoves gs'
-        !r =
-          case B.checkGameResult gs' of
-            B.FlatWin B.White -> color * flatWin
-            B.FlatWin B.Black -> -color * (-flatWin)
-            B.Road B.White -> color * roadWin
-            B.Road B.Black -> -color * (-roadWin)
-            _ -> 0
+        !r = checkForWinScore gs'
 
 alphaBeta :: (B.GameState -> Int) -> B.GameState -> Int -> Maybe B.Move
 alphaBeta eval gs depth
@@ -54,7 +49,7 @@ alphaBeta eval gs depth
   | null moves = Nothing
   | otherwise =
     let !bestMove =
-          V.foldl'
+          foldl'
             (\acc@(score, _) m ->
                let newScore =
                      alphabeta' (M.doMove gs m) (depth - 1) c (-roadWin) roadWin
@@ -73,9 +68,9 @@ alphaBeta eval gs depth
     alphabeta' :: B.GameState -> Int -> Int -> Int -> Int -> Int
     alphabeta' gs' depth' color alpha beta
       | depth' == 0 = color * eval gs'
-      | r /= 0 = r
+      | isJust r = (fromJust r) * color
       | otherwise =
-        V.foldl'
+        foldl'
           (\a m ->
              if a >= beta
                then a
@@ -90,11 +85,5 @@ alphaBeta eval gs depth
           alpha
           moves
       where
-        moves = M.generateAllMoves gs'
-        r =
-          case B.checkGameResult gs' of
-            B.FlatWin B.White -> color * flatWin
-            B.FlatWin B.Black -> color * (-flatWin)
-            B.Road B.White -> color * roadWin
-            B.Road B.Black -> color * (-roadWin)
-            _ -> 0
+        !r = checkForWinScore gs'
+        !moves = M.generateAllMoves gs'

@@ -426,7 +426,9 @@ const updateGameStatePanel = (gameState) => {
     moveInput.inputBox.text = "";
     moveInput.inputBox.focus();
 
-    if (gameState.gameResult && !(gameState.gameResult.tag === "Continue")) {
+    console.log(gameState.gameResult);
+
+    if (gameState.gameResult.contents) {
         console.log("Game Over");
         if (gameState.gameResult.contents === "White") {
             if (gameState.gameResult.tag === "Road") {
@@ -448,7 +450,7 @@ const updateGameStatePanel = (gameState) => {
         }
         gameStatePanel.whiteWinsLabel.text = `White: RoadWins: ${whiteRoadWins} | FlatWins: ${whiteFlatWins}`;
         gameStatePanel.blackWinsLabel.text = `Black: RoadWins: ${blackRoadWins} | FlatWins: ${blackFlatWins}`;
-        gameStatePanel.drawsLabel.text = `Draws: ${draws}`;
+        // gameStatePanel.drawsLabel.text = `Draws: ${draws}`;
 
         resetBoard();
     }
@@ -696,7 +698,7 @@ const init = async () => {
     });
 
     window.addEventListener("resize", () => {
-        engine.resize();
+        engine.resize()
     });
 };
 

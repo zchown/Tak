@@ -177,24 +177,28 @@ checkGameWin :: Board -> Result
 checkGameWin b
   | any
       (findRoad b White)
-      (filter (validPos White) [Position (x, 1) | x <- [1 .. ncols b]]) =
-    Road White
+      (filter
+         (validPos (transpose b) White)
+         [Position (x, 1) | x <- [1 .. ncols b]]) = Road White
   | any
       (findRoad (transpose b) White)
-      (filter (validPos White) [Position (x, 1) | x <- [1 .. nrows b]]) =
-    Road White
+      (filter
+         (validPos (transpose b) White)
+         [Position (x, 1) | x <- [1 .. nrows b]]) = Road White
   | any
       (findRoad b Black)
-      (filter (validPos Black) [Position (x, 1) | x <- [1 .. nrows b]]) =
-    Road Black
+      (filter
+         (validPos (transpose b) Black)
+         [Position (x, 1) | x <- [1 .. nrows b]]) = Road Black
   | any
       (findRoad (transpose b) Black)
-      (filter (validPos Black) [Position (x, 1) | x <- [1 .. nrows b]]) =
-    Road Black
+      (filter
+         (validPos (transpose b) Black)
+         [Position (x, 1) | x <- [1 .. nrows b]]) = Road Black
   | otherwise = Continue
   where
-    validPos :: Color -> Position -> Bool
-    validPos c (Position (x, y)) =
+    validPos :: Board -> Color -> Position -> Bool
+    validPos b c (Position (x, y)) =
       case getElem x y b of
         [] -> False
         p:_ -> (pc p == c) && (ps p /= Standing)
@@ -223,7 +227,7 @@ findRoad b c startPos = go [startPos] []
               , Position (i + 1, j) -- Right
               ]
             validNeighbors = filter (`checkValid` visited) neighbors
-            newStack = stack ++ validNeighbors
+            newStack = validNeighbors ++ stack
             newVisited = pos : visited
          in Position (i, n) `elem` validNeighbors || go newStack newVisited
 
