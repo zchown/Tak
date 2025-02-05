@@ -342,7 +342,7 @@ const createGameStatePanel = (scene, gameState) => {
     gameStatePanel = new GUI.StackPanel();
     gameStatePanel.width = "100%";
     gameStatePanel.height = "225px";
-    gameStatePanel.paddingTop = "20px";
+    gameStatePanel.paddingTop = "10px";
     gameStatePanel.background = "rgba(0, 0, 0, 0.7)";
     mainContainer.addControl(gameStatePanel);
 
