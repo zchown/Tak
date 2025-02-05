@@ -24,6 +24,14 @@ generateRandomMove gs = do
       let move = moves V.! randomIndex
       return $ PTN.moveToText move
 
+percentageRandomMove ::
+     (B.GameState -> IO Text) -> Int -> B.GameState -> IO Text
+percentageRandomMove policy percent gs = do
+  randomNum <- randomRIO (1, 100)
+  if randomNum >= percent
+    then generateRandomMove gs
+    else policy gs
+
 generatorPattern ::
      ((B.GameState -> Int) -> B.GameState -> Int -> Maybe B.Move)
   -> (B.GameState -> Int)
@@ -35,8 +43,14 @@ generatorPattern search eval gs depth = do
     Just move -> return $ PTN.moveToText move
     Nothing -> return "No valid moves"
 
-betterEval3 :: B.GameState -> IO Text
-betterEval3 = generatorPattern S.alphaBetaNegaMax E.betterEval 3
+betterEval :: B.GameState -> IO Text
+betterEval = generatorPattern S.negaMax E.betterEval 2
 
-stupidEval3 :: B.GameState -> IO Text
-stupidEval3 = generatorPattern S.alphaBetaNegaMax E.stupidEval 3
+stupidEval :: B.GameState -> IO Text
+stupidEval = generatorPattern S.alphaBetaNegaMax E.stupidEval 3
+
+bestEval :: B.GameState -> IO Text
+bestEval = generatorPattern S.negaMax E.bestEval 2
+
+bestEval80 :: B.GameState -> IO Text
+bestEval80 = percentageRandomMove bestEval 80

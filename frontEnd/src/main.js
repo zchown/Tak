@@ -417,14 +417,14 @@ const updateGameStatePanel = (gameState) => {
 
     if (gameState.gameResult && gameState.gameResult.tag !== "Continue") {
         if (gameState.gameResult.contents === "White") {
-            if (gameState.gameResult.Tag === "Road") {
+            if (gameState.gameResult.tag === "Road") {
                 whiteRoadWins++;
             }
             else {
                 whiteFlatWins++;
             }
         } else if (gameState.gameResult.contents === "Black") {
-            if (gameState.gameResult.Tag === "Road") {
+            if (gameState.gameResult.tag === "Road") {
                 blackRoadWins++;
             }
             else {

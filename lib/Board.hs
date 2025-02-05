@@ -248,6 +248,16 @@ addToStack xs@(x:_) p
 getAllPieces :: Board -> Color -> [Piece]
 getAllPieces b c = concatMap (filter (\x -> pc x == c)) (toList b)
 
+getNeighbors :: Position -> Board -> [Position]
+getNeighbors (Position (x, y)) b =
+  filter
+    (\(Position (i, j)) -> i > 0 && i <= nrows b && j > 0 && j <= ncols b)
+    [ Position (x - 1, y)
+    , Position (x + 1, y)
+    , Position (x, y - 1)
+    , Position (x, y + 1)
+    ]
+
 getPlaced :: Board -> Color -> Reserves
 getPlaced b c =
   Reserves
