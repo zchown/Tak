@@ -276,11 +276,12 @@ const updatePieces = (scene, newBoardState, cells) => {
 
         pieceMesh.convertToFlatShadedMesh();
         pieceMesh.enableEdgesRendering();
-        pieceMesh.edgesWidth = 2.5;
         if (color == "Black") { 
             pieceMesh.edgesColor = new BABYLON.Color4(0.8, 0.8, 0.8, 1); 
+            pieceMesh.edgesWidth = 2.5;
         } else {
-            pieceMesh.edgesColor = new BABYLON.Color4(0, 0, 0, 0.8);
+            pieceMesh.edgesColor = new BABYLON.Color4(0, 0, 0, 1);
+            pieceMesh.edgesWidth = 3.5;
         }
 
         const pieceMaterial = new BABYLON.StandardMaterial("piece-material", scene);
@@ -655,8 +656,8 @@ const createScene = async () => {
     const pipeline = new BABYLON.DefaultRenderingPipeline("defaultPipeline", true, scene, [camera]);
     pipeline.samples = 4;
     pipeline.fxaaEnabled = true;
-    pipeline.imageProcessingEnabled = false;
-    pipeline.bloomEnabled = true;
+    pipeline.imageProcessingEnabled = true;
+    pipeline.bloomEnabled = false;
     pipeline.bloomThreshold = 0.7;
     pipeline.bloomWeight = 0.05;
     pipeline.bloomScale = 0.2;

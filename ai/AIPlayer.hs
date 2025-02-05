@@ -19,7 +19,7 @@ import qualified TPS
 
 whiteStrategy = MG.betterEval3
 
-blackStrategy = MG.betterEval1
+blackStrategy = MG.betterEval3
 
 apiBaseUrl :: String
 apiBaseUrl = "http://localhost:3000/api/game"
@@ -66,9 +66,7 @@ instance ToJSON GameResponse
 startAIPlayer :: IO ()
 startAIPlayer = do
   putStrLn "AI Player started..."
-  forever $
-    -- threadDelay 100000
-   do
+  forever $ do
     maybeGameState <- fetchGameState myGameId
     case maybeGameState of
       Just gs -> do

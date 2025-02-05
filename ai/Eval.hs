@@ -13,11 +13,11 @@ stupidEval gs@(B.GameState b c _ _ _ _ _) = do
   case checkForWinScore gs of
     Just score -> score
     _ ->
-      length (M.controlledPositions b (B.flipColor c)) -
-      length (M.controlledPositions b c)
+      length (M.controlledPositions b B.White) -
+      length (M.controlledPositions b B.Black)
 
 betterEval :: B.GameState -> Int
-betterEval gs@(B.GameState b c _ _ _ _ _) = do
+betterEval gs@(B.GameState b _ _ _ _ _ _) = do
   case checkForWinScore gs of
     Just score -> score
     _ -> (2 * fcd) + pc

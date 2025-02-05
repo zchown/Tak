@@ -1,13 +1,38 @@
+{-# LANGUAGE OverloadedStrings, BangPatterns #-}
+
 module Searches where
 
 import qualified Board as B
+import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import qualified Data.Vector as V
 import Eval
 import qualified Moves as M
+import qualified PTN
+import System.Random (randomRIO)
+import qualified System.Random.Shuffle as RS
 
-negaMax :: (B.GameState -> Int) -> B.GameState -> Int -> Int
-negaMax eval gs depth
-  | depth == 0 = eval gs
-  | otherwise = maximum $ V.map foo (M.generateAllMoves gs)
+negaMax :: (B.GameState -> Int) -> B.GameState -> Int -> IO Text
+negaMax eval gs depth = do
+  let moves = M.generateAllMoves gs
+  if null moves
+    then return "No valid moves"
+    else do
+      let scoredMoves =
+            V.map (\m -> (m, (negaMax' (M.doMove gs m) (depth - 1) c))) moves
+      let bestMove = V.maximumBy (\(_, s1) (_, s2) -> compare s1 s2) scoredMoves
+      return $ PTN.moveToText (fst bestMove)
   where
-    foo m = -negaMax eval (M.doMove gs m) (depth - 1)
+    c =
+      case B.turn gs of
+        B.White -> (1)
+        B.Black -> (-1)
+    negaMax' :: B.GameState -> Int -> Int -> Int
+    negaMax' gs depth color
+      | depth == 0 = color * eval gs
+      | otherwise =
+        -maximum
+          (V.map
+             (\m -> negaMax' (M.doMove gs m) (depth - 1) (-color))
+             (M.generateAllMoves gs))
