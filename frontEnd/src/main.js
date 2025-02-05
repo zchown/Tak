@@ -8,8 +8,10 @@ let currentPieces = new Map();
 let gameStatePanel = null;
 let gameHistoryPanel = null;
 let moveInput = null;
-let whiteWins = 0;
-let blackWins = 0;
+let whiteRoadWins = 0;
+let blackRoadWins = 0;
+let whiteFlatWins = 0;
+let blackFlatWins = 0;
 
 const COLORS = {
     lightSquare: '#c8d9e6',
@@ -297,9 +299,6 @@ const updatePieces = (scene, newBoardState, cells) => {
 const createGameStatePanel = (scene, gameState) => {
     const advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
-    whiteWins = 0;
-    blackWins = 0;
-
     const mainContainer = new GUI.StackPanel();
     mainContainer.width = "650px";
     mainContainer.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
@@ -315,17 +314,17 @@ const createGameStatePanel = (scene, gameState) => {
     mainContainer.addControl(winCounterPanel);
 
     const whiteWinsLabel = new GUI.TextBlock();
-    whiteWinsLabel.text = `White Wins: ${whiteWins}`;
+    whiteWinsLabel.text = `White Road Wins: ${whiteRoadWins} White Flat Wins: ${whiteFlatWins}`;
     whiteWinsLabel.color = "white";
-    whiteWinsLabel.fontSize = "36px";
+    whiteWinsLabel.fontSize = "32px";
     whiteWinsLabel.height = "50px";
     whiteWinsLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
     winCounterPanel.addControl(whiteWinsLabel);
 
     const blackWinsLabel = new GUI.TextBlock();
-    blackWinsLabel.text = `Black Wins: ${blackWins}`;
+    blackWinsLabel.text = `Black Road Wins: ${blackRoadWins} Black Flat Wins: ${blackFlatWins}`;
     blackWinsLabel.color = "white";
-    blackWinsLabel.fontSize = "36px";
+    blackWinsLabel.fontSize = "32px";
     blackWinsLabel.height = "50px";
     blackWinsLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
     winCounterPanel.addControl(blackWinsLabel);
@@ -417,13 +416,22 @@ const updateGameStatePanel = (gameState) => {
 
     if (gameState.gameResult && gameState.gameResult.tag !== "Continue") {
         if (gameState.gameResult.contents === "White") {
-            whiteWins++;
+            if (gameState.gameResult.Tag === "Road") {
+                whiteRoadWins++;
+            }
+            else {
+                whiteFlatWins++;
+            }
         } else if (gameState.gameResult.contents === "Black") {
-            blackWins++;
+            if (gameState.gameResult.Tag === "Road") {
+                blackRoadWins++;
+            }
+            else {
+                blackFlatWins++;
+            }
         }
-
-        gameStatePanel.whiteWinsLabel.text = `White Wins: ${whiteWins}`;
-        gameStatePanel.blackWinsLabel.text = `Black Wins: ${blackWins}`;
+        gameStatePanel.whiteWinsLabel.text = `White Road Wins: ${whiteRoadWins} White Flat Wins: ${whiteFlatWins}`;
+        gameStatePanel.blackWinsLabel.text = `Black Road Wins: ${blackRoadWins} Black Flat Wins: ${blackFlatWins}`;
 
         resetBoard();
     }

@@ -9,22 +9,17 @@ import qualified Board as B
 import Control.Concurrent (threadDelay)
 import Control.Monad (forever)
 import Data.Aeson (FromJSON, ToJSON, decode, encode)
-import qualified Data.ByteString.Lazy.Char8 as BL
-import Data.Maybe (fromJust)
 import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Vector as V
 import GHC.Generics (Generic)
 import qualified MoveGen as MG
-import qualified Moves as M
 import Network.HTTP.Simple
-import qualified PTN
 
 import qualified TPS
 
-whiteStrategy = MG.stupidEval1
+whiteStrategy = MG.betterEval3
 
-blackStrategy = MG.generateRandomMove
+blackStrategy = MG.betterEval1
 
 apiBaseUrl :: String
 apiBaseUrl = "http://localhost:3000/api/game"
@@ -71,8 +66,9 @@ instance ToJSON GameResponse
 startAIPlayer :: IO ()
 startAIPlayer = do
   putStrLn "AI Player started..."
-  forever $ do
-    threadDelay 150000
+  forever $
+    -- threadDelay 100000
+   do
     maybeGameState <- fetchGameState myGameId
     case maybeGameState of
       Just gs -> do

@@ -229,7 +229,7 @@ undoSlide b p@(B.Position (x, y)) dir (d:ds) xs
 -------------------------
 generateAllMoves :: B.GameState -> V.Vector B.Move
 generateAllMoves gs
-  | B.moveNumber gs == 1 = V.fromList $ firstMovePlacement gs
+  | B.moveNumber gs <= 2 = V.fromList $ firstMovePlacement gs
   | otherwise = V.fromList $ parallelGenerateMoves gs
 
 parallelGenerateMoves :: B.GameState -> [B.Move]
@@ -406,3 +406,17 @@ isValidSlide board pos count dir drops color crush =
   case checkSlide board (B.Slide (pos, count, dir, drops, color, crush)) of
     Right _ -> True
     Left _ -> False
+
+doMove :: B.GameState -> B.Move -> B.GameState
+doMove gs@(B.GameState b c mn p1 p2 _ _) m = do
+  case makeMove b m of
+    Left _ -> gs
+    Right newBoard ->
+      let newTurn =
+            if c == B.White
+              then B.Black
+              else B.White
+          newMoveNum = mn + 1
+          (p1', p2') = B.getNewReserves p1 p2 m
+          r' = B.checkGameResult gs
+       in B.GameState newBoard newTurn newMoveNum p1' p2' r' []
