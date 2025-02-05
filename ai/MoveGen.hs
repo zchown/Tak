@@ -36,11 +36,7 @@ generatorPattern search eval gs depth = do
     Nothing -> return "No valid moves"
 
 betterEval3 :: B.GameState -> IO Text
-betterEval3 = generatorPattern S.alphaBetaNegaMax E.betterEval 4
+betterEval3 = generatorPattern S.alphaBetaNegaMax E.betterEval 3
 
 stupidEval3 :: B.GameState -> IO Text
-stupidEval3 = generatorPattern S.alphaBetaNegaMax E.stupidEval 4
-
-iterativeStupid3 :: B.GameState -> IO Text
-iterativeStupid3 =
-  generatorPattern S.iterativeDeepeningAlphaBetaNegaMax E.stupidEval 4
+stupidEval3 = generatorPattern S.alphaBetaNegaMax E.stupidEval 3

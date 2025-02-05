@@ -113,6 +113,18 @@ data GameState = GameState
   , gameHistory :: History
   } deriving (Show, Eq, Generic)
 
+instance Ord GameState where
+  compare gs1 gs2 = compare (compute gs1) (compute gs2)
+    where
+      compute :: GameState -> Int
+      compute gs =
+        let p1 = player1 gs
+            p2 = player2 gs
+            b = board gs
+         in (100 * (stones p1 - stones p2) + 10 * (caps p1 - caps p2) +
+             (length (getAllPieces b White) - length (getAllPieces b Black))) *
+            length (gameHistory gs)
+
 instance ToJSON GameState
 
 instance FromJSON GameState

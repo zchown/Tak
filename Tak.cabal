@@ -87,7 +87,8 @@ executable TakAI
         network,
         http-conduit,
         random-shuffle,
-        vector-algorithms
+        vector-algorithms,
+        mtl
     hs-source-dirs:   ai
     default-language: Haskell2010
 

@@ -3,9 +3,7 @@
 module Searches where
 
 import qualified Board as B
-import Data.Function (on)
 import qualified Data.Vector as V
-import qualified Data.Vector.Algorithms.Insertion as VA
 import Eval
 import qualified Moves as M
 
@@ -85,36 +83,3 @@ alphaBetaNegaMax' eval gs' depth' color alpha beta
                           else max alpha' score)
                  alpha
                  moves
-
-iterativeDeepeningAlphaBetaNegaMax ::
-     (B.GameState -> Int) -> B.GameState -> Int -> Maybe B.Move
-iterativeDeepeningAlphaBetaNegaMax eval gs maxDepth =
-  Just $ go 1 initialMoves (initialMoves V.! 0)
-  where
-    c =
-      case B.turn gs of
-        B.White -> 1
-        B.Black -> -1
-    initialMoves = M.generateAllMoves gs
-    go :: Int -> V.Vector B.Move -> B.Move -> B.Move
-    go depth moves bestMove
-      | depth > maxDepth = bestMove
-      | otherwise =
-        let scoredMoves =
-              V.map
-                (\m ->
-                   ( m
-                   , alphaBetaNegaMax'
-                       eval
-                       (M.doMove gs m)
-                       (depth - 1)
-                       (c)
-                       (alpha)
-                       roadWin))
-                moves
-            sortedMoves =
-              V.modify (\v -> VA.sortBy (flip compare `on` snd) v) scoredMoves
-            bestMove' = fst (sortedMoves V.! 0)
-         in go (depth + 1) (V.map fst sortedMoves) bestMove'
-      where
-        alpha = eval (M.doMove gs bestMove)
