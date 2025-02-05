@@ -86,7 +86,8 @@ executable TakAI
         bytestring,
         network,
         http-conduit,
-        random-shuffle
+        random-shuffle,
+        vector-algorithms
     hs-source-dirs:   ai
     default-language: Haskell2010
 

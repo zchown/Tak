@@ -17,7 +17,7 @@ import Network.HTTP.Simple
 
 import qualified TPS
 
-whiteStrategy = MG.betterEval3
+whiteStrategy = MG.iterativeStupid3
 
 blackStrategy = MG.stupidEval3
 

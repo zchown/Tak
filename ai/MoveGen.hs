@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -6,7 +5,6 @@
 module MoveGen where
 
 import qualified Board as B
-import Data.Either (fromRight)
 import Data.Text (Text)
 import qualified Data.Vector as V
 import qualified Eval as E
@@ -14,8 +12,6 @@ import qualified Moves as M
 import qualified PTN
 import qualified Searches as S
 import System.Random (randomRIO)
-import qualified System.Random.Shuffle as RS
-import qualified TPS
 
 generateRandomMove :: B.GameState -> IO Text
 generateRandomMove gs = do
@@ -40,7 +36,11 @@ generatorPattern search eval gs depth = do
     Nothing -> return "No valid moves"
 
 betterEval3 :: B.GameState -> IO Text
-betterEval3 = generatorPattern S.negaMax E.betterEval 4
+betterEval3 = generatorPattern S.alphaBetaNegaMax E.betterEval 4
 
 stupidEval3 :: B.GameState -> IO Text
-stupidEval3 = generatorPattern S.negaMax E.stupidEval 4
+stupidEval3 = generatorPattern S.alphaBetaNegaMax E.stupidEval 4
+
+iterativeStupid3 :: B.GameState -> IO Text
+iterativeStupid3 =
+  generatorPattern S.iterativeDeepeningAlphaBetaNegaMax E.stupidEval 4
