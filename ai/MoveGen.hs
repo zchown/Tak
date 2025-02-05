@@ -30,4 +30,7 @@ generateRandomMove gs = do
 
 -- use negaMax to find the best move
 betterEval3 :: B.GameState -> IO Text
-betterEval3 gs = S.negaMax E.betterEval gs 3
+betterEval3 gs = S.negaMax E.betterEval gs 2
+
+stupidEval3 :: B.GameState -> IO Text
+stupidEval3 gs = S.alphaBetaNegaMax E.stupidEval gs 3
