@@ -21,16 +21,19 @@ betterEval :: B.GameState -> Int
 betterEval gs@(B.GameState b _ _ _ _ _ _) = do
   case checkForWinScore gs of
     Just score -> score
-    _ -> (2 * fcd) + pc
+    _ -> (2 * fcd) + pc + center
   where
     fcd = getFlatCount b B.White - getFlatCount b B.Black
     pc = getPrisonerCount b B.White - getPrisonerCount b B.Black
+    center =
+      encourageCenterPlay b (M.controlledPositions b B.Black) -
+      encourageCenterPlay b (M.controlledPositions b B.White)
 
 bestEval :: B.GameState -> Int
 bestEval gs@(B.GameState b _ _ _ _ _ _) = do
   case checkForWinScore gs of
     Just score -> score
-    _ -> fcd + pc + buddies + lr + res + moveDiff
+    _ -> (7 * fcd) + pc + (2 * buddies) + (5 * lr) + res + (3 * center)
   where
     whiteControlled = M.controlledPositions b B.White
     blackControlled = M.controlledPositions b B.Black
@@ -41,9 +44,9 @@ bestEval gs@(B.GameState b _ _ _ _ _ _) = do
     pc = getPrisonerCount b B.White - getPrisonerCount b B.Black
     lr = longestRoad b B.White - longestRoad b B.Black
     res = getReserves b B.White - getReserves b B.Black
-    moveDiff =
-      V.length (M.generateAllMoves (B.setTurn gs B.White)) -
-      V.length (M.generateAllMoves (B.setTurn gs B.Black))
+    center =
+      encourageCenterPlay b blackControlled -
+      encourageCenterPlay b whiteControlled
 
 --------------------------
 -- | Helper Functions | --
@@ -109,3 +112,10 @@ longestRoad board color = maximum $ (rows n n [0]) ++ (cols n n [0])
       | getElem x y board == [] = cols x (y - 1) (c : xs)
       | (B.pc . head) (getElem x y board) == color = cols (x - 1) y (c + 1 : xs)
       | otherwise = cols (x - 1) y (c : xs)
+
+encourageCenterPlay :: B.Board -> [B.Position] -> Int
+encourageCenterPlay board positions = sum $ map foo positions
+  where
+    center = ncols board `div` 2
+    foo :: B.Position -> Int
+    foo (B.Position (x, y)) = abs (x - center) + abs (y - center)

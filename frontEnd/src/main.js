@@ -12,6 +12,7 @@ let whiteRoadWins = 0;
 let blackRoadWins = 0;
 let whiteFlatWins = 0;
 let blackFlatWins = 0;
+let draws = 0;
 
 const COLORS = {
     lightSquare: '#c8d9e6',
@@ -301,7 +302,7 @@ const createGameStatePanel = (scene, gameState) => {
     const advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
     const mainContainer = new GUI.StackPanel();
-    mainContainer.width = "650px";
+    mainContainer.width = "500px";
     mainContainer.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
     mainContainer.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
     mainContainer.paddingLeft = "20px";
@@ -309,13 +310,13 @@ const createGameStatePanel = (scene, gameState) => {
 
     const winCounterPanel = new GUI.StackPanel();
     winCounterPanel.width = "100%";
-    winCounterPanel.height = "100px";
+    winCounterPanel.height = "175px";
     winCounterPanel.paddingTop = "10px";
     winCounterPanel.background = "rgba(0, 0, 0, 0.7)";
     mainContainer.addControl(winCounterPanel);
 
     const whiteWinsLabel = new GUI.TextBlock();
-    whiteWinsLabel.text = `White Road Wins: ${whiteRoadWins} White Flat Wins: ${whiteFlatWins}`;
+    whiteWinsLabel.text = `White RoadWins: ${whiteRoadWins} FlatWins: ${whiteFlatWins}`;
     whiteWinsLabel.color = "white";
     whiteWinsLabel.fontSize = "32px";
     whiteWinsLabel.height = "50px";
@@ -323,12 +324,20 @@ const createGameStatePanel = (scene, gameState) => {
     winCounterPanel.addControl(whiteWinsLabel);
 
     const blackWinsLabel = new GUI.TextBlock();
-    blackWinsLabel.text = `Black Road Wins: ${blackRoadWins} Black Flat Wins: ${blackFlatWins}`;
+    blackWinsLabel.text = `Black: RoadWins: ${blackRoadWins} FlatWins: ${blackFlatWins}`;
     blackWinsLabel.color = "white";
     blackWinsLabel.fontSize = "32px";
     blackWinsLabel.height = "50px";
     blackWinsLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
     winCounterPanel.addControl(blackWinsLabel);
+
+    const drawsLabel = new GUI.TextBlock();
+    drawsLabel.text = `Draws: ${draws}`;
+    drawsLabel.color = "white";
+    drawsLabel.fontSize = "32px";
+    drawsLabel.height = "50px";
+    drawsLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    winCounterPanel.addControl(drawsLabel);
 
     gameStatePanel = new GUI.StackPanel();
     gameStatePanel.width = "100%";
@@ -346,7 +355,7 @@ const createGameStatePanel = (scene, gameState) => {
     gameStatePanel.addControl(currentPlayerLabel);
 
     const whiteReservesLabel = new GUI.TextBlock();
-    whiteReservesLabel.text = `White Reserves: Stones: ${gameState.whiteReserves.stones} Caps: ${gameState.whiteReserves.caps}`;
+    whiteReservesLabel.text = `White: Stones: ${gameState.whiteReserves.stones} Caps: ${gameState.whiteReserves.caps}`;
     whiteReservesLabel.color = "white";
     whiteReservesLabel.fontSize = "36px";
     whiteReservesLabel.height = "50px";
@@ -354,7 +363,7 @@ const createGameStatePanel = (scene, gameState) => {
     gameStatePanel.addControl(whiteReservesLabel);
 
     const blackReservesLabel = new GUI.TextBlock();
-    blackReservesLabel.text = `Black Reserves: Stones: ${gameState.blackReserves.stones} Caps: ${gameState.blackReserves.caps}`;
+    blackReservesLabel.text = `Black: Stones: ${gameState.blackReserves.stones} Caps: ${gameState.blackReserves.caps}`;
     blackReservesLabel.color = "white";
     blackReservesLabel.fontSize = "36px";
     blackReservesLabel.height = "50px";
@@ -363,7 +372,7 @@ const createGameStatePanel = (scene, gameState) => {
 
     gameHistoryPanel = new GUI.StackPanel();
     gameHistoryPanel.width = "100%";
-    gameHistoryPanel.height = "300px";
+    gameHistoryPanel.height = "500px";
     gameHistoryPanel.paddingTop = "10px";
     gameHistoryPanel.background = "rgba(0, 0, 0, 0.7)";
     mainContainer.addControl(gameHistoryPanel);
@@ -408,9 +417,9 @@ const updateGameStatePanel = (gameState) => {
     gameStatePanel.currentPlayerLabel.text = `Current Player: ${gameState.currentPlayer}`;
     console.log(gameState);
     const wrt = "Stones: " + gameState.whiteReserves.stones + " Caps: " + gameState.whiteReserves.caps;
-    gameStatePanel.whiteReservesLabel.text = "White Reserves: " + wrt;
+    gameStatePanel.whiteReservesLabel.text = "White: " + wrt;
     const brt = "Stones: " + gameState.blackReserves.stones + " Caps: " + gameState.blackReserves.caps;
-    gameStatePanel.blackReservesLabel.text = "Black Reserves: " + brt;
+    gameStatePanel.blackReservesLabel.text = "Black: " + brt;
     gameStatePanel.historyText.text = gameHistoryToText(gameState);
 
     moveInput.messageText.text = "";
@@ -432,9 +441,13 @@ const updateGameStatePanel = (gameState) => {
             else {
                 blackFlatWins++;
             }
+
+        } else {
+            draws++;
         }
-        gameStatePanel.whiteWinsLabel.text = `White Road Wins: ${whiteRoadWins} White Flat Wins: ${whiteFlatWins}`;
-        gameStatePanel.blackWinsLabel.text = `Black Road Wins: ${blackRoadWins} Black Flat Wins: ${blackFlatWins}`;
+        gameStatePanel.whiteWinsLabel.text = `White: RoadWins: ${whiteRoadWins} FlatWins: ${whiteFlatWins}`;
+        gameStatePanel.blackWinsLabel.text = `Black: RoadWins: ${blackRoadWins} FlatWins: ${blackFlatWins}`;
+        gameStatePanel.drawsLabel.text = `Draws: ${draws}`;
 
         resetBoard();
     }
