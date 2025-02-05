@@ -2,6 +2,7 @@ module Eval where
 
 import qualified Board as B
 import Data.Matrix
+import qualified Data.Vector as V
 import qualified Moves as M
 
 roadWin = 100000
@@ -29,7 +30,7 @@ bestEval :: B.GameState -> Int
 bestEval gs@(B.GameState b _ _ _ _ _ _) = do
   case checkForWinScore gs of
     Just score -> score
-    _ -> fcd + pc + buddies + lr
+    _ -> fcd + pc + buddies + lr + res + moveDiff
   where
     whiteControlled = M.controlledPositions b B.White
     blackControlled = M.controlledPositions b B.Black
@@ -39,6 +40,10 @@ bestEval gs@(B.GameState b _ _ _ _ _ _) = do
     fcd = getFlatCount b B.White - getFlatCount b B.Black
     pc = getPrisonerCount b B.White - getPrisonerCount b B.Black
     lr = longestRoad b B.White - longestRoad b B.Black
+    res = getReserves b B.White - getReserves b B.Black
+    moveDiff =
+      V.length (M.generateAllMoves (B.setTurn gs B.White)) -
+      V.length (M.generateAllMoves (B.setTurn gs B.Black))
 
 --------------------------
 -- | Helper Functions | --
@@ -66,6 +71,13 @@ getPrisonerCount board color = sum $ map foo cps
     cps = M.controlledPositions board color
     foo (B.Position (x, y)) =
       length $ (filter ((/= color) . B.pc) (getElem x y board))
+
+getReserves :: B.Board -> B.Color -> Int
+getReserves board color = sum $ map foo cps
+  where
+    cps = M.controlledPositions board color
+    foo (B.Position (x, y)) =
+      length $ (filter ((== color) . B.pc) (getElem x y board))
 
 getBuddies :: B.Board -> B.Color -> [B.Position] -> Int
 getBuddies board color positions = sum $ map foo positions

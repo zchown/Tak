@@ -17,9 +17,9 @@ import Network.HTTP.Simple
 
 import qualified TPS
 
-whiteStrategy = MG.bestEval80
+whiteStrategy = MG.bestEval90
 
-blackStrategy = MG.bestEval80
+blackStrategy = MG.betterEval90
 
 apiBaseUrl :: String
 apiBaseUrl = "http://localhost:3000/api/game"

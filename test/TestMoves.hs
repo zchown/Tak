@@ -247,7 +247,7 @@ runMoveTests =
               GameState
                 (createEmptyBoard 5)
                 White
-                2
+                3
                 (Reserves 21 1)
                 (Reserves 21 1)
                 Continue
@@ -274,7 +274,7 @@ runMoveTests =
             b = board $ parseTPSHard tps
             moves =
               generateAllMoves
-                (GameState b White 2 (Reserves 21 1) (Reserves 21 1) Continue [])
+                (GameState b White 3 (Reserves 21 1) (Reserves 21 1) Continue [])
         length moves `shouldBe` 18
       it "generates all possible moves in complex TPS position" $ do
         let tps =

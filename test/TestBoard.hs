@@ -99,6 +99,21 @@ runBoardTests =
                   , [[], [], [], []]
                   ]
           findRoad b White (Position (1, 1)) `shouldBe` False
+      it "detects road win" $ do
+        let gameState =
+              GameState
+                { board =
+                    board $
+                    TPS.parseTPSHard $
+                    T.pack "x6/x6/x6/x,212121,x4/22,12,2,2,2,12/x6 1 31"
+                , turn = White
+                , moveNumber = 0
+                , player1 = Reserves 10 1
+                , player2 = Reserves 10 1
+                , result = Continue
+                , gameHistory = []
+                }
+        checkGameResult gameState `shouldBe` Continue
       it "detects reserve game end" $ do
         let gameState =
               GameState

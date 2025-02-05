@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module TerminalGamePlayer where
+module TerminalGame where
 
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO

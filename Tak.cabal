@@ -44,7 +44,7 @@ library
 executable Tak
     import:           warnings
     main-is:          Main.hs
-    other-modules:    TerminalGamePlayer
+    other-modules:    TerminalGame
                       GameServer
     build-depends:
         base ^>=4.16.4.0,

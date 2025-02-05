@@ -29,7 +29,9 @@ percentageRandomMove ::
 percentageRandomMove policy percent gs = do
   randomNum <- randomRIO (1, 100)
   if randomNum >= percent
-    then generateRandomMove gs
+    then do
+      putStrLn $ "Random move generated: " ++ show randomNum
+      generateRandomMove gs
     else policy gs
 
 generatorPattern ::
@@ -46,11 +48,14 @@ generatorPattern search eval gs depth = do
 betterEval :: B.GameState -> IO Text
 betterEval = generatorPattern S.negaMax E.betterEval 2
 
-stupidEval :: B.GameState -> IO Text
-stupidEval = generatorPattern S.alphaBetaNegaMax E.stupidEval 3
-
+-- stupidEval :: B.GameState -> IO Text
+-- stupidEval = generatorPattern S.alphaBetaNegaMax E.stupidEval 3
+--
 bestEval :: B.GameState -> IO Text
 bestEval = generatorPattern S.negaMax E.bestEval 2
 
-bestEval80 :: B.GameState -> IO Text
-bestEval80 = percentageRandomMove bestEval 80
+bestEval90 :: B.GameState -> IO Text
+bestEval90 = percentageRandomMove bestEval 90
+
+betterEval90 :: B.GameState -> IO Text
+betterEval90 = percentageRandomMove betterEval 90

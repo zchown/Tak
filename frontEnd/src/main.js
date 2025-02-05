@@ -378,14 +378,16 @@ const createGameStatePanel = (scene, gameState) => {
 
     const scrollViewer = new GUI.ScrollViewer();
     scrollViewer.width = "100%";
-    scrollViewer.height = "250px";
+    scrollViewer.height = "300px";
     scrollViewer.thickness = 0;
+    scrollViewer.paddingBottom = "10px";
     gameHistoryPanel.addControl(scrollViewer);
 
     const historyText = new GUI.TextBlock();
     historyText.text = gameHistoryToText(gameState);
     historyText.color = "white";
     historyText.fontSize = "36px";
+    historyText.paddingBottom = "10px";
     historyText.textWrapping = GUI.TextWrapping.WordWrap;
     historyText.resizeToFit = true;
     scrollViewer.addControl(historyText);

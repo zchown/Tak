@@ -350,6 +350,12 @@ hasReserves (Reserves _ c) _ (PlaceCap (_, White)) = c > 0
 hasReserves _ (Reserves _ c) (PlaceCap (_, Black)) = c > 0
 hasReserves _ _ _ = True
 
+flipTurn :: GameState -> GameState
+flipTurn gs = gs {turn = flipColor (turn gs)}
+
+setTurn :: GameState -> Color -> GameState
+setTurn gs c = gs {turn = c}
+
 -- -------------------------
 -- -- | Print Functions | --
 -- -------------------------
