@@ -28,9 +28,19 @@ generateRandomMove gs = do
       let move = moves V.! randomIndex
       return $ PTN.moveToText move
 
--- use negaMax to find the best move
+generatorPattern ::
+     ((B.GameState -> Int) -> B.GameState -> Int -> Maybe B.Move)
+  -> (B.GameState -> Int)
+  -> Int
+  -> B.GameState
+  -> IO Text
+generatorPattern search eval gs depth = do
+  case search eval depth gs of
+    Just move -> return $ PTN.moveToText move
+    Nothing -> return "No valid moves"
+
 betterEval3 :: B.GameState -> IO Text
-betterEval3 gs = S.negaMax E.betterEval gs 2
+betterEval3 = generatorPattern S.negaMax E.betterEval 4
 
 stupidEval3 :: B.GameState -> IO Text
-stupidEval3 gs = S.alphaBetaNegaMax E.stupidEval gs 3
+stupidEval3 = generatorPattern S.negaMax E.stupidEval 4

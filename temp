@@ -1,9 +1,0 @@
-Build profile: -w ghc-9.2.8 -O1
-In order, the following will be built (use -v for more details):
- - Tak-0.1.0.0 (exe:TakAI) (file ai/AIPlayer.hs changed)
-Preprocessing executable 'TakAI' for Tak-0.1.0.0..
-Building executable 'TakAI' for Tak-0.1.0.0..
-[1 of 2] Compiling AIPlayer         ( ai/AIPlayer.hs, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/x/TakAI/build/TakAI/TakAI-tmp/AIPlayer.o )
-Linking /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/x/TakAI/build/TakAI/TakAI ...
-Starting AI Player...
-AI Player started...
