@@ -1,17 +1,19 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TupleSections #-}
 
 module MutableState where
 
 import qualified Board as B
-import Control.Monad (forM, forM_)
+import Control.Monad (foldM, foldM_, forM, forM_)
 import Control.Monad.Primitive (PrimMonad, PrimState)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
+import Data.List (foldl')
 import qualified Data.Matrix as M
 import Data.Maybe (fromJust, isJust)
 import Data.Vector.Mutable (IOVector)
-import qualified Data.Vector.Mutable as V
+import qualified Data.Vector.Mutable as VM
 import GHC.Generics (Generic)
 import qualified Moves
 
@@ -29,9 +31,9 @@ data MGameState s = MGameState
 
 createMutableBoard :: B.Board -> IO (MBoard s)
 createMutableBoard b = do
-  mv <- V.new (rows * cols)
+  mv <- VM.new (rows * cols)
   forM_ [0 .. (rows * cols - 1)] $ \i -> do
-    V.write mv i (squares !! i)
+    VM.write mv i (squares !! i)
   return mv
   where
     rows = M.nrows b
@@ -40,11 +42,11 @@ createMutableBoard b = do
 
 boardSize :: MBoard s -> Int
 boardSize b
-  | V.length b == 16 = 4
-  | V.length b == 25 = 5
-  | V.length b == 36 = 6
-  | V.length b == 49 = 7
-  | V.length b == 64 = 8
+  | VM.length b == 16 = 4
+  | VM.length b == 25 = 5
+  | VM.length b == 36 = 6
+  | VM.length b == 49 = 7
+  | VM.length b == 64 = 8
   | otherwise = 0
 
 posToIndex :: MBoard s -> B.Position -> Int
@@ -54,10 +56,10 @@ indexToPos :: MBoard s -> Int -> B.Position
 indexToPos b i = B.Position (i `mod` boardSize b, i `div` boardSize b)
 
 readSquare :: MBoard s -> B.Position -> IO B.Square
-readSquare b p = V.read b (posToIndex b p)
+readSquare b p = VM.read b (posToIndex b p)
 
 writeSquare :: MBoard s -> B.Position -> B.Square -> IO ()
-writeSquare b p = V.write b (posToIndex b p)
+writeSquare b p = VM.write b (posToIndex b p)
 
 toBoard :: MBoard s -> IO B.Board
 toBoard b = do
@@ -181,3 +183,26 @@ undoSlide b p dir (d:ds) xs = do
   writeSquare b p remaining
   let (pos', _, _) = B.getNextPos p $ B.getInverseDir dir
   undoSlide b pos' dir ds newXs
+
+generateAllMoves :: MGameState s -> IO [B.Move]
+-- generate
+firstMovePlacement :: MGameState s -> IO [B.Move]
+firstMovePlacement gs = do
+  c <- readIORef (mTurn gs)
+  let c' = B.flipColor c
+  map (B.PlaceFlat . (, c')) <$> emptyPositions (mBoard gs)
+
+--------------------------
+-- | Helper Functions | --
+--------------------------
+emptyPositions :: MBoard s -> IO [B.Position]
+emptyPositions b = foldM foo [] [0 .. (VM.length b - 1)]
+  where
+    foo :: [B.Position] -> Int -> IO [B.Position]
+    foo acc i = do
+      let p = indexToPos b i
+      s <- readSquare b p
+      return $
+        if null s
+          then p : acc
+          else acc
