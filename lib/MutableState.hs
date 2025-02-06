@@ -57,7 +57,7 @@ readSquare :: MBoard s -> B.Position -> IO B.Square
 readSquare b p = V.read b (posToIndex b p)
 
 writeSquare :: MBoard s -> B.Position -> B.Square -> IO ()
-writeSquare b p s = V.write b (posToIndex b p) s
+writeSquare b p = V.write b (posToIndex b p)
 
 toBoard :: MBoard s -> IO B.Board
 toBoard b = do
@@ -94,3 +94,90 @@ makeMove b m@(B.PlaceCap (pos, c)) = do
     Right _ -> do
       writeSquare b pos [B.Piece c B.Cap]
       return $ Right ()
+makeMove b m@(B.Slide (p, count, dir, drops, _, crush)) = do
+  cm <- checkMove b m
+  case cm of
+    Left e -> return $ Left e
+    Right _ -> do
+      xs <- readSquare b p
+      let ps = reverse $ take count xs
+      let s' = drop count xs
+      writeSquare b p s'
+      let (pos', _, _) = B.getNextPos p dir
+      makeSlide b dir pos' ps drops crush
+      return $ Right ()
+
+makeMoveNoCheck :: MBoard s -> B.Move -> IO ()
+makeMoveNoCheck b (B.PlaceFlat (pos, c)) = do
+  writeSquare b pos [B.Piece c B.Flat]
+makeMoveNoCheck b (B.PlaceStanding (pos, c)) = do
+  writeSquare b pos [B.Piece c B.Standing]
+makeMoveNoCheck b (B.PlaceCap (pos, c)) = do
+  writeSquare b pos [B.Piece c B.Cap]
+makeMoveNoCheck b (B.Slide (p, count, dir, drops, _, crush)) = do
+  xs <- readSquare b p
+  let ps = reverse $ take count xs
+  let s' = drop count xs
+  writeSquare b p s'
+  let (pos', _, _) = B.getNextPos p dir
+  makeSlide b dir pos' ps drops crush
+
+makeSlide ::
+     MBoard s
+  -> B.Direction
+  -> B.Position
+  -> [B.Piece]
+  -> [Int]
+  -> B.Crush
+  -> IO ()
+makeSlide _ _ _ _ [] _ = return ()
+makeSlide b _ p [pc] _ True = do
+  s <- readSquare b p
+  let s' = drop 1 s
+  let h' =
+        case B.pc (head s) of
+          B.Black -> B.Piece B.Black B.Flat
+          B.White -> B.Piece B.White B.Flat
+  writeSquare b p (pc : h' : s')
+  return ()
+makeSlide b dir p xs (d:ds) crush = do
+  s <- readSquare b p
+  let dp = reverse $ take d xs
+  let s' = dp ++ s
+  writeSquare b p s'
+  let xs' = drop d xs
+  let (pos', _, _) = B.getNextPos p dir
+  makeSlide b dir pos' xs' ds crush
+
+undoMoveNoChecks :: MBoard s -> B.Move -> IO ()
+undoMoveNoChecks b (B.Slide (p, _, dir, drops, _, crush)) = do
+  let (pos', _, _) = B.getNextPos p dir
+  if crush
+    then do
+      undoCrush b pos'
+      undoSlide b pos' dir (reverse drops) []
+    else do
+      undoSlide b pos' dir (reverse drops) []
+undoMoveNoChecks b m = writeSquare b (B.getPosition m) []
+
+undoCrush :: MBoard s -> B.Position -> IO ()
+undoCrush brd p = do
+  s <- readSquare brd p
+  let s' =
+        case s of
+          (a:b:cs) -> a : B.flipStanding b : cs
+          as -> as
+  writeSquare brd p s'
+
+undoSlide ::
+     MBoard s -> B.Position -> B.Direction -> [Int] -> [B.Piece] -> IO ()
+undoSlide b p _ [] xs = do
+  s <- readSquare b p
+  writeSquare b p (xs ++ s)
+undoSlide b p dir (d:ds) xs = do
+  s <- readSquare b p
+  let (piecesToMove, remaining) = splitAt d s
+      newXs = xs ++ piecesToMove
+  writeSquare b p remaining
+  let (pos', _, _) = B.getNextPos p $ B.getInverseDir dir
+  undoSlide b pos' dir ds newXs

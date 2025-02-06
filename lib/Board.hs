@@ -360,6 +360,12 @@ flipTurn gs = gs {turn = flipColor (turn gs)}
 setTurn :: GameState -> Color -> GameState
 setTurn gs c = gs {turn = c}
 
+getPosition :: Move -> Position
+getPosition (PlaceFlat (p, _)) = p
+getPosition (PlaceStanding (p, _)) = p
+getPosition (PlaceCap (p, _)) = p
+getPosition (Slide (p, _, _, _, _, _)) = p
+
 -- -------------------------
 -- -- | Print Functions | --
 -- -------------------------
