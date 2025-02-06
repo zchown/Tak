@@ -291,6 +291,7 @@ const updatePieces = (scene, newBoardState, cells) => {
             BABYLON.Color3.FromHexString(COLORS.darkPiece);
         pieceMaterial.diffuseColor = pieceColor;
         pieceMaterial.specularColor = new BABYLON.Color3(0.3, 0.3, 0.3);
+        pieceMaterial.backFaceCulling = false;
         pieceMesh.material = pieceMaterial;
 
         currentPieces.set(p, pieceMesh);
@@ -301,7 +302,7 @@ const createGameStatePanel = (scene, gameState) => {
     const advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
     const mainContainer = new GUI.StackPanel();
-    mainContainer.width = "500px";
+    mainContainer.width = "550px";
     mainContainer.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
     mainContainer.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
     mainContainer.paddingLeft = "20px";
@@ -591,9 +592,9 @@ const connectWebSocket = (gameId, scene, cells) => {
         try {
             const gameState = JSON.parse(event.data);
             console.log("Parsed game state update:", gameState);
+            updateGameStatePanel(gameState);
             const parsedBoard = parseTPS(gameState.board);
             updateBoard(scene, parsedBoard, cells);
-            updateGameStatePanel(gameState);
         } catch (error) {
             console.error("Error processing message:", error);
         }

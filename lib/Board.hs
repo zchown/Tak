@@ -177,9 +177,8 @@ checkGameWin :: Board -> Result
 checkGameWin b
   | any
       (findRoad b White)
-      (filter
-         (validPos (transpose b) White)
-         [Position (x, 1) | x <- [1 .. ncols b]]) = Road White
+      (filter (validPos (b) White) [Position (x, 1) | x <- [1 .. ncols b]]) =
+    Road White
   | any
       (findRoad (transpose b) White)
       (filter
@@ -187,9 +186,8 @@ checkGameWin b
          [Position (x, 1) | x <- [1 .. nrows b]]) = Road White
   | any
       (findRoad b Black)
-      (filter
-         (validPos (transpose b) Black)
-         [Position (x, 1) | x <- [1 .. nrows b]]) = Road Black
+      (filter (validPos (b) Black) [Position (x, 1) | x <- [1 .. nrows b]]) =
+    Road Black
   | any
       (findRoad (transpose b) Black)
       (filter

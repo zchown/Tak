@@ -54,13 +54,13 @@ alphaBetaBest :: B.GameState -> IO Text
 alphaBetaBest = generatorPattern S.alphaBeta E.bestEval 3
 
 alphaBetaBest' :: B.GameState -> IO Text
-alphaBetaBest' = generatorPattern S.alphaBeta E.bestEval' 3
+alphaBetaBest' = generatorPattern S.alphaBeta E.bestEval' 2
 
 alphaBetaBest90' :: B.GameState -> IO Text
 alphaBetaBest90' = percentageRandomMove alphaBetaBest' 90
 
 alphaBetaStupid :: B.GameState -> IO Text
-alphaBetaStupid = generatorPattern S.alphaBeta E.stupidEval 3
+alphaBetaStupid = generatorPattern S.alphaBeta E.stupidEval 2
 
 alphaBetaStupid90 :: B.GameState -> IO Text
 alphaBetaStupid90 = percentageRandomMove alphaBetaBest 90

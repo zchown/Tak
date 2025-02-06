@@ -81,6 +81,12 @@ runBoardTests =
                 board $
                 TPS.parseTPSHard $ T.pack "x6/x6/x6/x6/x6/1,1,1,1,1,1 2 2"
           checkGameWin b `shouldBe` Road White
+        it "off by 1 bug?" $ do
+          let b =
+                TPS.parseTPSHard $
+                T.pack
+                  "1,x3,2C,x/1,x2,2,x2/1,1,1,2,2S,x/1,x,1,x3/2,x,1,x3/x,x,2,x3 2 1"
+          checkGameResult b `shouldBe` Continue
         it "detects a black road through mixed paths" $ do
           let b =
                 board $

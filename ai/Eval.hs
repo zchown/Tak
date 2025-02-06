@@ -191,7 +191,7 @@ capStoneCenrality board positions = sum $ map foo positions
     foo :: B.Position -> Int
     foo (B.Position (x, y))
       | null (getElem x y board) = 0
-      | B.ps (head (getElem x y board)) == B.Cap = -11 * xoff * yoff
+      | B.ps (head (getElem x y board)) == B.Cap = -17 * (max xoff yoff)
       | otherwise = 0
       where
         xoff = (x - 3) * (x - 4)

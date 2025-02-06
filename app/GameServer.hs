@@ -146,7 +146,7 @@ startServer = do
                   (Just $ B.player1 gs)
                   (Just $ B.player2 gs)
                   (Just $ B.result gs)
-                  (Just $ map P.moveToText (B.gameHistory gs))
+                  (Just $ map P.moveToText (take 25 (B.gameHistory gs)))
                   (Just gId)
           json successResponse
           clients <- liftIO $ atomically $ readTVar clientStore

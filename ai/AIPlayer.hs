@@ -19,7 +19,7 @@ import qualified TPS
 
 whiteStrategy = MG.alphaBetaBest90'
 
-blackStrategy = MG.alphaBetaBest90'
+blackStrategy = MG.alphaBetaStupid90
 
 apiBaseUrl :: String
 apiBaseUrl = "http://localhost:3000/api/game"
