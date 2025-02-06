@@ -5,7 +5,7 @@ import Data.Matrix
 import qualified Data.Vector as V
 import qualified Moves as M
 
-roadWin = 100000
+roadWin = 10000000
 
 flatWin = roadWin - 1
 
@@ -21,7 +21,7 @@ betterEval :: B.GameState -> Int
 betterEval gs@(B.GameState b _ _ _ _ _ _) = do
   case checkForWinScore gs of
     Just score -> score
-    _ -> (2 * fcd) + pc + center
+    _ -> (11 * fcd) + (3 * pc) + center
   where
     fcd = getFlatCount b B.White - getFlatCount b B.Black
     pc = getPrisonerCount b B.White - getPrisonerCount b B.Black
@@ -51,7 +51,10 @@ bestEval' :: B.GameState -> Int
 bestEval' gs@(B.GameState b _ _ _ _ _ _) = do
   case checkForWinScore gs of
     Just score -> score
-    _ -> (11 * fcd) + (2 * pc) + (3 * buddies) + (7 * lr) + (4 * center) + wp
+    _ ->
+      (100 * fcd) + (4 * pc) + (13 * buddies) + (17 * lr) + (3 * center) +
+      (4 * wp) +
+      (3 * capCen)
   where
     whiteControlled = M.controlledPositions b B.White
     blackControlled = M.controlledPositions b B.Black
@@ -67,6 +70,8 @@ bestEval' gs@(B.GameState b _ _ _ _ _ _) = do
     wp =
       winnablePositions b B.White whiteControlled -
       winnablePositions b B.Black blackControlled
+    capCen =
+      capStoneCenrality b whiteControlled - capStoneCenrality b blackControlled
 
 --------------------------
 -- | Helper Functions | --
@@ -122,27 +127,37 @@ longestRoad board color = maximum $ (rows n n [0]) ++ (cols n n [0])
     rows x 0 xs = rows (x - 1) n (0 : xs)
     rows x y (c:xs)
       | getElem x y board == [] = rows (x - 1) y (c : xs)
-      | (B.pc . head) (getElem x y board) == color = rows x (y - 1) (c + 1 : xs)
-      | otherwise = rows x (y - 1) (c - 1 : xs)
+      | (B.pc . head) (getElem x y board) == color &&
+          (B.ps . head) (getElem x y board) /= B.Standing =
+        rows x (y - 1) (c + 3 : xs)
+      | (B.pc . head) (getElem x y board) == color = rows x (y - 1) (c : xs)
+      | (B.ps . head) (getElem x y board) == B.Standing =
+        rows (x) (y - 1) (c - 4 : xs)
+      | (B.ps . head) (getElem x y board) == B.Cap = rows x (y - 1) (c - 2 : xs)
+      | otherwise = rows (x - 1) y (c - 1 : xs)
     cols :: Int -> Int -> [Int] -> [Int]
     cols _ _ [] = []
     cols _ 0 xs = xs
     cols 0 y xs = cols n (y - 1) (0 : xs)
     cols x y (c:xs)
       | getElem x y board == [] = cols x (y - 1) (c : xs)
-      | (B.pc . head) (getElem x y board) == color = cols (x - 1) y (c + 1 : xs)
+      | (B.pc . head) (getElem x y board) == color &&
+          (B.ps . head) (getElem x y board) /= B.Standing =
+        cols (x - 1) y (c + 3 : xs)
+      | (B.pc . head) (getElem x y board) == color = cols (x - 1) y (c : xs)
+      | (B.ps . head) (getElem x y board) == B.Standing =
+        cols (x - 1) y (c - 4 : xs)
+      | (B.ps . head) (getElem x y board) == B.Cap = cols (x - 1) y (c - 2 : xs)
       | otherwise = cols (x - 1) y (c - 1 : xs)
 
 encourageCenterPlay :: B.Board -> [B.Position] -> Int
 encourageCenterPlay board positions = sum $ map foo positions
   where
-    center = 3
-    center2 = 3
     foo :: B.Position -> Int
-    foo (B.Position (x, y)) = -xoff - yoff
+    foo (B.Position (x, y)) = -3 * (xoff + yoff)
       where
-        xoff = max (abs (x - center)) (abs (x - center2))
-        yoff = max (abs (y - center)) (abs (y - center2))
+        xoff = (x - 3) * (x - 4)
+        yoff = (y - 3) * (y - 4)
 
 winnablePositions :: B.Board -> B.Color -> [B.Position] -> Int
 winnablePositions board color positions = sum $ map foo positions
@@ -169,3 +184,15 @@ winnablePositions board color positions = sum $ map foo positions
       | B.ps (head (getElem x y board)) == B.Cap = -5
       | B.ps (head (getElem x y board)) == B.Standing = -2
       | otherwise = 0
+
+capStoneCenrality :: B.Board -> [B.Position] -> Int
+capStoneCenrality board positions = sum $ map foo positions
+  where
+    foo :: B.Position -> Int
+    foo (B.Position (x, y))
+      | null (getElem x y board) = 0
+      | B.ps (head (getElem x y board)) == B.Cap = -11 * xoff * yoff
+      | otherwise = 0
+      where
+        xoff = (x - 3) * (x - 4)
+        yoff = (y - 3) * (y - 4)

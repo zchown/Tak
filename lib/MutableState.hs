@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TupleSections #-}
 
@@ -185,12 +183,68 @@ undoSlide b p dir (d:ds) xs = do
   undoSlide b pos' dir ds newXs
 
 generateAllMoves :: MGameState s -> IO [B.Move]
--- generate
+generateAllMoves gs = do
+  mn <- readIORef (mMoveNumber gs)
+  if mn <= 2
+    then firstMovePlacement gs
+    else do
+      placements <- generatePlacements gs
+      c <- readIORef (mTurn gs)
+      slides <- generateSlides (mBoard gs) c
+      return $ placements ++ slides
+
 firstMovePlacement :: MGameState s -> IO [B.Move]
 firstMovePlacement gs = do
   c <- readIORef (mTurn gs)
   let c' = B.flipColor c
   map (B.PlaceFlat . (, c')) <$> emptyPositions (mBoard gs)
+
+generatePlacements :: MGameState s -> IO [B.Move]
+generatePlacements gs = do
+  c <- readIORef (mTurn gs)
+  let reservesRef =
+        if c == B.Black
+          then mPlayer1 gs
+          else mPlayer2 gs
+  r <- readIORef reservesRef
+  emptyPos <- emptyPositions (mBoard gs)
+  return $
+    concat
+      [ [B.PlaceFlat (pos, c) | B.stones r > 0, pos <- emptyPos]
+      , [B.PlaceStanding (pos, c) | B.stones r > 0, pos <- emptyPos]
+      , [B.PlaceCap (pos, c) | B.caps r > 0, pos <- emptyPos]
+      ]
+
+generateSlides :: MBoard s -> B.Color -> IO [B.Move]
+generateSlides b c = do
+  controlledPos <- controlledPositions b c
+  concat <$> mapM (generateSlidesFromPos b c) controlledPos
+
+generateSlidesFromPos :: MBoard s -> B.Color -> B.Position -> IO [B.Move]
+generateSlidesFromPos b c p =
+  concat <$> mapM (generateSlidesFromDir b c p) [B.Up, B.Down, B.Left, B.Right]
+
+generateSlidesFromDir ::
+     MBoard s -> B.Color -> B.Position -> B.Direction -> IO [B.Move]
+generateSlidesFromDir b c p dir = do
+  s <- readSquare b p
+  let maxCount = length s
+  let steps = numSteps dir p b
+  let validDrops count =
+        [ ds
+        | ds <- Moves.dropSequences steps count
+        , sum ds == count
+        , all (> 0) ds
+        ]
+  moves <-
+    forM [1 .. maxCount] $ \count -> do
+      forM (validDrops count) $ \drops -> do
+        cc <- canCrush b p dir drops
+        return $ B.Slide (p, count, dir, drops, c, cc)
+  return $ concat moves
+
+canCrush :: MBoard s -> B.Position -> B.Direction -> [Int] -> IO Bool
+canCrush = undefined
 
 --------------------------
 -- | Helper Functions | --
@@ -206,3 +260,24 @@ emptyPositions b = foldM foo [] [0 .. (VM.length b - 1)]
         if null s
           then p : acc
           else acc
+
+controlledPositions :: MBoard s -> B.Color -> IO [B.Position]
+controlledPositions b c = foldM foo [] [0 .. (VM.length b - 1)]
+  where
+    foo :: [B.Position] -> Int -> IO [B.Position]
+    foo acc i = do
+      let p = indexToPos b i
+      s <- readSquare b p
+      return $
+        if B.controlledBy s c
+          then p : acc
+          else acc
+
+numSteps :: B.Direction -> B.Position -> MBoard s -> Int
+numSteps dir (B.Position (x, y)) b =
+  let n = boardSize b
+   in case dir of
+        B.Up -> y - 1
+        B.Down -> n - y
+        B.Left -> x - 1
+        B.Right -> n - x

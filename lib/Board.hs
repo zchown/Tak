@@ -366,6 +366,10 @@ getPosition (PlaceStanding (p, _)) = p
 getPosition (PlaceCap (p, _)) = p
 getPosition (Slide (p, _, _, _, _, _)) = p
 
+controlledBy :: Square -> Color -> Bool
+controlledBy [] _ = False
+controlledBy (p:_) c = pc p == c
+
 -- -------------------------
 -- -- | Print Functions | --
 -- -------------------------

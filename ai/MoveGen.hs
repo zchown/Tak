@@ -45,19 +45,25 @@ generatorPattern search eval gs depth = do
     Nothing -> return "No valid moves"
 
 betterEval :: B.GameState -> IO Text
-betterEval = generatorPattern S.negaMax E.betterEval 4
+betterEval = generatorPattern S.negaMax E.betterEval 3
 
 bestEval :: B.GameState -> IO Text
-bestEval = generatorPattern S.negaMax E.bestEval 4
+bestEval = generatorPattern S.negaMax E.bestEval 3
 
 alphaBetaBest :: B.GameState -> IO Text
-alphaBetaBest = generatorPattern S.alphaBeta E.bestEval 4
+alphaBetaBest = generatorPattern S.alphaBeta E.bestEval 3
 
 alphaBetaBest' :: B.GameState -> IO Text
-alphaBetaBest' = generatorPattern S.alphaBeta E.bestEval' 4
+alphaBetaBest' = generatorPattern S.alphaBeta E.bestEval' 3
 
 alphaBetaBest90' :: B.GameState -> IO Text
 alphaBetaBest90' = percentageRandomMove alphaBetaBest' 90
+
+alphaBetaStupid :: B.GameState -> IO Text
+alphaBetaStupid = generatorPattern S.alphaBeta E.stupidEval 3
+
+alphaBetaStupid90 :: B.GameState -> IO Text
+alphaBetaStupid90 = percentageRandomMove alphaBetaBest 90
 
 bestEval90 :: B.GameState -> IO Text
 bestEval90 = percentageRandomMove bestEval 90

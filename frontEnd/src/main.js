@@ -291,7 +291,6 @@ const updatePieces = (scene, newBoardState, cells) => {
             BABYLON.Color3.FromHexString(COLORS.darkPiece);
         pieceMaterial.diffuseColor = pieceColor;
         pieceMaterial.specularColor = new BABYLON.Color3(0.3, 0.3, 0.3);
-        pieceMaterial.backFaceCulling = false;
         pieceMesh.material = pieceMaterial;
 
         currentPieces.set(p, pieceMesh);
@@ -316,7 +315,7 @@ const createGameStatePanel = (scene, gameState) => {
     mainContainer.addControl(winCounterPanel);
 
     const whiteWinsLabel = new GUI.TextBlock();
-    whiteWinsLabel.text = `White: RoadWins: ${whiteRoadWins} | FlatWins: ${whiteFlatWins}`;
+    whiteWinsLabel.text = `White Wins: Roads: ${whiteRoadWins} | Flats: ${whiteFlatWins}`;
     whiteWinsLabel.color = "white";
     whiteWinsLabel.fontSize = "32px";
     whiteWinsLabel.height = "50px";
@@ -324,7 +323,7 @@ const createGameStatePanel = (scene, gameState) => {
     winCounterPanel.addControl(whiteWinsLabel);
 
     const blackWinsLabel = new GUI.TextBlock();
-    blackWinsLabel.text = `Black: RoadWins: ${blackRoadWins} | FlatWins: ${blackFlatWins}`;
+    blackWinsLabel.text = `Black Wins: Roads: ${blackRoadWins} | Flats: ${blackFlatWins}`;
     blackWinsLabel.color = "white";
     blackWinsLabel.fontSize = "32px";
     blackWinsLabel.height = "50px";
@@ -410,6 +409,7 @@ const createGameStatePanel = (scene, gameState) => {
         scrollViewer,
         whiteWinsLabel,
         blackWinsLabel,
+        drawsLabel
     };
 };
 
@@ -428,7 +428,7 @@ const updateGameStatePanel = (gameState) => {
 
     console.log(gameState.gameResult);
 
-    if (gameState.gameResult.contents) {
+    if (gameState.gameResult.contents || gameState.gameResult.tag === "Draw") {
         console.log("Game Over");
         if (gameState.gameResult.contents === "White") {
             if (gameState.gameResult.tag === "Road") {
@@ -448,9 +448,9 @@ const updateGameStatePanel = (gameState) => {
         } else {
             draws++;
         }
-        gameStatePanel.whiteWinsLabel.text = `White: RoadWins: ${whiteRoadWins} | FlatWins: ${whiteFlatWins}`;
-        gameStatePanel.blackWinsLabel.text = `Black: RoadWins: ${blackRoadWins} | FlatWins: ${blackFlatWins}`;
-        // gameStatePanel.drawsLabel.text = `Draws: ${draws}`;
+        gameStatePanel.whiteWinsLabel.text = `White Wins: Roads: ${whiteRoadWins} | Flats: ${whiteFlatWins}`;
+        gameStatePanel.blackWinsLabel.text = `Black Wins: Roads: ${blackRoadWins} | Flats: ${blackFlatWins}`;
+        gameStatePanel.drawsLabel.text = `Draws: ${draws}`;
 
         resetBoard();
     }
