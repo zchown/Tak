@@ -368,6 +368,27 @@ controlledBy :: Square -> Color -> Bool
 controlledBy [] _ = False
 controlledBy (p:_) c = pc p == c
 
+getInitialGameState :: Int -> GameState
+getInitialGameState size =
+  GameState
+    { board = createEmptyBoard size
+    , turn = White
+    , moveNumber = 1
+    , player1 = getInitialReserves size
+    , player2 = getInitialReserves size
+    , result = Continue
+    , gameHistory = []
+    }
+
+getInitialReserves :: Int -> Reserves
+getInitialReserves n
+  | n == 4 = Reserves 15 0
+  | n == 5 = Reserves 21 1
+  | n == 6 = Reserves 30 1
+  | n == 7 = Reserves 40 2
+  | n == 8 = Reserves 50 2
+  | otherwise = Reserves 0 0
+
 -- -------------------------
 -- -- | Print Functions | --
 -- -------------------------

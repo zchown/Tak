@@ -1,20 +1,14 @@
-{-# Language DeriveGeneric, OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
+
+module WebTypes where
 
 import qualified Board as B
-import Control.Concurrent (forkIO)
 import Control.Concurrent.STM
-import Control.Monad (forever)
-import Data.Aeson (FromJSON, ToJSON, decode, encode)
+import Data.Aeson (FromJSON, ToJSON)
 import qualified Data.Map as Map
 import Data.Text (Text)
-import qualified Data.Text as T
 import GHC.Generics (Generic)
-import qualified Moves as M
-import Network.Wai.Middleware.Cors (CorsResourcePolicy(..), cors, simpleHeaders)
 import qualified Network.WebSockets as WS
-import qualified PTN as P
-import qualified TPS
-import Web.Scotty
 
 data GameStatus
   = Success
@@ -80,4 +74,5 @@ initGameStore = newTVarIO Map.empty
 initClientStore :: IO ClientStore
 initClientStore = newTVarIO Map.empty
 
-
+getGame :: GameStore -> Text -> IO (Maybe B.GameState)
+getGame store gId = atomically $ Map.lookup gId <$> readTVar store

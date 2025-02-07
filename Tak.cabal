@@ -29,6 +29,7 @@ library
                       Moves
                       PTN
                       MutableState
+                      WebTypes
     build-depends:    base ^>=4.16.4.0
                     , matrix 
                     , sequence
@@ -40,6 +41,13 @@ library
                     , deepseq
                     , split
                     , primitive
+                    , wai-cors
+                    , network
+                    , stm
+                    , containers
+                    , websockets
+                    , scotty
+                    , aeson
     hs-source-dirs:   lib
     default-language: Haskell2010
 

@@ -9,90 +9,25 @@ import qualified Board as B
 import Control.Concurrent (forkIO)
 import Control.Concurrent.STM
 import Control.Monad (forever)
-import Data.Aeson (FromJSON, ToJSON, decode, encode)
+import Data.Aeson (decode, encode)
 import qualified Data.Map as Map
 import Data.Text (Text)
 import qualified Data.Text as T
-import GHC.Generics (Generic)
 import qualified Moves as M
 import Network.Wai.Middleware.Cors (CorsResourcePolicy(..), cors, simpleHeaders)
 import qualified Network.WebSockets as WS
 import qualified PTN as P
 import qualified TPS
 import Web.Scotty
+import WebTypes
 
-data GameStatus
-  = Success
-  | Error
-  deriving (Show, Generic)
-
-instance FromJSON GameStatus
-
-instance ToJSON GameStatus
-
-data ConnectionMessage = ConnectionMessage
-  { gameId :: Text
-  } deriving (Show, Generic)
-
-instance FromJSON ConnectionMessage
-
-instance ToJSON ConnectionMessage
-
-data MoveRequest = MoveRequest
-  { moveGameId :: Text
-  , moveNotation :: Text
-  , moveColor :: Text
-  } deriving (Show, Generic)
-
-instance FromJSON MoveRequest
-
-instance ToJSON MoveRequest
-
-data GameResponse = GameResponse
-  { responseStatus :: GameStatus
-  , message :: Text
-  , board :: Maybe Text
-  , currentPlayer :: Maybe Text
-  , moveNum :: Maybe Int
-  , whiteReserves :: Maybe B.Reserves
-  , blackReserves :: Maybe B.Reserves
-  , gameResult :: Maybe B.Result
-  , gameHistory :: Maybe [Text]
-  , gameID :: Maybe Text
-  } deriving (Show, Generic)
-
-instance FromJSON GameResponse
-
-instance ToJSON GameResponse
-
-data NewGameRequest = NewGameRequest
-  { boardSize :: Int
-  } deriving (Show, Generic)
-
-instance FromJSON NewGameRequest
-
-instance ToJSON NewGameRequest
-
-type GameStore = TVar (Map.Map Text B.GameState)
-
-type Client = (Text, WS.Connection)
-
-type ClientStore = TVar (Map.Map Text [Client])
-
-initGameStore :: IO GameStore
-initGameStore = newTVarIO Map.empty
-
-initClientStore :: IO ClientStore
-initClientStore = newTVarIO Map.empty
-
--- | Helper function to create a GameResponse from a GameState.
 gameStateToResponse :: B.GameState -> Text -> GameResponse
 gameStateToResponse gs gId =
   GameResponse
     { responseStatus = Success
     , message = "Game state retrieved"
     , board = Just $ TPS.gameStateToTPS gs
-    , currentPlayer = Just $ colorToText (B.turn gs)
+    , currentPlayer = Just $ T.pack $ B.colorString (B.turn gs)
     , moveNum = Just $ B.moveNumber gs
     , whiteReserves = Just $ B.player1 gs
     , blackReserves = Just $ B.player2 gs
@@ -119,11 +54,11 @@ startServer = do
         GameResponse
           Success
           "New game created"
-          (Just $ TPS.gameStateToTPS $ getInitialGameState (boardSize req))
+          (Just $ TPS.gameStateToTPS $ B.getInitialGameState (boardSize req))
           (Just "White")
           (Just 1)
-          (Just $ getInitialReserves (boardSize req))
-          (Just $ getInitialReserves (boardSize req))
+          (Just $ B.getInitialReserves (boardSize req))
+          (Just $ B.getInitialReserves (boardSize req))
           (Just B.Continue)
           (Just [])
           (Just gameId)
@@ -270,7 +205,7 @@ appCorsResourcePolicy =
 createNewGame :: GameStore -> Int -> IO Text
 createNewGame store size = do
   let gid = "game" <> T.pack (show size)
-  let initialState = getInitialGameState size
+  let initialState = B.getInitialGameState size
   atomically $ modifyTVar store $ Map.insert gid initialState
   return gid
 
@@ -333,31 +268,3 @@ processMove store gId moveStr turn = do
                             atomically $
                               modifyTVar store $ Map.insert gId newState
                             return $ Right newState
-
-getGame :: GameStore -> Text -> IO (Maybe B.GameState)
-getGame store gId = atomically $ Map.lookup gId <$> readTVar store
-
-colorToText :: B.Color -> Text
-colorToText B.White = "White"
-colorToText B.Black = "Black"
-
-getInitialGameState :: Int -> B.GameState
-getInitialGameState size =
-  B.GameState
-    { B.board = B.createEmptyBoard size
-    , B.turn = B.White
-    , B.moveNumber = 1
-    , B.player1 = getInitialReserves size
-    , B.player2 = getInitialReserves size
-    , B.result = B.Continue
-    , B.gameHistory = []
-    }
-
-getInitialReserves :: Int -> B.Reserves
-getInitialReserves n
-  | n == 4 = B.Reserves 15 0
-  | n == 5 = B.Reserves 21 1
-  | n == 6 = B.Reserves 30 1
-  | n == 7 = B.Reserves 40 2
-  | n == 8 = B.Reserves 50 2
-  | otherwise = B.Reserves 0 0

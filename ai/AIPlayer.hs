@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -6,15 +5,14 @@
 module AIPlayer where
 
 import qualified Board as B
-import Control.Concurrent (threadDelay)
 import Control.Monad (forever)
-import Data.Aeson (FromJSON, ToJSON, decode, encode)
+import Data.Aeson (decode, encode)
 import Data.Text (Text)
 import qualified Data.Text as T
-import GHC.Generics (Generic)
 import qualified MoveGen as MG
 import qualified Network.WebSockets as WS
 import qualified TPS
+import WebTypes
 
 whiteStrategy :: B.GameState -> IO Text
 whiteStrategy = MG.generateRandomMove
@@ -24,50 +22,6 @@ blackStrategy = MG.generateRandomMove
 
 myGameId :: Text
 myGameId = "game6"
-
-data ConnectionMessage = ConnectionMessage
-  { gameId :: Text
-  } deriving (Show, Generic)
-
-instance ToJSON ConnectionMessage
-
-instance FromJSON ConnectionMessage
-
-data MoveRequest = MoveRequest
-  { moveGameId :: Text
-  , moveNotation :: Text
-  , moveColor :: Text
-  } deriving (Show, Generic)
-
-instance ToJSON MoveRequest
-
-instance FromJSON MoveRequest
-
-data GameStatus
-  = Success
-  | Error
-  deriving (Show, Generic)
-
-instance ToJSON GameStatus
-
-instance FromJSON GameStatus
-
-data GameResponse = GameResponse
-  { responseStatus :: GameStatus
-  , message :: Text
-  , board :: Maybe Text
-  , currentPlayer :: Maybe Text
-  , moveNum :: Maybe Int
-  , whiteReserves :: Maybe B.Reserves
-  , blackReserves :: Maybe B.Reserves
-  , gameResult :: Maybe B.Result
-  , gameHistory :: Maybe [Text]
-  , gameID :: Maybe Text
-  } deriving (Show, Generic)
-
-instance ToJSON GameResponse
-
-instance FromJSON GameResponse
 
 gameResponseToGameState :: GameResponse -> Maybe B.GameState
 gameResponseToGameState gr = do
