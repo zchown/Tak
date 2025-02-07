@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -14,11 +13,9 @@ import qualified Data.Map as Map
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Moves as M
-import Network.Wai.Middleware.Cors (CorsResourcePolicy(..), cors, simpleHeaders)
 import qualified Network.WebSockets as WS
 import qualified PTN as P
 import qualified TPS
-import Web.Scotty
 import WebTypes
 
 gameStateToResponse :: B.GameState -> Text -> GameResponse
@@ -41,84 +38,10 @@ startServer = do
   gameStore <- initGameStore
   clientStore <- initClientStore
   putStrLn "Game store initialized"
-  forkIO $ WS.runServer "127.0.0.1" 9160 $ websocketApp gameStore clientStore
-  scotty 3000 $ do
-    middleware $ cors (const $ Just appCorsResourcePolicy)
-    options "/api/game/new" $ text "OK"
-    options "/api/game/move" $ text "OK"
-    options "/api/game/:id" $ text "OK"
-    post "/api/game/new" $ do
-      req <- jsonData
-      gameId <- liftIO $ createNewGame gameStore (boardSize req)
-      json $
-        GameResponse
-          Success
-          "New game created"
-          (Just $ TPS.gameStateToTPS $ B.getInitialGameState (boardSize req))
-          (Just "White")
-          (Just 1)
-          (Just $ B.getInitialReserves (boardSize req))
-          (Just $ B.getInitialReserves (boardSize req))
-          (Just B.Continue)
-          (Just [])
-          (Just gameId)
-    post "/api/game/move" $ do
-      MoveRequest gId moveStr turn <- jsonData
-      result <- liftIO $ processMove gameStore gId moveStr turn
-      case result of
-        Left err -> do
-          let errorResponse =
-                GameResponse
-                  Error
-                  err
-                  Nothing
-                  Nothing
-                  Nothing
-                  Nothing
-                  Nothing
-                  Nothing
-                  Nothing
-                  (Just gId)
-          json errorResponse
-          clients <- liftIO $ atomically $ readTVar clientStore
-          liftIO $ putStrLn $ "api/game/move updating clients error"
-          case Map.lookup gId clients of
-            Just clients' ->
-              liftIO $
-              mapM_
-                (\(_, ws) -> WS.sendTextData ws (encode errorResponse))
-                clients'
-            Nothing -> return ()
-        Right gs -> do
-          let successResponse = gameStateToResponse gs gId
-          json successResponse
-          clients <- liftIO $ atomically $ readTVar clientStore
-          liftIO $ putStrLn $ "api/game/move updating clients success"
-          case Map.lookup gId clients of
-            Just clients' ->
-              liftIO $
-              mapM_
-                (\(_, ws) -> WS.sendTextData ws (encode successResponse))
-                clients'
-            Nothing -> return ()
-    get "/api/game/:id" $ do
-      gId <- param "id"
-      maybeGame <- liftIO $ getGame gameStore gId
-      case maybeGame of
-        Nothing ->
-          json $
-          GameResponse
-            Error
-            "Game not found"
-            Nothing
-            Nothing
-            Nothing
-            Nothing
-            Nothing
-            Nothing
-            Nothing
-            (Just gId)
-        Just gs -> json $ gameStateToResponse gs gId
+  _ <-
+    forkIO $ WS.runServer "127.0.0.1" 9160 $ websocketApp gameStore clientStore
+  putStrLn "WebSocket server started"
+  forever $ return ()
 
 websocketApp :: GameStore -> ClientStore -> WS.ServerApp
 websocketApp gameStore clientStore pending = do
@@ -135,19 +58,20 @@ websocketApp gameStore clientStore pending = do
       maybeGame <- getGame gameStore gId
       case maybeGame of
         Nothing -> do
-          let errorResponse =
+          _ <- createNewGame gameStore 6
+          let newGameResponse =
                 GameResponse
-                  Error
-                  "Game not found"
-                  Nothing
-                  Nothing
-                  Nothing
-                  Nothing
-                  Nothing
-                  Nothing
-                  Nothing
+                  Success
+                  "New game created"
+                  (Just $ TPS.gameStateToTPS $ B.getInitialGameState 6)
+                  (Just "White")
+                  (Just 1)
+                  (Just $ B.getInitialReserves 6)
+                  (Just $ B.getInitialReserves 6)
+                  (Just B.Continue)
+                  (Just [])
                   (Just gId)
-          WS.sendTextData conn (encode errorResponse)
+          WS.sendTextData conn (encode newGameResponse)
         Just gs -> do
           let successResponse = gameStateToResponse gs gId
           WS.sendTextData conn (encode successResponse)
@@ -161,7 +85,7 @@ websocketApp gameStore clientStore pending = do
               Right gs -> do
                 putStrLn "Successfully processed move"
                 let response = gameStateToResponse gs gId'
-                clients <- atomically $ readTVar clientStore
+                clients <- readTVarIO clientStore
                 putStrLn "Updating clients"
                 case Map.lookup gId' clients of
                   Just clients' -> do
@@ -188,19 +112,6 @@ websocketApp gameStore clientStore pending = do
                   (Just gId')
           Nothing -> putStrLn "Failed to decode move message"
     Nothing -> putStrLn "Failed to decode initial connection message"
-
-appCorsResourcePolicy :: CorsResourcePolicy
-appCorsResourcePolicy =
-  CorsResourcePolicy
-    { corsOrigins = Just (["http://localhost:5173"], True)
-    , corsMethods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-    , corsRequestHeaders = simpleHeaders
-    , corsExposedHeaders = Nothing
-    , corsMaxAge = Nothing
-    , corsVaryOrigin = False
-    , corsRequireOrigin = False
-    , corsIgnoreFailures = False
-    }
 
 createNewGame :: GameStore -> Int -> IO Text
 createNewGame store size = do

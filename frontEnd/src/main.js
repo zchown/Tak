@@ -1,9 +1,9 @@
 import * as BABYLON from "@babylonjs/core";
 import * as GUI from "@babylonjs/gui";
-import axios from "axios";
 
 const canvas = document.getElementById("renderCanvas");
 const engine = new BABYLON.Engine(canvas, true);
+let ws = null
 let currentPieces = new Map();
 let gameStatePanel = null;
 let gameHistoryPanel = null;
@@ -19,18 +19,6 @@ const COLORS = {
     darkSquare: '#567c8d',
     lightPiece: '#f5efeb',
     darkPiece: '#2f4156'
-};
-
-const fetchGameState = async () => {
-    try {
-        const response = await axios.post("http://localhost:3000/api/game/new", {
-            boardSize: 6,
-        });
-        return response.data;
-    } catch (error) {
-        console.error("Error fetching game state:", error);
-        return null;
-    }
 };
 
 const parseTPS = (tps) => {
@@ -497,10 +485,6 @@ const gameHistoryToText = (gameState) => {
     return text;
 };
 
-const moveToAlgebraic = (move) => {
-
-};
-
 const createMoveInput = (scene, advancedTexture, gameId, cells, pieces) => {
     const inputContainer = new GUI.StackPanel();
     inputContainer.width = "650px";
@@ -540,7 +524,7 @@ const createMoveInput = (scene, advancedTexture, gameId, cells, pieces) => {
     submitButton.thickness = 2;
     inputContainer.addControl(submitButton);
 
-    const submitMove = async () => {
+    const submitMove = () => {
         const moveNotation = inputBox.text.trim();
         const turn = gameStatePanel.currentPlayerLabel.text.split(": ")[1];
         if (!moveNotation) {
@@ -549,18 +533,12 @@ const createMoveInput = (scene, advancedTexture, gameId, cells, pieces) => {
             return;
         }
 
-        try {
-            console.log("Sending move request:", { gameId, moveNotation, turn });
-            const response = await axios.post("http://localhost:3000/api/game/move", {
-                moveGameId: gameId,
-                moveNotation: moveNotation,
-                moveColor: turn
-            });
-        } catch (error) { 
-            // this is scuffed it always seems to get an error but like sometimes its not actually
-            // the game gets updated and it works so just leave this here for now until it breaks
-            messageText.text = (error.response?.data?.message || error.message);
-        }
+        console.log("Sending move request:", { gameId, moveNotation, turn });
+        ws.send(JSON.stringify({
+            moveGameId: gameId,
+            moveNotation: moveNotation,
+            moveColor: turn
+        }));
     };
 
     submitButton.onPointerUpObservable.add(submitMove);
@@ -578,67 +556,9 @@ const createMoveInput = (scene, advancedTexture, gameId, cells, pieces) => {
     };
 };
 
-const connectWebSocket = (gameId, scene, cells) => {
-    console.log("Attempting to connect WebSocket...");
-    const ws = new WebSocket(`ws://localhost:9160`);
-
-    ws.onopen = () => {
-        console.log("WebSocket connection established");
-        ws.send(JSON.stringify({ gameId: gameId}));
-    };
-
-    ws.onmessage = (event) => {
-        console.log("Raw message received:", event.data);
-        try {
-            const gameState = JSON.parse(event.data);
-            console.log("Parsed game state update:", gameState);
-            updateGameStatePanel(gameState);
-            const parsedBoard = parseTPS(gameState.board);
-            updateBoard(scene, parsedBoard, cells);
-        } catch (error) {
-            console.error("Error processing message:", error);
-        }
-    };
-
-    ws.onclose = (event) => {
-        console.log("WebSocket connection closed", {
-            code: event.code,
-            reason: event.reason,
-            wasClean: event.wasClean
-        });
-    };
-
-    ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
-    };
-
-    return ws;
-};
-
 const createScene = async () => {
     const scene = new BABYLON.Scene(engine);
     scene.clearColor = BABYLON.Color3.FromHexString("#1c2833");
-
-
-    const gameState = await fetchGameState();
-    console.log("Game State:", gameState);
-
-    if (!gameState) {
-        console.error("Failed to fetch game state");
-        return scene;
-    }
-
-
-    const parsedBoard = parseTPS(gameState.board);
-    const cells = createCells(scene, parsedBoard);
-    let pieces = updatePieces(scene, parsedBoard, cells);
-
-    const ws = connectWebSocket(gameState.gameID, scene, cells);
-
-    gameStatePanel = createGameStatePanel(scene, gameState);
-
-    moveInput = createMoveInput(scene, GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"), gameState.gameID, cells, pieces);
-    moveInput.inputBox.focus();
 
     const camera = new BABYLON.ArcRotateCamera(
         "camera",
@@ -654,14 +574,14 @@ const createScene = async () => {
 
     const hemisphericLight = new BABYLON.HemisphericLight(
         "hemisphericLight",
-        new BABYLON.Vector3(-5, 3, 1), 
+        new BABYLON.Vector3(-5, 3, 1),
         scene
     );
     hemisphericLight.intensity = 0.7;
 
     const hemisphericLight2 = new BABYLON.HemisphericLight(
         "hemisphericLight2",
-        new BABYLON.Vector3(-1, 3, -2), 
+        new BABYLON.Vector3(-1, 3, -2),
         scene
     );
     hemisphericLight2.intensity = 0.7;
@@ -686,6 +606,64 @@ const createScene = async () => {
     pipeline.vignetteEnabled = true;
     pipeline.depthOfFieldEnabled = false;
 
+    let parsedBoard = "x6/x6/x6/x6/x6/x6";
+    let cells = null;
+    let pieces = null;
+
+    console.log("Attempting to connect WebSocket...");
+    ws = new WebSocket("ws://localhost:9160");
+
+    ws.onopen = () => {
+        console.log("WebSocket connection established");
+        ws.send(JSON.stringify({gameId: "game6"}));
+    };
+
+    ws.onmessage = (event) => {
+        console.log("Raw message received:", event.data);
+        try {
+            const gameState = JSON.parse(event.data);
+            console.log("Game State:", gameState);
+
+            if (gameState.responseStatus === "Error") {
+                console.error("Error:", gameState.message);
+                return;
+            }
+
+            parsedBoard = parseTPS(gameState.board);
+            cells = createCells(scene, parsedBoard);
+            pieces = updatePieces(scene, parsedBoard, cells);
+
+            if (gameStatePanel !== null) {
+                updateGameStatePanel(gameState);
+            } else {
+                gameStatePanel = createGameStatePanel(scene, gameState);
+            }
+
+            moveInput = createMoveInput(
+                scene,
+                GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"),
+                gameState.gameID,
+                cells,
+                pieces
+            );
+            moveInput.inputBox.focus();
+
+        } catch (error) {
+            console.error("Error processing message:", error);
+        }
+    };
+
+    ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
+    };
+
+    ws.onclose = (event) => {
+        console.log("WebSocket connection closed", {
+            code: event.code,
+            reason: event.reason,
+            wasClean: event.wasClean
+        });
+    };
 
     return scene;
 };

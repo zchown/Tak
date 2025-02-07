@@ -54,7 +54,7 @@ instance FromJSON GameResponse
 
 instance ToJSON GameResponse
 
-data NewGameRequest = NewGameRequest
+newtype NewGameRequest = NewGameRequest
   { boardSize :: Int
   } deriving (Show, Generic)
 
