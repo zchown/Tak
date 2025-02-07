@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# OPTIONS_GHC -Wno-partial-fields #-}
 
 module WebTypes where
 
@@ -19,9 +20,11 @@ instance FromJSON GameStatus
 
 instance ToJSON GameStatus
 
-data ConnectionMessage = ConnectionMessage
+newtype ConnectionMessage = ConnectionMessage
   { gameId :: Text
   } deriving (Show, Generic)
+
+
 
 instance FromJSON ConnectionMessage
 
@@ -31,6 +34,8 @@ data MoveRequest = MoveRequest
   { moveGameId :: Text
   , moveNotation :: Text
   , moveColor :: Text
+  } | ResetRequest
+  { resetGameId :: Text
   } deriving (Show, Generic)
 
 instance FromJSON MoveRequest
@@ -48,6 +53,10 @@ data GameResponse = GameResponse
   , gameResult :: Maybe B.Result
   , gameHistory :: Maybe [Text]
   , gameID :: Maybe Text
+  , player1 :: Maybe (Int, Int)
+  , player2 :: Maybe (Int, Int)
+  , draws :: Maybe Int
+  , swap :: Maybe Bool
   } deriving (Show, Generic)
 
 instance FromJSON GameResponse

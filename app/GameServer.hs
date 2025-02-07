@@ -31,6 +31,10 @@ gameStateToResponse gs gId =
     , gameResult = Just $ B.result gs
     , gameHistory = Just $ map P.moveToText (B.gameHistory gs)
     , gameID = Just gId
+    , player1 = Just (0, 0)
+    , player2 = Just (0, 0)
+    , draws = Just 0
+    , swap = Just False
     }
 
 startServer :: IO ()
@@ -71,6 +75,10 @@ websocketApp gameStore clientStore pending = do
                   (Just B.Continue)
                   (Just [])
                   (Just gId)
+                  (Just (0, 0))
+                  (Just (0, 0))
+                  (Just 0)
+                  (Just False)
           WS.sendTextData conn (encode newGameResponse)
         Just gs -> do
           let successResponse = gameStateToResponse gs gId
@@ -79,6 +87,15 @@ websocketApp gameStore clientStore pending = do
         putStrLn "Waiting for move message..."
         msg' <- WS.receiveData conn
         case decode msg' of
+          Just (ResetRequest gid') -> do
+            maybeGame <- getGame gameStore gid'
+            case maybeGame of
+              Nothing -> do
+                putStrLn "Game not found"
+                return ()
+              Just _ -> do
+                atomically $ modifyTVar gameStore $ Map.insert gid' (B.getInitialGameState 6)
+                putStrLn "Game reset"
           Just (MoveRequest gId' moveStr turn) -> do
             result <- processMove gameStore gId' moveStr turn
             case result of
@@ -110,6 +127,10 @@ websocketApp gameStore clientStore pending = do
                   Nothing
                   Nothing
                   (Just gId')
+                  Nothing
+                  Nothing
+                  Nothing
+                  Nothing
           Nothing -> putStrLn "Failed to decode move message"
     Nothing -> putStrLn "Failed to decode initial connection message"
 
