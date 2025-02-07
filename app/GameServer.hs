@@ -7,6 +7,7 @@ module GameServer where
 import qualified Board as B
 import Control.Concurrent (forkIO)
 import Control.Concurrent.STM
+import Control.Exception (finally)
 import Control.Monad (forever)
 import Data.Aeson (decode, encode)
 import qualified Data.Map as Map
@@ -15,8 +16,11 @@ import qualified Data.Text as T
 import qualified Moves as M
 import qualified Network.WebSockets as WS
 import qualified PTN as P
+import System.Random (randomIO)
 import qualified TPS
 import WebTypes
+
+type ClientID = Int -- Unique identifier for each client
 
 gameStateToResponse :: B.GameState -> Text -> GameResponse
 gameStateToResponse gs gId =
@@ -39,100 +43,98 @@ gameStateToResponse gs gId =
 
 startServer :: IO ()
 startServer = do
+  putStrLn "Initializing game store..."
   gameStore <- initGameStore
+  putStrLn "Initializing client store..."
   clientStore <- initClientStore
-  putStrLn "Game store initialized"
-  _ <-
-    forkIO $ WS.runServer "127.0.0.1" 9160 $ websocketApp gameStore clientStore
-  putStrLn "WebSocket server started"
-  forever $ return ()
+  putStrLn "Game store initialized."
+  putStrLn "Starting WebSocket server on ws://127.0.0.1:9160..."
+  WS.runServer "127.0.0.1" 9160 $ \pending -> do
+    putStrLn "New WebSocket connection pending"
+    websocketApp gameStore clientStore pending
+  putStrLn "This line should never be reached"
 
 websocketApp :: GameStore -> ClientStore -> WS.ServerApp
 websocketApp gameStore clientStore pending = do
   putStrLn "New WebSocket connection pending"
   conn <- WS.acceptRequest pending
   putStrLn "WebSocket connection accepted"
+  clientId <- randomIO :: IO ClientID
   msg <- WS.receiveData conn
   putStrLn $ "Received initial message: " ++ show msg
   case decode msg of
     Just (ConnectionMessage gId) -> do
       putStrLn $ "Successfully connected client to game: " ++ show gId
       atomically $
-        modifyTVar clientStore $ Map.insertWith (++) gId [(gId, conn)]
+        modifyTVar clientStore $ Map.insertWith (++) gId [(clientId, conn)]
       maybeGame <- getGame gameStore gId
       case maybeGame of
-        Nothing -> do
-          _ <- createNewGame gameStore 6
-          let newGameResponse =
-                GameResponse
-                  Success
-                  "New game created"
-                  (Just $ TPS.gameStateToTPS $ B.getInitialGameState 6)
-                  (Just "White")
-                  (Just 1)
-                  (Just $ B.getInitialReserves 6)
-                  (Just $ B.getInitialReserves 6)
-                  (Just B.Continue)
-                  (Just [])
-                  (Just gId)
-                  (Just (0, 0))
-                  (Just (0, 0))
-                  (Just 0)
-                  (Just False)
-          WS.sendTextData conn (encode newGameResponse)
         Just gs -> do
-          let successResponse = gameStateToResponse gs gId
-          WS.sendTextData conn (encode successResponse)
-      forever $ do
-        putStrLn "Waiting for move message..."
-        msg' <- WS.receiveData conn
-        case decode msg' of
-          Just (ResetRequest gid') -> do
-            maybeGame <- getGame gameStore gid'
-            case maybeGame of
-              Nothing -> do
-                putStrLn "Game not found"
-                return ()
-              Just _ -> do
-                atomically $ modifyTVar gameStore $ Map.insert gid' (B.getInitialGameState 6)
-                putStrLn "Game reset"
-          Just (MoveRequest gId' moveStr turn) -> do
-            result <- processMove gameStore gId' moveStr turn
-            case result of
-              Right gs -> do
-                putStrLn "Successfully processed move"
-                let response = gameStateToResponse gs gId'
-                clients <- readTVarIO clientStore
-                putStrLn "Updating clients"
-                case Map.lookup gId' clients of
-                  Just clients' -> do
-                    mapM_
-                      (\(_, ws) -> WS.sendTextData ws (encode response))
-                      clients'
-                    putStrLn "Clients updated"
-                  Nothing -> do
-                    putStrLn "No clients to update"
-                    return ()
-              Left err ->
-                WS.sendTextData conn $
-                encode $
-                GameResponse
-                  Error
-                  err
-                  Nothing
-                  Nothing
-                  Nothing
-                  Nothing
-                  Nothing
-                  Nothing
-                  Nothing
-                  (Just gId')
-                  Nothing
-                  Nothing
-                  Nothing
-                  Nothing
-          Nothing -> putStrLn "Failed to decode move message"
+          let response = gameStateToResponse gs gId
+          WS.sendTextData conn (encode response)
+        Nothing -> do
+          putStrLn "Game not found, creating new game..."
+          newGameId <- createNewGame gameStore 6
+          putStrLn $ "New game created with ID: " ++ show newGameId
+          let response = gameStateToResponse (B.getInitialGameState 6) newGameId
+          WS.sendTextData conn (encode response)
+      let removeClient =
+            atomically $
+            modifyTVar clientStore $ Map.update (removeClientById clientId) gId
+      finally
+        (handleClient gameStore clientStore gId clientId conn)
+        removeClient
     Nothing -> putStrLn "Failed to decode initial connection message"
+
+removeClientById ::
+     ClientID
+  -> [(ClientID, WS.Connection)]
+  -> Maybe [(ClientID, WS.Connection)]
+removeClientById cId clients =
+  let filtered = filter (\(id, _) -> id /= cId) clients
+   in if null filtered
+        then Nothing
+        else Just filtered
+
+handleClient ::
+     GameStore -> ClientStore -> Text -> ClientID -> WS.Connection -> IO ()
+handleClient gameStore clientStore gId clientId conn =
+  forever $ do
+    putStrLn "Waiting for move message..."
+    msg' <- WS.receiveData conn
+    case decode msg' of
+      Just (MoveRequest gId' moveStr turn) -> do
+        result <- processMove gameStore gId' moveStr turn
+        case result of
+          Right gs -> do
+            let response = gameStateToResponse gs gId'
+            clients <- readTVarIO clientStore
+            case Map.lookup gId' clients of
+              Just clients' ->
+                mapM_
+                  (\(_, ws) -> WS.sendTextData ws (encode response))
+                  clients'
+              Nothing -> putStrLn "No clients to update"
+          Left err ->
+            WS.sendTextData
+              conn
+              (encode $
+               GameResponse
+                 Error
+                 err
+                 Nothing
+                 Nothing
+                 Nothing
+                 Nothing
+                 Nothing
+                 Nothing
+                 Nothing
+                 (Just gId')
+                 Nothing
+                 Nothing
+                 Nothing
+                 Nothing)
+      Nothing -> putStrLn "Failed to decode move message"
 
 createNewGame :: GameStore -> Int -> IO Text
 createNewGame store size = do
@@ -157,11 +159,7 @@ processMove store gId moveStr turn = do
                   then move'
                   else B.flipMoveColor move'
           if B.turn gs /= B.getMoveColor move'
-            then do
-              putStrLn $
-                "Not your turn: " ++
-                show (B.turn gs) ++ " vs " ++ show (B.getMoveColor move')
-              return $ Left "Not your turn"
+            then return $ Left "Not your turn"
             else if not (B.hasReserves (B.player1 gs) (B.player2 gs) move)
                    then return $ Left "Not enough pieces"
                    else case M.makeMove (B.board gs) move of

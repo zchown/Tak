@@ -63,14 +63,12 @@ executable Tak
         matrix,
         directory,
         filepath,
-        scotty,
         aeson,
         containers,
         stm,
-        wai-cors,
         network,
-        bytestring,
-        websockets
+        websockets,
+        random,
     hs-source-dirs:   app
     default-language: Haskell2010
 

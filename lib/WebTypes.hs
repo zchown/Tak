@@ -24,8 +24,6 @@ newtype ConnectionMessage = ConnectionMessage
   { gameId :: Text
   } deriving (Show, Generic)
 
-
-
 instance FromJSON ConnectionMessage
 
 instance ToJSON ConnectionMessage
@@ -34,8 +32,6 @@ data MoveRequest = MoveRequest
   { moveGameId :: Text
   , moveNotation :: Text
   , moveColor :: Text
-  } | ResetRequest
-  { resetGameId :: Text
   } deriving (Show, Generic)
 
 instance FromJSON MoveRequest
@@ -73,7 +69,7 @@ instance ToJSON NewGameRequest
 
 type GameStore = TVar (Map.Map Text B.GameState)
 
-type Client = (Text, WS.Connection)
+type Client = (Int, WS.Connection)
 
 type ClientStore = TVar (Map.Map Text [Client])
 

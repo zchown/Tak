@@ -606,13 +606,15 @@ const createScene = async () => {
     pipeline.vignetteEnabled = true;
     pipeline.depthOfFieldEnabled = false;
 
-    let parsedBoard = "x6/x6/x6/x6/x6/x6";
-    let cells = parseTPS(parsedBoard);
-    let pieces = createCells(scene, cells);
+    let tps = "x6/x6/x6/x6/x6/x6";
+    let parsedBoard = parseTPS(tps);
+    const cells = createCells(scene, parsedBoard);
+    let pieces = updatePieces(scene, parsedBoard, cells);
 
     const dummyGameState = {whiteRoadWins: 0, blackRoadWins: 0, whiteFlatWins: 0, blackFlatWins: 0, draws: 0, currentPlayer: "White", whiteReserves: {stones: 0, caps: 0}, blackReserves: {stones: 0, caps: 0}, gameHistory: []};
     gameStatePanel = createGameStatePanel(scene, dummyGameState);
     moveInput = createMoveInput(scene, GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"), "game6", cells, pieces);
+    moveInput.inputBox.focus();
 
     console.log("Attempting to connect WebSocket...");
     ws = new WebSocket("ws://localhost:9160");
@@ -634,24 +636,10 @@ const createScene = async () => {
             }
 
             parsedBoard = parseTPS(gameState.board);
-            cells = createCells(scene, parsedBoard);
-            pieces = updatePieces(scene, parsedBoard, cells);
+            updatePieces(scene, parsedBoard, cells);
 
-            if (gameStatePanel !== null) {
-                updateGameStatePanel(gameState);
-            } else {
-                gameStatePanel = createGameStatePanel(scene, gameState);
-            }
-
-            moveInput = createMoveInput(
-                scene,
-                GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"),
-                gameState.gameID,
-                cells,
-                pieces
-            );
-            moveInput.inputBox.focus();
-
+            updateGameStatePanel(gameState);
+                        
         } catch (error) {
             console.error("Error processing message:", error);
         }
