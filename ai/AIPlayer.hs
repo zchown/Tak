@@ -13,28 +13,25 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
 import qualified MoveGen as MG
-import Network.HTTP.Simple
-
+import qualified Network.WebSockets as WS
 import qualified TPS
 
-whiteStrategy = MG.alphaBetaBest90'
+whiteStrategy :: B.GameState -> IO Text
+whiteStrategy = MG.generateRandomMove
 
-blackStrategy = MG.alphaBetaStupid90
-
-apiBaseUrl :: String
-apiBaseUrl = "http://localhost:3000/api/game"
+blackStrategy :: B.GameState -> IO Text
+blackStrategy = MG.generateRandomMove
 
 myGameId :: Text
 myGameId = "game6"
 
-data GameStatus
-  = Success
-  | Error
-  deriving (Show, Generic)
+data ConnectionMessage = ConnectionMessage
+  { gameId :: Text
+  } deriving (Show, Generic)
 
-instance FromJSON GameStatus
+instance ToJSON ConnectionMessage
 
-instance ToJSON GameStatus
+instance FromJSON ConnectionMessage
 
 data MoveRequest = MoveRequest
   { moveGameId :: Text
@@ -45,6 +42,15 @@ data MoveRequest = MoveRequest
 instance ToJSON MoveRequest
 
 instance FromJSON MoveRequest
+
+data GameStatus
+  = Success
+  | Error
+  deriving (Show, Generic)
+
+instance ToJSON GameStatus
+
+instance FromJSON GameStatus
 
 data GameResponse = GameResponse
   { responseStatus :: GameStatus
@@ -59,57 +65,9 @@ data GameResponse = GameResponse
   , gameID :: Maybe Text
   } deriving (Show, Generic)
 
-instance FromJSON GameResponse
-
 instance ToJSON GameResponse
 
-startAIPlayer :: IO ()
-startAIPlayer = do
-  putStrLn "AI Player started..."
-  forever $ do
-    maybeGameState <- fetchGameState myGameId
-    case maybeGameState of
-      Just gs -> do
-        putStrLn "Fetched game state successfully."
-        submitMove gs myGameId
-      Nothing -> putStrLn "Failed to fetch game state."
-
-fetchGameState :: Text -> IO (Maybe GameResponse)
-fetchGameState gId = do
-  let url = apiBaseUrl ++ "/" ++ T.unpack gId
-  request <- parseRequest url
-  -- putStrLn $ show request
-  response <- httpLBS request
-  let result = decode (getResponseBody response)
-  case result of
-    Just gs
-      -- putStrLn $ "Fetched game state: " ++ show gs
-     -> do
-      return result
-    Nothing -> do
-      putStrLn "Failed to decode game state"
-      return Nothing
-
-submitMove :: GameResponse -> Text -> IO ()
-submitMove gr gId = do
-  let maybeGameState = gameResponseToGameState gr
-  case maybeGameState of
-    Just gs -> do
-      move <-
-        case B.turn gs of
-          B.White -> whiteStrategy gs
-          B.Black -> blackStrategy gs
-      let reqBody =
-            encode $ MoveRequest gId move $ T.pack $ B.colorString (B.turn gs)
-      request <- parseRequest (apiBaseUrl ++ "/move")
-      let request' =
-            setRequestBodyLBS reqBody $
-            setRequestMethod "POST" $
-            setRequestHeader "Content-Type" ["application/json"] request
-      response <- httpLBS request'
-      putStrLn $ "Submitted move: " ++ T.unpack move
-      -- putStrLn $ "Response: " ++ BL.unpack (getResponseBody response)
-    Nothing -> putStrLn "Failed to convert game response to game state."
+instance FromJSON GameResponse
 
 gameResponseToGameState :: GameResponse -> Maybe B.GameState
 gameResponseToGameState gr = do
@@ -117,3 +75,45 @@ gameResponseToGameState gr = do
   case TPS.parseTPS boardText of
     Left _ -> Nothing
     Right gs -> Just gs
+
+startAIPlayer :: IO ()
+startAIPlayer = WS.runClient "127.0.0.1" 9160 "/" clientApp
+
+clientApp :: WS.Connection -> IO ()
+clientApp conn = do
+  putStrLn "Connected to game server via websockets."
+  let connMsg = ConnectionMessage myGameId
+  WS.sendTextData conn (encode connMsg)
+  putStrLn $ "Sent connection message for game: " ++ T.unpack myGameId
+  forever $ do
+    putStrLn "Waiting for server message..."
+    msg <- WS.receiveData conn
+    case decode msg :: Maybe GameResponse of
+      Just gr -> do
+        case gameResponseToGameState gr of
+          Just gs -> do
+            let currentTurn = B.turn gs
+            putStrLn $ "Current turn: " ++ show currentTurn
+            case B.result gs of
+              B.Continue ->
+                if isOurTurn gs
+                  then do
+                    let strategy =
+                          case currentTurn of
+                            B.White -> whiteStrategy
+                            B.Black -> blackStrategy
+                    move <- strategy gs
+                    let moveReq =
+                          MoveRequest
+                            myGameId
+                            move
+                            (T.pack $ B.colorString currentTurn)
+                    WS.sendTextData conn (encode moveReq)
+                    putStrLn $ "Submitted move: " ++ T.unpack move
+                  else putStrLn "Not our turn, waiting..."
+              _ -> putStrLn "Game is over, stopping AI."
+          Nothing -> putStrLn "Failed to parse game state from response."
+      Nothing -> putStrLn "Failed to decode server message."
+
+isOurTurn :: B.GameState -> Bool
+isOurTurn _ = True

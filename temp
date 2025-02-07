@@ -1,0 +1,18 @@
+Starting AI Player...
+Connected to game server via websockets.
+Sent connection message for game: game6
+Waiting for server message...
+Received message: "{\"blackReserves\":{\"caps\":1,\"stones\":30},\"board\":\"x6/x6/x6/x6/x6/x6 1 1\",\"currentPlayer\":\"White\",\"gameHistory\":[],\"gameID\":\"game6\",\"gameResult\":{\"tag\":\"Continue\"},\"message\":\"Game state retrieved\",\"moveNum\":1,\"responseStatus\":\"Success\",\"whiteReserves\":{\"caps\":1,\"stones\":30}}"
+Current turn: White
+Submitted move: a1
+Waiting for server message...
+Received message: "{\"blackReserves\":{\"caps\":1,\"stones\":29},\"board\":\"x6/x6/x6/x6/x6/2,x5 2 2\",\"currentPlayer\":\"Black\",\"gameHistory\":[\"a1\"],\"gameID\":\"game6\",\"gameResult\":{\"tag\":\"Continue\"},\"message\":\"Game state retrieved\",\"moveNum\":2,\"responseStatus\":\"Success\",\"whiteReserves\":{\"caps\":1,\"stones\":30}}"
+Current turn: Black
+Submitted move: a6
+Waiting for server message...
+Received message: "{\"blackReserves\":{\"caps\":1,\"stones\":29},\"board\":\"1,x5/x6/x6/x6/x6/2,x5 1 3\",\"currentPlayer\":\"White\",\"gameHistory\":[\"a6\",\"a1\"],\"gameID\":\"game6\",\"gameResult\":{\"tag\":\"Continue\"},\"message\":\"Game state retrieved\",\"moveNum\":3,\"responseStatus\":\"Success\",\"whiteReserves\":{\"caps\":1,\"stones\":29}}"
+Current turn: White
+Submitted move: Cc3
+Waiting for server message...
+Received message: "{\"blackReserves\":{\"caps\":1,\"stones\":29},\"board\":\"1,x5/x6/x6/x2,1C,x3/x6/2,x5 2 4\",\"currentPlayer\":\"Black\",\"gameHistory\":[\"Cc3\",\"a6\",\"a1\"],\"gameID\":\"game6\",\"gameResult\":{\"tag\":\"Continue\"},\"message\":\"Game state retrieved\",\"moveNum\":4,\"responseStatus\":\"Success\",\"whiteReserves\":{\"caps\":0,\"stones\":29}}"
+Current turn: Black

@@ -1,5 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module GameServer where
 
@@ -83,6 +85,22 @@ initGameStore = newTVarIO Map.empty
 initClientStore :: IO ClientStore
 initClientStore = newTVarIO Map.empty
 
+-- | Helper function to create a GameResponse from a GameState.
+gameStateToResponse :: B.GameState -> Text -> GameResponse
+gameStateToResponse gs gId =
+  GameResponse
+    { responseStatus = Success
+    , message = "Game state retrieved"
+    , board = Just $ TPS.gameStateToTPS gs
+    , currentPlayer = Just $ colorToText (B.turn gs)
+    , moveNum = Just $ B.moveNumber gs
+    , whiteReserves = Just $ B.player1 gs
+    , blackReserves = Just $ B.player2 gs
+    , gameResult = Just $ B.result gs
+    , gameHistory = Just $ map P.moveToText (B.gameHistory gs)
+    , gameID = Just gId
+    }
+
 startServer :: IO ()
 startServer = do
   gameStore <- initGameStore
@@ -128,6 +146,7 @@ startServer = do
                   (Just gId)
           json errorResponse
           clients <- liftIO $ atomically $ readTVar clientStore
+          liftIO $ putStrLn $ "api/game/move updating clients error"
           case Map.lookup gId clients of
             Just clients' ->
               liftIO $
@@ -136,20 +155,10 @@ startServer = do
                 clients'
             Nothing -> return ()
         Right gs -> do
-          let successResponse =
-                GameResponse
-                  Success
-                  "Move processed successfully"
-                  (Just $ TPS.gameStateToTPS gs)
-                  (Just $ colorToText (B.turn gs))
-                  (Just $ B.moveNumber gs)
-                  (Just $ B.player1 gs)
-                  (Just $ B.player2 gs)
-                  (Just $ B.result gs)
-                  (Just $ map P.moveToText (take 25 (B.gameHistory gs)))
-                  (Just gId)
+          let successResponse = gameStateToResponse gs gId
           json successResponse
           clients <- liftIO $ atomically $ readTVar clientStore
+          liftIO $ putStrLn $ "api/game/move updating clients success"
           case Map.lookup gId clients of
             Just clients' ->
               liftIO $
@@ -174,19 +183,7 @@ startServer = do
             Nothing
             Nothing
             (Just gId)
-        Just gs ->
-          json $
-          GameResponse
-            Success
-            "Game state retrieved"
-            (Just $ TPS.gameStateToTPS gs)
-            (Just $ colorToText (B.turn gs))
-            (Just $ B.moveNumber gs)
-            (Just $ B.player1 gs)
-            (Just $ B.player2 gs)
-            (Just $ B.result gs)
-            (Just $ map P.moveToText (B.gameHistory gs))
-            (Just gId)
+        Just gs -> json $ gameStateToResponse gs gId
 
 websocketApp :: GameStore -> ClientStore -> WS.ServerApp
 websocketApp gameStore clientStore pending = do
@@ -200,18 +197,46 @@ websocketApp gameStore clientStore pending = do
       putStrLn $ "Successfully connected client to game: " ++ show gId
       atomically $
         modifyTVar clientStore $ Map.insertWith (++) gId [(gId, conn)]
+      maybeGame <- getGame gameStore gId
+      case maybeGame of
+        Nothing -> do
+          let errorResponse =
+                GameResponse
+                  Error
+                  "Game not found"
+                  Nothing
+                  Nothing
+                  Nothing
+                  Nothing
+                  Nothing
+                  Nothing
+                  Nothing
+                  (Just gId)
+          WS.sendTextData conn (encode errorResponse)
+        Just gs -> do
+          let successResponse = gameStateToResponse gs gId
+          WS.sendTextData conn (encode successResponse)
       forever $ do
+        putStrLn "Waiting for move message..."
         msg' <- WS.receiveData conn
         case decode msg' of
           Just (MoveRequest gId' moveStr turn) -> do
             result <- processMove gameStore gId' moveStr turn
             case result of
               Right gs -> do
+                putStrLn "Successfully processed move"
+                let response = gameStateToResponse gs gId'
                 clients <- atomically $ readTVar clientStore
+                putStrLn "Updating clients"
                 case Map.lookup gId' clients of
-                  Just clients' ->
-                    mapM_ (\(_, ws) -> WS.sendTextData ws (encode gs)) clients'
-                  Nothing -> return ()
+                  Just clients' -> do
+                    mapM_
+                      (\(_, ws) -> WS.sendTextData ws (encode response))
+                      clients'
+                    putStrLn "Clients updated"
+                  Nothing -> do
+                    putStrLn "No clients to update"
+                    return ()
               Left err ->
                 WS.sendTextData conn $
                 encode $
@@ -227,9 +252,7 @@ websocketApp gameStore clientStore pending = do
                   Nothing
                   (Just gId')
           Nothing -> putStrLn "Failed to decode move message"
-    Nothing -> do
-      putStrLn "Failed to decode initial connection message"
-      return ()
+    Nothing -> putStrLn "Failed to decode initial connection message"
 
 appCorsResourcePolicy :: CorsResourcePolicy
 appCorsResourcePolicy =
@@ -269,7 +292,7 @@ processMove store gId moveStr turn = do
           if B.turn gs /= B.getMoveColor move'
             then do
               putStrLn $
-                " Not your turn: " ++
+                "Not your turn: " ++
                 show (B.turn gs) ++ " vs " ++ show (B.getMoveColor move')
               return $ Left "Not your turn"
             else if not (B.hasReserves (B.player1 gs) (B.player2 gs) move)

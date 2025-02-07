@@ -21,13 +21,16 @@ betterEval :: B.GameState -> Int
 betterEval gs@(B.GameState b _ _ _ _ _ _) = do
   case checkForWinScore gs of
     Just score -> score
-    _ -> (11 * fcd) + (3 * pc) + center
+    _ -> (11 * fcd) + (3 * pc) + center + (2 * buddies)
   where
     fcd = getFlatCount b B.White - getFlatCount b B.Black
     pc = getPrisonerCount b B.White - getPrisonerCount b B.Black
     center =
-      encourageCenterPlay b (M.controlledPositions b B.Black) -
-      encourageCenterPlay b (M.controlledPositions b B.White)
+      encourageCenterPlay b (M.controlledPositions b B.White) -
+      encourageCenterPlay b (M.controlledPositions b B.Black)
+    buddies =
+      getBuddies b B.White (M.controlledPositions b B.White) -
+      getBuddies b B.Black (M.controlledPositions b B.Black)
 
 bestEval :: B.GameState -> Int
 bestEval gs@(B.GameState b _ _ _ _ _ _) = do
