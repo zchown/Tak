@@ -100,8 +100,8 @@ handleClient ::
      GameStore -> ClientStore -> Text -> ClientID -> WS.Connection -> IO ()
 handleClient gameStore clientStore gId clientId conn =
   forever $ do
-    putStrLn "Waiting for move message..."
     msg' <- WS.receiveData conn
+    putStrLn $ "Received message: " ++ show msg'
     case decode msg' of
       Just (MoveRequest gId' moveStr turn) -> do
         result <- processMove gameStore gId' moveStr turn
@@ -140,7 +140,9 @@ createNewGame :: GameStore -> Int -> IO Text
 createNewGame store size = do
   let gid = "game" <> T.pack (show size)
   let initialState = B.getInitialGameState size
-  atomically $ modifyTVar store $ Map.insert gid initialState
+  let initialScore = getInitialGameScore
+  atomically $
+    modifyTVar store $ Map.insert gid (GameInfo initialState initialScore)
   return gid
 
 processMove :: GameStore -> Text -> Text -> Text -> IO (Either Text B.GameState)
@@ -148,7 +150,9 @@ processMove store gId moveStr turn = do
   maybeGame <- getGame store gId
   case maybeGame of
     Nothing -> return $ Left "Game not found"
-    Just gs -> do
+    Just gsi -> do
+      let gs = giGameState gsi
+      let score = giGameScore gsi
       case P.parseSingleMove
              (T.unpack (T.strip moveStr))
              (B.stringColor (T.unpack turn)) of
@@ -171,30 +175,56 @@ processMove store gId moveStr turn = do
                               turn
                           Left err -> return $ Left $ T.pack $ show err
                           Right newBoard -> do
-                            let (p1', p2') =
-                                  B.getNewReserves
+                            let gr =
+                                  B.checkGameResult $
+                                  B.GameState
+                                    newBoard
+                                    (B.turn gs)
+                                    1
                                     (B.player1 gs)
                                     (B.player2 gs)
-                                    move
-                            let newState =
-                                  B.GameState
-                                    { B.board = newBoard
-                                    , B.turn = B.flipColor (B.turn gs)
-                                    , B.moveNumber = B.moveNumber gs + 1
-                                    , B.player1 = p1'
-                                    , B.player2 = p2'
-                                    , B.result =
-                                        B.checkGameResult $
-                                        B.GameState
-                                          newBoard
-                                          (B.turn gs)
-                                          1
-                                          p1'
-                                          p2'
-                                          B.Continue
-                                          []
-                                    , B.gameHistory = move : B.gameHistory gs
-                                    }
-                            atomically $
-                              modifyTVar store $ Map.insert gId newState
-                            return $ Right newState
+                                    B.Continue
+                                    []
+                            case gr of
+                              B.Continue -> do
+                                let (p1', p2') =
+                                      B.getNewReserves
+                                        (B.player1 gs)
+                                        (B.player2 gs)
+                                        move
+                                let newState =
+                                      B.GameState
+                                        { B.board = newBoard
+                                        , B.turn = B.flipColor (B.turn gs)
+                                        , B.moveNumber = B.moveNumber gs + 1
+                                        , B.player1 = p1'
+                                        , B.player2 = p2'
+                                        , B.result = gr
+                                        , B.gameHistory =
+                                            move : B.gameHistory gs
+                                        }
+                                atomically $
+                                  modifyTVar store $
+                                  Map.insert gId (GameInfo newState score)
+                                return $ Right newState
+                              B.Road c -> do
+                                let newState = B.getInitialGameState 6
+                                let newScore = incrementRoadScore score c
+                                atomically $
+                                  modifyTVar store $
+                                  Map.insert gId (GameInfo newState newScore)
+                                return $ Right newState
+                              B.FlatWin c -> do
+                                let newState = B.getInitialGameState 6
+                                let newScore = incrementFlatScore score c
+                                atomically $
+                                  modifyTVar store $
+                                  Map.insert gId (GameInfo newState newScore)
+                                return $ Right newState
+                              B.Draw -> do
+                                let newState = B.getInitialGameState 6
+                                let newScore = incrementDraws score
+                                atomically $
+                                  modifyTVar store $
+                                  Map.insert gId (GameInfo newState newScore)
+                                return $ Right newState
