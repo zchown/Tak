@@ -8,11 +8,6 @@ let currentPieces = new Map();
 let gameStatePanel = null;
 let gameHistoryPanel = null;
 let moveInput = null;
-let whiteRoadWins = 0;
-let blackRoadWins = 0;
-let whiteFlatWins = 0;
-let blackFlatWins = 0;
-let draws = 0;
 
 const COLORS = {
     lightSquare: '#c8d9e6',
@@ -304,7 +299,7 @@ const createGameStatePanel = (scene, gameState) => {
     mainContainer.addControl(winCounterPanel);
 
     const whiteWinsLabel = new GUI.TextBlock();
-    whiteWinsLabel.text = `White Wins: Roads: ${whiteRoadWins} | Flats: ${whiteFlatWins}`;
+    whiteWinsLabel.text = `White Wins: Roads: ${0} | Flats: ${0}`;
     whiteWinsLabel.color = "white";
     whiteWinsLabel.fontSize = "32px";
     whiteWinsLabel.height = "50px";
@@ -312,7 +307,7 @@ const createGameStatePanel = (scene, gameState) => {
     winCounterPanel.addControl(whiteWinsLabel);
 
     const blackWinsLabel = new GUI.TextBlock();
-    blackWinsLabel.text = `Black Wins: Roads: ${blackRoadWins} | Flats: ${blackFlatWins}`;
+    blackWinsLabel.text = `Black Wins: Roads: ${0} | Flats: ${0}`;
     blackWinsLabel.color = "white";
     blackWinsLabel.fontSize = "32px";
     blackWinsLabel.height = "50px";
@@ -320,7 +315,7 @@ const createGameStatePanel = (scene, gameState) => {
     winCounterPanel.addControl(blackWinsLabel);
 
     const drawsLabel = new GUI.TextBlock();
-    drawsLabel.text = `Draws: ${draws}`;
+    drawsLabel.text = `Draws: ${0}`;
     drawsLabel.color = "white";
     drawsLabel.fontSize = "32px";
     drawsLabel.height = "50px";
@@ -417,32 +412,14 @@ const updateGameStatePanel = (gameState) => {
 
     console.log(gameState.gameResult);
 
-    if (gameState.gameResult.contents || gameState.gameResult.tag === "Draw") {
-        console.log("Game Over");
-        if (gameState.gameResult.contents === "White") {
-            if (gameState.gameResult.tag === "Road") {
-                whiteRoadWins++;
-            }
-            else {
-                whiteFlatWins++;
-            }
-        } else if (gameState.gameResult.contents === "Black") {
-            if (gameState.gameResult.tag === "Road") {
-                blackRoadWins++;
-            }
-            else {
-                blackFlatWins++;
-            }
+    let [whiteRoadWins, whiteFlatWins] = (gameState.player1)
+    let [blackRoadWins, blackFlatWins] = (gameState.player2)
+    let draws = (gameState.draws)
 
-        } else {
-            draws++;
-        }
-        gameStatePanel.whiteWinsLabel.text = `White Wins: Roads: ${whiteRoadWins} | Flats: ${whiteFlatWins}`;
-        gameStatePanel.blackWinsLabel.text = `Black Wins: Roads: ${blackRoadWins} | Flats: ${blackFlatWins}`;
-        gameStatePanel.drawsLabel.text = `Draws: ${draws}`;
+    gameStatePanel.whiteWinsLabel.text = `White Wins: Roads: ${whiteRoadWins} | Flats: ${whiteFlatWins}`;
+    gameStatePanel.blackWinsLabel.text = `Black Wins: Roads: ${blackRoadWins} | Flats: ${blackFlatWins}`;
+    gameStatePanel.drawsLabel.text = `Draws: ${draws}`;
 
-        resetBoard();
-    }
 };
 
 const resetBoard = async () => {
