@@ -389,6 +389,24 @@ getInitialReserves n
   | n == 8 = Reserves 50 2
   | otherwise = Reserves 0 0
 
+getCrush :: Move -> Crush
+getCrush (Slide (_, _, _, _, _, c)) = c
+getCrush _ = False
+
+updateGameState :: Board -> GameState -> Move -> Result -> GameState
+updateGameState b gs m r =
+  gs
+    { board = b
+    , turn = flipColor (turn gs)
+    , moveNumber = moveNumber gs + 1
+    , player1 = p1
+    , player2 = p2
+    , result = r
+    , gameHistory = m : gameHistory gs
+    }
+  where
+    (p1, p2) = getNewReserves (player1 gs) (player2 gs) m
+
 -- -------------------------
 -- -- | Print Functions | --
 -- -------------------------

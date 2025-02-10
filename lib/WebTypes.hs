@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wno-partial-fields #-}
 
 module WebTypes where
@@ -8,8 +9,11 @@ import Control.Concurrent.STM
 import Data.Aeson (FromJSON, ToJSON)
 import qualified Data.Map as Map
 import Data.Text (Text)
+import qualified Data.Text as T
 import GHC.Generics (Generic)
 import qualified Network.WebSockets as WS
+import qualified PTN as P
+import qualified TPS
 
 data GameStatus
   = Success
@@ -101,6 +105,8 @@ type GameStore = TVar (Map.Map Text GameInfo)
 
 type Client = (Int, WS.Connection)
 
+type ClientID = Int
+
 type ClientStore = TVar (Map.Map Text [Client])
 
 initGameStore :: IO GameStore
@@ -111,3 +117,41 @@ initClientStore = newTVarIO Map.empty
 
 getGame :: GameStore -> Text -> IO (Maybe GameInfo)
 getGame store gId = atomically $ Map.lookup gId <$> readTVar store
+
+gameInfoToResponse :: GameInfo -> Text -> GameResponse
+gameInfoToResponse (GameInfo gs score) gId =
+  GameResponse
+    { responseStatus = Success
+    , message = "Game state retrieved"
+    , board = Just $ TPS.gameStateToTPS gs
+    , currentPlayer = Just $ T.pack $ B.colorString (B.turn gs)
+    , moveNum = Just $ B.moveNumber gs
+    , whiteReserves = Just $ B.player1 gs
+    , blackReserves = Just $ B.player2 gs
+    , gameResult = Just $ B.result gs
+    , gameHistory = Just $ map P.moveToText (B.gameHistory gs)
+    , gameID = Just gId
+    , player1 = Just $ p1 score
+    , player2 = Just $ p2 score
+    , draws = Just $ gsDraws score
+    , swap = Just $ gsSwap score
+    }
+
+errorResponse :: Text -> Text -> GameResponse
+errorResponse msg gId =
+  GameResponse
+    { responseStatus = Error
+    , message = msg
+    , board = Nothing
+    , currentPlayer = Nothing
+    , moveNum = Nothing
+    , whiteReserves = Nothing
+    , blackReserves = Nothing
+    , gameResult = Nothing
+    , gameHistory = Nothing
+    , gameID = Just gId
+    , player1 = Nothing
+    , player2 = Nothing
+    , draws = Nothing
+    , swap = Nothing
+    }
