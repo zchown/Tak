@@ -4,7 +4,6 @@ import qualified Board as B
 import Control.DeepSeq
 import Control.Parallel.Strategies
 import qualified Data.List.Split as Split
-import Control.Monad (l
 import Data.Matrix
 import GHC.Conc (numCapabilities)
 

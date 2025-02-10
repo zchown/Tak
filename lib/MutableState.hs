@@ -226,30 +226,34 @@ generateSlidesFromPos b c p =
 
 generateSlidesFromDir ::
      MBoard s -> B.Color -> B.Position -> B.Direction -> IO [B.Move]
-generateSlidesFromDir b c p dir = do
-  s <- readSquare b p
-  let maxCount = length s
-  let steps = numSteps dir p b
-  let generateCrush = Moves.numSteps dir p /= steps
-  let validDrops count =
-        [ ds
-        | ds <-
-            Moves.dropSequences steps count ++
-            (if generateCrush
-               then dropSequencesForCrush
-               else [])
-        , sum ds == count
-        , all (> 0) ds
-        ]
-  return $
-    [ B.Slide (p, count, dir, drops, c, fromJust (canCrush b p dir drops))
-    | count <- [1 .. maxCount]
-    , drops <- validDrops count
-    ]
+generateSlidesFromDir b c p dir = undefined
 
+-- generateSlidesFromDir b c p dir = do
+--   s <- readSquare b p
+--   let maxCount = length s
+--   let steps = numSteps dir p b
+--   let generateCrush = 
+--   let validDrops count =
+--         [ ds
+--         | ds <-
+--             Moves.dropSequences steps count ++
+--             (if generateCrush
+--                then dropSequencesForCrush
+--                else [])
+--         , sum ds == count
+--         , all (> 0) ds
+--         ]
+--   return $
+--     [ B.Slide (p, count, dir, drops, c, fromJust (canCrush b p dir drops))
+--     | count <- [1 .. maxCount]
+--     , drops <- validDrops count
+--     ]
 --------------------------
 -- | Helper Functions | --
 --------------------------
+slideToEnd :: MBoard s -> B.Position -> B.Direction -> IO (Int)
+slideToEnd b p dir = undefined
+
 emptyPositions :: MBoard s -> IO [B.Position]
 emptyPositions b = foldM foo [] [0 .. (VM.length b - 1)]
   where
