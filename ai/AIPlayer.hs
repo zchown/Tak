@@ -15,10 +15,10 @@ import qualified TPS
 import WebTypes
 
 whiteStrategy :: B.GameState -> IO Text
-whiteStrategy = MG.generateRandomMove
+whiteStrategy = MG.alphaBetaBest90'
 
 blackStrategy :: B.GameState -> IO Text
-blackStrategy = MG.generateRandomMove
+blackStrategy = MG.alphaBetaBest90'
 
 myGameId :: Text
 myGameId = "game6"

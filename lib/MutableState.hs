@@ -4,7 +4,7 @@
 module MutableState where
 
 import qualified Board as B
-import Control.Monad (foldM, foldM_, forM, forM_)
+import Control.Monad (foldM, foldM_, forM, forM_, when)
 import Control.Monad.Primitive (PrimMonad, PrimState)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.List (foldl')
@@ -230,21 +230,22 @@ generateSlidesFromDir b c p dir = do
   s <- readSquare b p
   let maxCount = length s
   let steps = numSteps dir p b
+  let generateCrush = Moves.numSteps dir p /= steps
   let validDrops count =
         [ ds
-        | ds <- Moves.dropSequences steps count
+        | ds <-
+            Moves.dropSequences steps count ++
+            (if generateCrush
+               then dropSequencesForCrush
+               else [])
         , sum ds == count
         , all (> 0) ds
         ]
-  moves <-
-    forM [1 .. maxCount] $ \count -> do
-      forM (validDrops count) $ \drops -> do
-        cc <- canCrush b p dir drops
-        return $ B.Slide (p, count, dir, drops, c, cc)
-  return $ concat moves
-
-canCrush :: MBoard s -> B.Position -> B.Direction -> [Int] -> IO Bool
-canCrush = undefined
+  return $
+    [ B.Slide (p, count, dir, drops, c, fromJust (canCrush b p dir drops))
+    | count <- [1 .. maxCount]
+    , drops <- validDrops count
+    ]
 
 --------------------------
 -- | Helper Functions | --
@@ -273,11 +274,40 @@ controlledPositions b c = foldM foo [] [0 .. (VM.length b - 1)]
           then p : acc
           else acc
 
-numSteps :: B.Direction -> B.Position -> MBoard s -> Int
-numSteps dir (B.Position (x, y)) b =
-  let n = boardSize b
-   in case dir of
-        B.Up -> y - 1
-        B.Down -> n - y
-        B.Left -> x - 1
-        B.Right -> n - x
+numSteps :: B.Direction -> B.Position -> MBoard s -> IO Int
+numSteps dir p b = go 0 (fst3 (B.getNextPos p dir))
+  where
+    n = boardSize b
+    fst3 (x, _, _) = x
+    go :: Int -> B.Position -> IO Int
+    go acc pos@(B.Position (x, y)) = do
+      let notInBounds = x < 1 || y < 1 || x > n || y > n
+      if notInBounds
+        then return acc
+        else do
+          s <- readSquare b pos
+          if null s
+            then go (acc + 1) (fst3 (B.getNextPos pos dir))
+            else do
+              if B.ps (head s) /= B.Flat
+                then return acc
+                else go (acc + 1) (fst3 (B.getNextPos pos dir))
+
+dropSequencesForCrush :: Int -> Int -> [[Int]]
+dropSequencesForCrush s c = map (++ [1]) ds
+  where
+    ds = filter (\x -> length x == s) (Moves.dropSequences s c)
+
+canCrush :: MBoard s -> B.Position -> B.Direction -> [Int] -> IO Bool
+canCrush board startPos@(B.Position (x, y)) dir drops = do
+  movingStack <- readSquare board startPos
+  let (endPos, x', y') = B.getSlidePos startPos dir (length drops)
+  targetSquare <-
+    if (x' > 0 && x' < boardSize board && y' > 0 && y' < boardSize board)
+      then readSquare board endPos
+      else return []
+  return $
+    not (null movingStack) &&
+    (B.ps (head movingStack) == B.Cap) &&
+    last drops == 1 &&
+    not (null targetSquare && (B.ps (head targetSquare) == B.Standing))

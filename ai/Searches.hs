@@ -7,6 +7,7 @@ import Data.List
 import Data.Maybe
 import Eval
 import qualified Moves as M
+import qualified MutableState as MS
 
 negaMax :: (B.GameState -> Int) -> B.GameState -> Int -> Maybe B.Move
 negaMax eval gs depth
