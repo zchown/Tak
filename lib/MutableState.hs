@@ -4,15 +4,11 @@
 module MutableState where
 
 import qualified Board as B
-import Control.Monad (foldM, foldM_, forM, forM_, when)
-import Control.Monad.Primitive (PrimMonad, PrimState)
-import Data.IORef (IORef, newIORef, readIORef, writeIORef)
-import Data.List (foldl')
+import Control.Monad (foldM, forM, forM_)
+import Data.IORef (IORef, readIORef)
 import qualified Data.Matrix as M
-import Data.Maybe (fromJust, isJust)
 import Data.Vector.Mutable (IOVector)
 import qualified Data.Vector.Mutable as VM
-import GHC.Generics (Generic)
 import qualified Moves
 
 type MBoard s = IOVector B.Square
@@ -226,33 +222,40 @@ generateSlidesFromPos b c p =
 
 generateSlidesFromDir ::
      MBoard s -> B.Color -> B.Position -> B.Direction -> IO [B.Move]
-generateSlidesFromDir b c p dir = undefined
+generateSlidesFromDir b c p dir = do
+  s <- readSquare b p
+  let size = boardSize b
+      maxCount = min size (length s)
+  slideLength <- numSteps dir p b
+  let edgeDist = slideToEnd b p dir
+      drops = Moves.dropSequences slideLength maxCount
+  noCrushes <-
+    forM drops $ \d -> do
+      let count = sum d
+      return $ B.Slide (p, count, dir, d, c, False)
+  if edgeDist == slideLength
+    then return noCrushes
+    else do
+      let (crushPos, _, _) = B.getSlidePos p dir (slideLength + 1)
+      csq <- readSquare b crushPos
+      if null csq || B.ps (head csq) /= B.Standing
+        then return noCrushes
+        else do
+          let crushDrops = dropSequencesForCrush slideLength (maxCount - 1)
+          crushes <-
+            forM crushDrops $ \d -> do
+              let count = sum d
+              return $ B.Slide (p, count, dir, d, c, True)
+          return (noCrushes ++ crushes)
 
--- generateSlidesFromDir b c p dir = do
---   s <- readSquare b p
---   let maxCount = length s
---   let steps = numSteps dir p b
---   let generateCrush = 
---   let validDrops count =
---         [ ds
---         | ds <-
---             Moves.dropSequences steps count ++
---             (if generateCrush
---                then dropSequencesForCrush
---                else [])
---         , sum ds == count
---         , all (> 0) ds
---         ]
---   return $
---     [ B.Slide (p, count, dir, drops, c, fromJust (canCrush b p dir drops))
---     | count <- [1 .. maxCount]
---     , drops <- validDrops count
---     ]
 --------------------------
 -- | Helper Functions | --
 --------------------------
-slideToEnd :: MBoard s -> B.Position -> B.Direction -> IO (Int)
-slideToEnd b p dir = undefined
+slideToEnd :: MBoard s -> B.Position -> B.Direction -> Int
+slideToEnd b (B.Position (_, y)) B.Up = (boardSize b - y) - 1
+slideToEnd _ (B.Position (_, y)) B.Down = y - 1
+slideToEnd _ (B.Position (x, _)) B.Left = x - 1
+slideToEnd b (B.Position (x, _)) B.Right = (boardSize b - x) - 1
 
 emptyPositions :: MBoard s -> IO [B.Position]
 emptyPositions b = foldM foo [] [0 .. (VM.length b - 1)]
