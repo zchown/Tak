@@ -4,8 +4,8 @@
 module MutableState where
 
 import qualified Board as B
-import Control.Monad (foldM, forM, forM_)
-import Data.IORef (IORef, readIORef)
+import Control.Monad (foldM, forM, forM_, when)
+import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import qualified Data.Matrix as M
 import Data.Vector.Mutable (IOVector)
 import qualified Data.Vector.Mutable as VM
@@ -254,6 +254,55 @@ generateSlidesFromDir b c p dir = do
               let count = sum d
               return $ B.Slide (p, count, dir, d, c, True)
           return (noCrushes ++ crushes)
+
+checkFullBoard :: MBoard s -> Bool -> IO B.Result
+checkFullBoard b f = go 1 1 (0, 0)
+  where
+    n = boardSize b
+    go :: Int -> Int -> (Int, Int) -> IO B.Result
+    go x y c@(wc, bc)
+      | x > n = go 1 (y + 1) c
+      | y > n =
+        return $
+        if wc > bc
+          then B.FlatWin B.White
+          else if bc > wc
+                 then B.FlatWin B.Black
+                 else B.Draw
+      | otherwise = do
+        square <- readSquare b (B.Position (x, y))
+        if not f && null square
+          then return B.Continue
+          else go (x + 1) y (addCount c square)
+    addCount :: (Int, Int) -> B.Square -> (Int, Int)
+    addCount (w', b') square
+      | not (null square) =
+        case B.pc (head square) of
+          B.White -> (w' + 1, b')
+          B.Black -> (w', b' + 1)
+      | otherwise = (w', b')
+
+data Direction
+  = Vertical
+  | Horizontal
+
+checkRoadWin :: MBoard s -> B.Color -> Direction -> IO Bool
+checkRoadWin b c dir = do
+  result <- newIORef False
+  forM_ [1 .. boardSize b] $ \i -> do
+    currentResult <- readIORef result
+    when (not currentResult) $ do
+      let p =
+            case dir of
+              Vertical -> B.Position (i, 1)
+              Horizontal -> B.Position (1, i)
+      square <- readSquare b p
+      when
+        (not (null square) &&
+         B.pc (head square) == c && B.ps (head square) /= B.Standing) $ do
+        win <- findRoadWin dir b c p
+        when win $ writeIORef result True
+  readIORef result
 
 --------------------------
 -- | Helper Functions | --
