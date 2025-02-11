@@ -299,7 +299,7 @@ const createGameStatePanel = (scene, gameState) => {
     mainContainer.addControl(winCounterPanel);
 
     const whiteWinsLabel = new GUI.TextBlock();
-    whiteWinsLabel.text = `White Wins: Roads: ${0} | Flats: ${0}`;
+    whiteWinsLabel.text = `WOPR Wins: Roads: ${0} | Flats: ${0}`;
     whiteWinsLabel.color = "white";
     whiteWinsLabel.fontSize = "32px";
     whiteWinsLabel.height = "50px";
@@ -307,7 +307,7 @@ const createGameStatePanel = (scene, gameState) => {
     winCounterPanel.addControl(whiteWinsLabel);
 
     const blackWinsLabel = new GUI.TextBlock();
-    blackWinsLabel.text = `Black Wins: Roads: ${0} | Flats: ${0}`;
+    blackWinsLabel.text = `JOSHUA Wins: Roads: ${0} | Flats: ${0}`;
     blackWinsLabel.color = "white";
     blackWinsLabel.fontSize = "32px";
     blackWinsLabel.height = "50px";
@@ -410,14 +410,23 @@ const updateGameStatePanel = (gameState) => {
     moveInput.inputBox.text = "";
     moveInput.inputBox.focus();
 
+    if (gameState.swap) {
+        gameStatePanel.whiteWinsLabel.color = "black";
+        gameStatePanel.blackWinsLabel.color = "white";
+    }
+    else {
+        gameStatePanel.whiteWinsLabel.color = "white";
+        gameStatePanel.blackWinsLabel.color = "black";
+    }
+
     console.log(gameState.gameResult);
 
     let [whiteRoadWins, whiteFlatWins] = (gameState.player1)
     let [blackRoadWins, blackFlatWins] = (gameState.player2)
     let draws = (gameState.draws)
 
-    gameStatePanel.whiteWinsLabel.text = `White Wins: Roads: ${whiteRoadWins} | Flats: ${whiteFlatWins}`;
-    gameStatePanel.blackWinsLabel.text = `Black Wins: Roads: ${blackRoadWins} | Flats: ${blackFlatWins}`;
+    gameStatePanel.whiteWinsLabel.text = `WOPR Wins: Roads: ${whiteRoadWins} | Flats: ${whiteFlatWins}`;
+    gameStatePanel.blackWinsLabel.text = `JOSHUA Wins: Roads: ${blackRoadWins} | Flats: ${blackFlatWins}`;
     gameStatePanel.drawsLabel.text = `Draws: ${draws}`;
 
 };

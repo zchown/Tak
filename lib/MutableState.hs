@@ -4,7 +4,7 @@
 module MutableState where
 
 import qualified Board as B
-import Control.Monad (foldM, forM, forM_, when)
+import Control.Monad (filterM, foldM, forM, forM_, unless, when)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import qualified Data.Matrix as M
 import Data.Vector.Mutable (IOVector)
@@ -255,6 +255,23 @@ generateSlidesFromDir b c p dir = do
               return $ B.Slide (p, count, dir, d, c, True)
           return (noCrushes ++ crushes)
 
+-- checkGameResult :: MGameState s -> IO B.Result
+-- checkGameResult gs = do
+--   b <- mBoard gs
+--   f <- checkGameWin b
+--   case f of
+--     False -> do
+--       p1 <- readIORef (mPlayer1 gs)
+--       p2 <- readIORef (mPlayer2 gs)
+--       let rd = B.checkReservesDraw p1 p2
+--       case rd of
+--         Nothing -> do
+--           f' <- checkFullBoard b True
+--           case f' of
+--             B.Continue -> return B.Draw
+--             x -> x
+--         _ -> checkFullBoard b False
+--     True -> do
 checkFullBoard :: MBoard s -> Bool -> IO B.Result
 checkFullBoard b f = go 1 1 (0, 0)
   where
@@ -285,13 +302,17 @@ checkFullBoard b f = go 1 1 (0, 0)
 data Direction
   = Vertical
   | Horizontal
+  deriving (Eq)
+
+checkGameWin :: MBoard s -> B.Color -> B.Result
+checkGameWin b c = undefined
 
 checkRoadWin :: MBoard s -> B.Color -> Direction -> IO Bool
 checkRoadWin b c dir = do
   result <- newIORef False
   forM_ [1 .. boardSize b] $ \i -> do
     currentResult <- readIORef result
-    when (not currentResult) $ do
+    unless currentResult $ do
       let p =
             case dir of
               Vertical -> B.Position (i, 1)
@@ -304,9 +325,58 @@ checkRoadWin b c dir = do
         when win $ writeIORef result True
   readIORef result
 
+findRoadWin :: Direction -> MBoard s -> B.Color -> B.Position -> IO Bool
+findRoadWin dir b c p = go [p] []
+  where
+    go :: [B.Position] -> [B.Position] -> IO Bool
+    go [] _ = return False
+    go (p'@(B.Position (i, j)):stack) visited
+      | (dir == Vertical && j == boardSize b) ||
+          (dir == Horizontal && i == boardSize b) = return True
+      | otherwise = do
+        valid <- validNeighbors dir b p' c (return visited)
+        let newStack = valid ++ stack
+        go newStack (p : visited)
+
 --------------------------
 -- | Helper Functions | --
 --------------------------
+validNeighbors ::
+     Direction
+  -> MBoard s
+  -> B.Position
+  -> B.Color
+  -> IO [B.Position]
+  -> IO [B.Position]
+validNeighbors dir b (B.Position (x, y)) c visited = do
+  let possibleNeighbors =
+        case dir -- use dir to try to optimnize search
+              of
+          Vertical ->
+            [ B.Position (x, y + 1) -- up
+            , B.Position (x + 1, y) -- right
+            , B.Position (x - 1, y) -- left
+            , B.Position (x, y - 1) -- down
+            ]
+          Horizontal ->
+            [ B.Position (x + 1, y) -- right
+            , B.Position (x, y + 1) -- up
+            , B.Position (x, y - 1) -- down
+            , B.Position (x - 1, y) -- left
+            ]
+  filterM isValidNeighbor possibleNeighbors
+  where
+    isValidNeighbor :: B.Position -> IO Bool
+    isValidNeighbor p'@(B.Position (x', y')) = do
+      v <- visited
+      if x' < 1 || y' < 1 || x' > boardSize b || y' > boardSize b || p' `elem` v
+        then do
+          return False
+        else do
+          s <- readSquare b p'
+          return $
+            not (null s) && B.pc (head s) == c && B.ps (head s) /= B.Standing
+
 slideToEnd :: MBoard s -> B.Position -> B.Direction -> Int
 slideToEnd b (B.Position (_, y)) B.Up = (boardSize b - y) - 1
 slideToEnd _ (B.Position (_, y)) B.Down = y - 1
