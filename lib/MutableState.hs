@@ -178,16 +178,23 @@ undoSlide b p dir (d:ds) xs = do
   let (pos', _, _) = B.getNextPos p $ B.getInverseDir dir
   undoSlide b pos' dir ds newXs
 
-generateAllMoves :: MGameState s -> IO [B.Move]
+generateAllMoves :: MGameState s -> IO (IOVector B.Move)
 generateAllMoves gs = do
   mn <- readIORef (mMoveNumber gs)
   if mn <= 2
-    then firstMovePlacement gs
+    then do
+      moves <- firstMovePlacement gs
+      vec <- VM.new (length moves)
+      mapM_ (\(i, m) -> VM.write vec i m) (zip [0 ..] moves)
+      return vec
     else do
       placements <- generatePlacements gs
       c <- readIORef (mTurn gs)
       slides <- generateSlides (mBoard gs) c
-      return $ placements ++ slides
+      let allMoves = placements ++ slides
+      vec <- VM.new (length allMoves)
+      mapM_ (\(i, m) -> VM.write vec i m) (zip [0 ..] allMoves)
+      return vec
 
 firstMovePlacement :: MGameState s -> IO [B.Move]
 firstMovePlacement gs = do
