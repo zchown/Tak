@@ -264,3 +264,62 @@ runMutableStateTests =
                 historyRef
         result <- MS.checkGameWin mutBoard B.Black
         result `shouldBe` B.Road B.Black
+    describe "checkGameResult (mutable)" $ do
+      it "detects non full board" $ do
+        board <- VM.replicate (4 * 4) []
+        result <- MS.checkFullBoard board False
+        result `shouldBe` B.Continue
+      it "detects full board" $ do
+        board <- VM.replicate (4 * 4) [B.Piece B.White B.Flat]
+        result <- MS.checkFullBoard board False
+        result `shouldBe` B.FlatWin B.White
+      it "detects when game is not over" $ do
+        board <- VM.replicate (4 * 4) []
+        turn <- newIORef B.White
+        moveNumber <- newIORef 0
+        player1 <- newIORef (B.Reserves 10 1)
+        player2 <- newIORef (B.Reserves 10 1)
+        resultRef <- newIORef B.Continue
+        gameHistory <- newIORef []
+        let gameState =
+              MS.MGameState
+                board
+                turn
+                moveNumber
+                player1
+                player2
+                resultRef
+                gameHistory
+        result <- MS.checkGameResult gameState
+        result `shouldBe` B.Continue
+      it "detects a white road through mixed paths" $ do
+        board <-
+          MS.createMutableBoard $
+          B.board $ TPS.parseTPSHard "x6/x6/x6/x6/x6/1,1,1,1,1,1 2 2"
+        result <- MS.checkGameWin board B.White
+        result `shouldBe` B.Road B.White
+      it "detects a black road through mixed paths" $ do
+        board <-
+          MS.createMutableBoard $
+          B.board $ TPS.parseTPSHard "2,x5/2,x5/2,x5/2,x5/2,x5/2,x5 2 2"
+        result <- MS.checkGameWin board B.Black
+        result `shouldBe` B.Road B.Black
+      it "detects reserve game end" $ do
+        board <- MS.createMutableBoard $ B.createEmptyBoard 6
+        turn <- newIORef B.White
+        moveNumber <- newIORef 0
+        player1 <- newIORef (B.Reserves 0 0)
+        player2 <- newIORef (B.Reserves 10 1)
+        resultRef <- newIORef B.Continue
+        gameHistory <- newIORef []
+        let gameState =
+              MS.MGameState
+                board
+                turn
+                moveNumber
+                player1
+                player2
+                resultRef
+                gameHistory
+        result <- MS.checkGameResult gameState
+        result `shouldBe` B.Draw
