@@ -32,18 +32,26 @@ getInitialGameScore = GameScore (0, 0) (0, 0) 0 False
 
 incrementRoadScore :: GameScore -> B.Color -> GameScore
 incrementRoadScore gs B.White =
-  gs {p1 = (fst (p1 gs) + 1, snd (p1 gs)), gsSwap = not (gsSwap gs)}
+  if gsSwap gs
+    then gs {p2 = (fst (p2 gs) + 1, snd (p2 gs)), gsSwap = not (gsSwap gs)}
+    else gs {p1 = (fst (p1 gs) + 1, snd (p1 gs)), gsSwap = not (gsSwap gs)}
 incrementRoadScore gs B.Black =
-  gs {p2 = (fst (p2 gs) + 1, snd (p2 gs)), gsSwap = not (gsSwap gs)}
+  if gsSwap gs
+    then gs {p1 = (fst (p1 gs) + 1, snd (p1 gs)), gsSwap = not (gsSwap gs)}
+    else gs {p2 = (fst (p2 gs) + 1, snd (p2 gs)), gsSwap = not (gsSwap gs)}
 
 incrementDraws :: GameScore -> GameScore
 incrementDraws gs = gs {gsDraws = gsDraws gs + 1, gsSwap = not (gsSwap gs)}
 
 incrementFlatScore :: GameScore -> B.Color -> GameScore
 incrementFlatScore gs B.White =
-  gs {p1 = (fst (p1 gs), snd (p1 gs) + 1), gsSwap = not (gsSwap gs)}
+  if gsSwap gs
+    then gs {p2 = (fst (p2 gs), snd (p2 gs) + 1)}
+    else gs {p1 = (fst (p1 gs), snd (p1 gs) + 1)}
 incrementFlatScore gs B.Black =
-  gs {p2 = (fst (p2 gs), snd (p2 gs) + 1), gsSwap = not (gsSwap gs)}
+  if gsSwap gs
+    then gs {p1 = (fst (p1 gs), snd (p1 gs) + 1)}
+    else gs {p2 = (fst (p2 gs), snd (p2 gs) + 1)}
 
 data GameInfo = GameInfo
   { giGameState :: B.GameState
