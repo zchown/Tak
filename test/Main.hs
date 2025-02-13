@@ -13,6 +13,7 @@ import System.Environment (lookupEnv, setEnv)
 import TestBoard (runBoardTests)
 import TestGeneral (runGeneralTests)
 import TestMoves (runMoveTests)
+import TestMutableState (runMutableStateTests)
 import TestPTN (runPTNTests)
 import TestTPS (runTPSTests)
 
@@ -43,6 +44,7 @@ data TestConfig = TestConfig
   , runPTN :: Bool
   , runMoves :: Bool
   , runGeneral :: Bool
+  , runMutableState :: Bool
   }
 
 getTestConfig :: IO TestConfig
@@ -52,6 +54,7 @@ getTestConfig = do
   tPTN <- lookupEnvBool "RUN_PTN" True
   rMoves <- lookupEnvBool "RUN_MOVES" True
   rGeneral <- lookupEnvBool "RUN_GENERAL" True
+  rMutable <- lookupEnvBool "RUN_MUTABLE" True
   return $
     TestConfig
       { runBoard = rBoard
@@ -59,6 +62,7 @@ getTestConfig = do
       , runPTN = tPTN
       , runMoves = rMoves
       , runGeneral = rGeneral
+      , runMutableState = rMutable
       }
   where
     lookupEnvBool :: String -> Bool -> IO Bool
@@ -75,6 +79,8 @@ runAllTests config = do
   when (runTPS config) $ putStrLn "Running TPS tests..." >> runTPSTests
   when (runPTN config) $ putStrLn "Running PTN tests..." >> runPTNTests
   when (runMoves config) $ putStrLn "Running move tests..." >> runMoveTests
+  when (runMutableState config) $
+    putStrLn "Running mutable state tests..." >> runMutableStateTests
   when (runGeneral config) $
     putStrLn "Running general tests..." >> runGeneralTests
 

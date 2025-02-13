@@ -25,13 +25,8 @@ data MGameState s = MGameState
 
 createMutableBoard :: B.Board -> IO (MBoard s)
 createMutableBoard b = do
-  mv <- VM.new (rows * cols)
-  forM_ [0 .. (rows * cols - 1)] $ \i -> do
-    VM.write mv i (squares !! i)
-  return mv
+  VM.generateM ((length squares)) (\i -> return (squares !! i))
   where
-    rows = M.nrows b
-    cols = M.ncols b
     squares = M.toList b
 
 boardSize :: MBoard s -> Int
@@ -44,10 +39,13 @@ boardSize b
   | otherwise = 0
 
 posToIndex :: MBoard s -> B.Position -> Int
-posToIndex b (B.Position (x, y)) = x + y * boardSize b
+posToIndex b (B.Position (x, y)) = (x - 1) + (y - 1) * (boardSize b)
 
 indexToPos :: MBoard s -> Int -> B.Position
-indexToPos b i = B.Position (i `mod` boardSize b, i `div` boardSize b)
+indexToPos b i = B.Position (x, y)
+  where
+    x = (i `mod` boardSize b) + 1
+    y = (i `div` boardSize b) + 1
 
 readSquare :: MBoard s -> B.Position -> IO B.Square
 readSquare b p = VM.read b (posToIndex b p)
@@ -59,7 +57,7 @@ toBoard :: MBoard s -> IO B.Board
 toBoard b = do
   let size = boardSize b
   squares <-
-    forM [0 .. (size * size - 1)] $ \i -> do
+    forM [0 .. (size * size) - 1] $ \i -> do
       readSquare b (indexToPos b i)
   return $ M.fromList size size squares
 
@@ -255,23 +253,25 @@ generateSlidesFromDir b c p dir = do
               return $ B.Slide (p, count, dir, d, c, True)
           return (noCrushes ++ crushes)
 
--- checkGameResult :: MGameState s -> IO B.Result
--- checkGameResult gs = do
---   b <- mBoard gs
---   f <- checkGameWin b
---   case f of
---     False -> do
---       p1 <- readIORef (mPlayer1 gs)
---       p2 <- readIORef (mPlayer2 gs)
---       let rd = B.checkReservesDraw p1 p2
---       case rd of
---         Nothing -> do
---           f' <- checkFullBoard b True
---           case f' of
---             B.Continue -> return B.Draw
---             x -> x
---         _ -> checkFullBoard b False
---     True -> do
+checkGameResult :: MGameState s -> IO B.Result
+checkGameResult gs = do
+  let b = mBoard gs
+  c <- readIORef (mTurn gs)
+  f <- checkGameWin b c
+  case f of
+    B.Continue -> do
+      p1 <- readIORef (mPlayer1 gs)
+      p2 <- readIORef (mPlayer2 gs)
+      let rd = B.checkReservesDraw p1 p2
+      case rd of
+        Nothing -> do
+          f' <- checkFullBoard b True
+          case f' of
+            B.Continue -> return B.Draw
+            x -> return x
+        _ -> checkFullBoard b False
+    r -> return r
+
 checkFullBoard :: MBoard s -> Bool -> IO B.Result
 checkFullBoard b f = go 1 1 (0, 0)
   where
@@ -302,10 +302,23 @@ checkFullBoard b f = go 1 1 (0, 0)
 data Direction
   = Vertical
   | Horizontal
-  deriving (Eq)
+  deriving (Eq, Show)
 
-checkGameWin :: MBoard s -> B.Color -> B.Result
-checkGameWin b c = undefined
+checkGameWin :: MBoard s -> B.Color -> IO B.Result
+checkGameWin b c = do
+  let c' = B.flipColor c
+  roadCVert <- checkRoadWin b c Vertical
+  roadCHoriz <- checkRoadWin b c Horizontal
+  roadICVert <- checkRoadWin b c' Vertical
+  roadICHoriz <- checkRoadWin b c' Horizontal
+  return $
+    case () of
+      _ -- laziness + short-circuiting is killer here
+        | roadCVert -> B.Road c
+        | roadCHoriz -> B.Road c
+        | roadICVert -> B.Road c'
+        | roadICHoriz -> B.Road c'
+        | otherwise -> B.Continue
 
 checkRoadWin :: MBoard s -> B.Color -> Direction -> IO Bool
 checkRoadWin b c dir = do
@@ -328,15 +341,23 @@ checkRoadWin b c dir = do
 findRoadWin :: Direction -> MBoard s -> B.Color -> B.Position -> IO Bool
 findRoadWin dir b c p = go [p] []
   where
+    n = boardSize b
     go :: [B.Position] -> [B.Position] -> IO Bool
     go [] _ = return False
     go (p'@(B.Position (i, j)):stack) visited
-      | (dir == Vertical && j == boardSize b) ||
-          (dir == Horizontal && i == boardSize b) = return True
+      | (dir == Vertical && j == n) || (dir == Horizontal && i == n) =
+        return True
       | otherwise = do
-        valid <- validNeighbors dir b p' c (return visited)
+        valid <- validNeighbors dir b p' c visited
+        -- putStrLn $ "Valid neighbors: " ++ show valid
+        -- putStrLn $ "Dir: " ++ show dir
         let newStack = valid ++ stack
-        go newStack (p : visited)
+        if (dir == Vertical && B.Position (i, n) `elem` valid) ||
+           (dir == Horizontal && B.Position (n, j) `elem` valid)
+            -- putStrLn "Found road win"
+          then do
+            return True
+          else go newStack (p : visited ++ valid)
 
 --------------------------
 -- | Helper Functions | --
@@ -346,7 +367,7 @@ validNeighbors ::
   -> MBoard s
   -> B.Position
   -> B.Color
-  -> IO [B.Position]
+  -> [B.Position]
   -> IO [B.Position]
 validNeighbors dir b (B.Position (x, y)) c visited = do
   let possibleNeighbors =
@@ -368,7 +389,7 @@ validNeighbors dir b (B.Position (x, y)) c visited = do
   where
     isValidNeighbor :: B.Position -> IO Bool
     isValidNeighbor p'@(B.Position (x', y')) = do
-      v <- visited
+      let v = visited
       if x' < 1 || y' < 1 || x' > boardSize b || y' > boardSize b || p' `elem` v
         then do
           return False

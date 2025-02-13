@@ -119,5 +119,7 @@ test-suite Tak-test
         directory,
         filepath,
         text,
-        Tak
+        Tak,
+        vector,
+
     buildable = True
