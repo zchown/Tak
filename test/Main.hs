@@ -12,6 +12,7 @@ import System.Environment (lookupEnv, setEnv)
 
 import TestBoard (runBoardTests)
 import TestGeneral (runGeneralTests)
+import TestGeneralMutable (runGeneralTestsMutable)
 import TestMoves (runMoveTests)
 import TestMutableState (runMutableStateTests)
 import TestPTN (runPTNTests)
@@ -81,8 +82,10 @@ runAllTests config = do
   when (runMoves config) $ putStrLn "Running move tests..." >> runMoveTests
   when (runMutableState config) $
     putStrLn "Running mutable state tests..." >> runMutableStateTests
+  -- when (runGeneral config) $
+    -- putStrLn "Running general tests normal..." >> runGeneralTests
   when (runGeneral config) $
-    putStrLn "Running general tests..." >> runGeneralTests
+    putStrLn "Running general tests mutable..." >> runGeneralTestsMutable
 
 main :: IO ()
 main = do

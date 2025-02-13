@@ -109,6 +109,7 @@ test-suite Tak-test
                       TestPTN
                       TestMoves
                       TestGeneral
+                      TestGeneralMutable
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
     main-is:          Main.hs

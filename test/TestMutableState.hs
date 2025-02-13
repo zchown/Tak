@@ -41,13 +41,16 @@ runMutableStateTests =
         index `shouldBe` 0
         let pos' = B.Position (2, 3)
         let index' = MS.posToIndex mutBoard pos'
-        index' `shouldBe` 13
+        index' `shouldBe` 8
+        let pos'' = B.Position (4, 3)
+        let index'' = MS.posToIndex mutBoard pos''
+        index'' `shouldBe` 20
       it "converts from index to pos" $ do
         let board = B.createEmptyBoard 6
         mutBoard <- MS.createMutableBoard board
         let index = 5
         let pos = MS.indexToPos mutBoard index
-        pos `shouldBe` B.Position (6, 1)
+        pos `shouldBe` B.Position (1, 6)
         let index' = 35
         let pos' = MS.indexToPos mutBoard index'
         pos' `shouldBe` B.Position (6, 6)
@@ -55,7 +58,7 @@ runMutableStateTests =
         let board =
               B.board $
               TPS.parseTPSHard $
-              T.pack "x6/x6/x6/x,212121,x4/22,12,2,2,2,12/x6 1 31"
+              T.pack "x6/x6/x2,2,2C,x2/x,212121,x,1S,x2/22,12,2,2,2,12/x6 1 31"
         mutBoard <- MS.createMutableBoard board
         let pos = B.Position (1, 1)
         square <- MS.readSquare mutBoard pos
@@ -63,9 +66,8 @@ runMutableStateTests =
         let pos' = B.Position (2, 2)
         square' <- MS.readSquare mutBoard pos'
         square' `shouldBe` [B.Piece B.Black B.Flat, B.Piece B.White B.Flat]
-        let pos''' = B.Position (2, 3)
-        square'' <- MS.readSquare mutBoard pos'''
-        square'' `shouldBe` [B.Piece B.Black B.Flat]
+        square''' <- MS.readSquare mutBoard (B.Position (4, 3))
+        square''' `shouldBe` [B.Piece B.White B.Standing]
     describe "writing squares" $ do
       it "writes to an empty square" $ do
         let board = B.createEmptyBoard 6
@@ -91,6 +93,26 @@ runMutableStateTests =
         result `shouldBe` Right ()
         square <- MS.readSquare mutBoard (B.Position (1, 1))
         square `shouldBe` [B.Piece B.White B.Flat]
+    it "places a flat stone on an empty square" $ do
+      let board = B.createEmptyBoard 6
+      mutBoard <- MS.createMutableBoard board
+      let move = B.PlaceFlat (B.Position (4, 3), B.White)
+      result <- MS.makeMove mutBoard move
+      result `shouldBe` Right ()
+      square <- MS.readSquare mutBoard (B.Position (4, 3))
+      b <- MS.toBoard mutBoard
+      putStrLn $ T.unpack $ TPS.boardToTPS b
+      square `shouldBe` [B.Piece B.White B.Flat]
+    it "places a flat stone on an empty square" $ do
+      let board = B.createEmptyBoard 6
+      mutBoard <- MS.createMutableBoard board
+      let move = B.PlaceFlat (B.Position (1, 6), B.White)
+      result <- MS.makeMove mutBoard move
+      result `shouldBe` Right ()
+      square <- MS.readSquare mutBoard (B.Position (1, 6))
+      b <- MS.toBoard mutBoard
+      putStrLn $ T.unpack $ TPS.boardToTPS b
+      square `shouldBe` [B.Piece B.White B.Flat]
     describe "undoing moves" $ do
       it "undoes a flat stone placement" $ do
         let board = B.createEmptyBoard 6

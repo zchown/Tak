@@ -39,13 +39,13 @@ boardSize b
   | otherwise = 0
 
 posToIndex :: MBoard s -> B.Position -> Int
-posToIndex b (B.Position (x, y)) = (x - 1) + (y - 1) * (boardSize b)
+posToIndex b (B.Position (x, y)) = (y - 1) + (x - 1) * (boardSize b)
 
 indexToPos :: MBoard s -> Int -> B.Position
 indexToPos b i = B.Position (x, y)
   where
-    x = (i `mod` boardSize b) + 1
-    y = (i `div` boardSize b) + 1
+    y = (i `mod` boardSize b) + 1
+    x = (i `div` boardSize b) + 1
 
 readSquare :: MBoard s -> B.Position -> IO B.Square
 readSquare b p = VM.read b (posToIndex b p)

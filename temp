@@ -1,12 +1,9 @@
 Build profile: -w ghc-9.2.8 -O1
 In order, the following will be built (use -v for more details):
- - Tak-0.1.0.0 (lib) (file lib/MutableState.hs changed)
- - Tak-0.1.0.0 (test:Tak-test) (dependency rebuilt)
-Preprocessing library for Tak-0.1.0.0..
-Building library for Tak-0.1.0.0..
-[7 of 7] Compiling MutableState     ( lib/MutableState.hs, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/build/MutableState.o, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/build/MutableState.dyn_o )
+ - Tak-0.1.0.0 (test:Tak-test) (file test/TestGeneralMutable.hs changed)
 Preprocessing test suite 'Tak-test' for Tak-0.1.0.0..
 Building test suite 'Tak-test' for Tak-0.1.0.0..
+[7 of 8] Compiling TestGeneralMutable ( test/TestGeneralMutable.hs, /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/t/Tak-test/build/Tak-test/Tak-test-tmp/TestGeneralMutable.o )
 Linking /Users/zanderchown/ComputerScience/Tak/dist-newstyle/build/aarch64-osx/ghc-9.2.8/Tak-0.1.0.0/t/Tak-test/build/Tak-test/Tak-test ...
 Loading environment variables...
 Configuring tests...
@@ -43,7 +40,7 @@ Board Module
   detects reserve game end [✔]
   detects flat win [✔]
 
-Finished in 0.0027 seconds
+Finished in 0.0041 seconds
 20 examples, 0 failures
 Running TPS tests...
 
@@ -90,7 +87,7 @@ PTN Parsing
     parses a PTN string with missing metadata [✔]
     fails to parse a PTN string with invalid moves [✔]
 
-Finished in 0.0016 seconds
+Finished in 0.0013 seconds
 15 examples, 0 failures
 Running move tests...
 
@@ -151,7 +148,7 @@ Complex TPS Positions
   should handle a TPS position with a complex slide and multiple drops [✔]
   should reject a slide in a TPS position with insufficient pieces [✔]
 
-Finished in 0.0044 seconds
+Finished in 0.0043 seconds
 50 examples, 0 failures
 Running mutable state tests...
 
@@ -168,328 +165,115 @@ writing squares
   overwrites an existing square [✔]
 making moves
   places a flat stone on an empty square [✔]
+places a flat stone on an empty square [✔]
 undoing moves
   undoes a flat stone placement [✔]
   undoes a slide move [✔]
 move generation
   generates all valid first moves [✔]
 game end conditions
-Valid neighbors: [Position (1,2)]
-Dir: Vertical
-Valid neighbors: [Position (1,3)]
-Dir: Vertical
-Valid neighbors: [Position (1,4)]
-Dir: Vertical
-Valid neighbors: [Position (1,5)]
-Dir: Vertical
-Valid neighbors: [Position (1,6)]
-Dir: Vertical
-Found road win
-Valid neighbors: [Position (1,2)]
-Dir: Horizontal
-Valid neighbors: [Position (1,3)]
-Dir: Horizontal
-Valid neighbors: [Position (1,4)]
-Dir: Horizontal
-Valid neighbors: [Position (1,5)]
-Dir: Horizontal
-Valid neighbors: [Position (1,6)]
-Dir: Horizontal
-Valid neighbors: []
-Dir: Horizontal
-Valid neighbors: [Position (1,3),Position (1,1)]
-Dir: Horizontal
-Valid neighbors: [Position (1,4)]
-Dir: Horizontal
-Valid neighbors: [Position (1,5)]
-Dir: Horizontal
-Valid neighbors: [Position (1,6)]
-Dir: Horizontal
-Valid neighbors: []
-Dir: Horizontal
-Valid neighbors: []
-Dir: Horizontal
-Valid neighbors: [Position (1,4),Position (1,2)]
-Dir: Horizontal
-Valid neighbors: [Position (1,5)]
-Dir: Horizontal
-Valid neighbors: [Position (1,6)]
-Dir: Horizontal
-Valid neighbors: []
-Dir: Horizontal
-Valid neighbors: [Position (1,1)]
-Dir: Horizontal
-Valid neighbors: []
-Dir: Horizontal
-Valid neighbors: [Position (1,5),Position (1,3)]
-Dir: Horizontal
-Valid neighbors: [Position (1,6)]
-Dir: Horizontal
-Valid neighbors: []
-Dir: Horizontal
-Valid neighbors: [Position (1,2)]
-Dir: Horizontal
-Valid neighbors: [Position (1,1)]
-Dir: Horizontal
-Valid neighbors: []
-Dir: Horizontal
-Valid neighbors: [Position (1,6),Position (1,4)]
-Dir: Horizontal
-Valid neighbors: []
-Dir: Horizontal
-Valid neighbors: [Position (1,3)]
-Dir: Horizontal
-Valid neighbors: [Position (1,2)]
-Dir: Horizontal
-Valid neighbors: [Position (1,1)]
-Dir: Horizontal
-Valid neighbors: []
-Dir: Horizontal
-Valid neighbors: [Position (1,5)]
-Dir: Horizontal
-Valid neighbors: [Position (1,4)]
-Dir: Horizontal
-Valid neighbors: [Position (1,3)]
-Dir: Horizontal
-Valid neighbors: [Position (1,2)]
-Dir: Horizontal
-Valid neighbors: [Position (1,1)]
-Dir: Horizontal
-Valid neighbors: []
-Dir: Horizontal
   detects a road win for White [✔]
-Valid neighbors: [Position (2,1)]
-Dir: Vertical
-Valid neighbors: [Position (3,1)]
-Dir: Vertical
-Valid neighbors: [Position (4,1)]
-Dir: Vertical
-Valid neighbors: [Position (5,1)]
-Dir: Vertical
-Valid neighbors: [Position (6,1)]
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: [Position (3,1),Position (1,1)]
-Dir: Vertical
-Valid neighbors: [Position (4,1)]
-Dir: Vertical
-Valid neighbors: [Position (5,1)]
-Dir: Vertical
-Valid neighbors: [Position (6,1)]
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: [Position (4,1),Position (2,1)]
-Dir: Vertical
-Valid neighbors: [Position (5,1)]
-Dir: Vertical
-Valid neighbors: [Position (6,1)]
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: [Position (1,1)]
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: [Position (5,1),Position (3,1)]
-Dir: Vertical
-Valid neighbors: [Position (6,1)]
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: [Position (2,1)]
-Dir: Vertical
-Valid neighbors: [Position (1,1)]
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: [Position (6,1),Position (4,1)]
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: [Position (3,1)]
-Dir: Vertical
-Valid neighbors: [Position (2,1)]
-Dir: Vertical
-Valid neighbors: [Position (1,1)]
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: [Position (5,1)]
-Dir: Vertical
-Valid neighbors: [Position (4,1)]
-Dir: Vertical
-Valid neighbors: [Position (3,1)]
-Dir: Vertical
-Valid neighbors: [Position (2,1)]
-Dir: Vertical
-Valid neighbors: [Position (1,1)]
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: [Position (2,1)]
-Dir: Horizontal
-Valid neighbors: [Position (3,1)]
-Dir: Horizontal
-Valid neighbors: [Position (4,1)]
-Dir: Horizontal
-Valid neighbors: [Position (5,1)]
-Dir: Horizontal
-Valid neighbors: [Position (6,1)]
-Dir: Horizontal
-Found road win
   detects a road win for Black [✔]
-  detects a flat win for White [✘]
-  detects a flat win for Black [✘]
-  detects a draw due to reserves [✘]
-Valid neighbors: [Position (3,2)]
-Dir: Vertical
-Valid neighbors: [Position (3,3)]
-Dir: Vertical
-Valid neighbors: [Position (3,4),Position (4,3)]
-Dir: Vertical
-Valid neighbors: [Position (3,5),Position (4,4)]
-Dir: Vertical
-Valid neighbors: [Position (3,6)]
-Dir: Vertical
-Found road win
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: [Position (4,2),Position (5,1)]
-Dir: Vertical
-Valid neighbors: [Position (5,2)]
-Dir: Vertical
-Valid neighbors: [Position (5,3)]
-Dir: Vertical
-Valid neighbors: [Position (5,4)]
-Dir: Vertical
-Valid neighbors: [Position (5,5)]
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: [Position (5,2),Position (4,1)]
-Dir: Vertical
-Valid neighbors: [Position (5,3),Position (4,2)]
-Dir: Vertical
-Valid neighbors: [Position (5,4)]
-Dir: Vertical
-Valid neighbors: [Position (5,5)]
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: []
-Dir: Horizontal
+  detects a flat win for White [✔]
+  detects a flat win for Black [✔]
+  detects a draw due to reserves [✔]
   detects a road win with a capstone [✔]
-Valid neighbors: [Position (4,1)]
-Dir: Vertical
-Valid neighbors: [Position (4,2),Position (5,1)]
-Dir: Vertical
-Valid neighbors: [Position (4,3)]
-Dir: Vertical
-Valid neighbors: [Position (3,3)]
-Dir: Vertical
-Valid neighbors: [Position (2,3)]
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: [Position (6,1)]
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: [Position (4,2),Position (5,1),Position (3,1)]
-Dir: Vertical
-Valid neighbors: [Position (4,3)]
-Dir: Vertical
-Valid neighbors: [Position (3,3)]
-Dir: Vertical
-Valid neighbors: [Position (2,3)]
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: [Position (6,1)]
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: [Position (6,1),Position (4,1)]
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: [Position (4,2),Position (3,1)]
-Dir: Vertical
-Valid neighbors: [Position (4,3)]
-Dir: Vertical
-Valid neighbors: [Position (3,3)]
-Dir: Vertical
-Valid neighbors: [Position (2,3)]
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: [Position (5,1)]
-Dir: Vertical
-Valid neighbors: [Position (4,1)]
-Dir: Vertical
-Valid neighbors: [Position (4,2),Position (3,1)]
-Dir: Vertical
-Valid neighbors: [Position (4,3)]
-Dir: Vertical
-Valid neighbors: [Position (3,3)]
-Dir: Vertical
-Valid neighbors: [Position (2,3)]
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: []
-Dir: Vertical
-Valid neighbors: []
-Dir: Horizontal
-  detects a road win through standing stones [✘]
+checkGameResult (mutable)
+  detects non full board [✔]
+  detects full board [✔]
+  detects when game is not over [✔]
+  detects a white road through mixed paths [✔]
+  detects a black road through mixed paths [✔]
+  detects reserve game end [✔]
 
-Failures:
+Finished in 0.0047 seconds
+24 examples, 0 failures
+Running general tests mutable...
+Found PTN files: ["test/ptn/test1","test/ptn/test4","test/ptn/test3","test/ptn/test2","test/ptn/test5"]
+Validating moves from PTN file: test/ptn/test1
+Board state: "x6/x6/x6/x6/x6/x6"
+Validating move: PlaceFlat (Position (6,6),Black)
 
-  test/TestMutableState.hs:201:16: 
-  1) game end conditions detects a flat win for White
-       expected: FlatWin White
-        but got: Continue
+Board state: "x5,2/x6/x6/x6/x6/x6"
+Validating move: PlaceFlat (Position (1,6),White)
 
-  To rerun use: --match "/game end conditions/detects a flat win for White/"
+Board state: "x5,2/x6/x6/x6/x6/x5,1"
+Validating move: PlaceFlat (Position (1,1),White)
 
-  test/TestMutableState.hs:223:16: 
-  2) game end conditions detects a flat win for Black
-       expected: FlatWin Black
-        but got: Continue
+Board state: "x5,2/x6/x6/x6/x6/1,x4,1"
+Validating move: PlaceFlat (Position (6,1),Black)
 
-  To rerun use: --match "/game end conditions/detects a flat win for Black/"
+Board state: "2,x4,2/x6/x6/x6/x6/1,x4,1"
+Validating move: PlaceFlat (Position (1,4),White)
 
-  test/TestMutableState.hs:243:16: 
-  3) game end conditions detects a draw due to reserves
-       expected: Draw
-        but got: Continue
+Board state: "2,x4,2/x6/x6/x6/x6/1,x2,1,x,1"
+Validating move: PlaceFlat (Position (2,4),Black)
 
-  To rerun use: --match "/game end conditions/detects a draw due to reserves/"
+Board state: "2,x4,2/x6/x6/x6/x3,2,x2/1,x2,1,x,1"
+Validating move: Slide (Position (1,4),1,Right,[1],White,False)
 
-  test/TestMutableState.hs:290:16: 
-  4) game end conditions detects a road win through standing stones
-       expected: Road White
-        but got: Continue
+Board state: "2,x4,2/x6/x6/x6/x3,21,x2/1,x4,1"
+Validating move: PlaceFlat (Position (6,4),Black)
 
-  To rerun use: --match "/game end conditions/detects a road win through standing stones/"
+Board state: "2,x2,2,x,2/x6/x6/x6/x3,21,x2/1,x4,1"
+Validating move: PlaceStanding (Position (6,3),White)
 
-Randomized with seed 1067389942
+Board state: "2,x,1S,2,x,2/x6/x6/x6/x3,21,x2/1,x4,1"
+Validating move: PlaceFlat (Position (4,4),Black)
 
-Finished in 0.0070 seconds
-18 examples, 4 failures
+Board state: "2,x,1S,2,x,2/x6/x3,2,x2/x6/x3,21,x2/1,x4,1"
+Validating move: PlaceFlat (Position (1,4),White)
+
+Board state: "2,x,1S,2,x,2/x6/x3,2,x2/x6/x3,21,x2/1,x2,1,x,1"
+Validating move: PlaceCap (Position (5,3),Black)
+
+Board state: "2,x,1S,2,x,2/x2,2C,x3/x3,2,x2/x6/x3,21,x2/1,x2,1,x,1"
+Validating move: PlaceCap (Position (6,5),White)
+
+Board state: "2,x,1S,2,1C,2/x2,2C,x3/x3,2,x2/x6/x3,21,x2/1,x2,1,x,1"
+Validating move: PlaceFlat (Position (2,2),Black)
+
+Board state: "2,x,1S,2,1C,2/x2,2C,x3/x3,2,x2/x6/x,2,x,21,x2/1,x2,1,x,1"
+Validating move: PlaceFlat (Position (2,1),White)
+
+Board state: "2,x,1S,2,1C,2/x2,2C,x3/x3,2,x2/x6/1,2,x,21,x2/1,x2,1,x,1"
+Validating move: PlaceFlat (Position (4,3),Black)
+
+Board state: "2,x,1S,2,1C,2/x2,2C,x3/x2,2,2,x2/x6/1,2,x,21,x2/1,x2,1,x,1"
+Validating move: PlaceFlat (Position (1,3),White)
+
+Board state: "2,x,1S,2,1C,2/x2,2C,x3/x2,2,2,x2/x6/1,2,x,21,x2/1,x,1,1,x,1"
+Validating move: PlaceFlat (Position (1,5),Black)
+
+Board state: "2,x,1S,2,1C,2/x2,2C,x3/x2,2,2,x2/x6/1,2,x,21,x2/1,x,1,1,2,1"
+Validating move: Slide (Position (1,6),1,Down,[1],White,False)
+
+Board state: "2,x,1S,2,1C,2/x2,2C,x3/x2,2,2,x2/x6/1,2,x,21,x2/1,x,1,1,21,x"
+Validating move: PlaceStanding (Position (1,2),Black)
+
+Board state: "2,x,1S,2,1C,2/x2,2C,x3/x2,2,2,x2/x6/1,2,x,21,x2/1,2S,1,1,21,x"
+Validating move: Slide (Position (2,1),1,Up,[1],White,False)
+
+Board state: "2,x,1S,2,1C,2/x2,2C,x3/x2,2,2,x2/x6/x,21,x,21,x2/1,2S,1,1,21,x"
+Validating move: PlaceFlat (Position (1,6),Black)
+
+Board state: "2,x,1S,2,1C,2/x2,2C,x3/x2,2,2,x2/x6/x,21,x,21,x2/1,2S,1,1,21,2"
+Validating move: Slide (Position (1,5),2,Up,[2],White,False)
+
+Board state: "2,x,1S,2,1C,2/x2,2C,x3/x2,2,2,x2/x6/x,21,x,21,x2/1,2S,1,1,x,221"
+Validating move: PlaceStanding (Position (1,5),Black)
+
+Board state: "2,x,1S,2,1C,2/x2,2C,x3/x2,2,2,x2/x6/x,21,x,21,x2/1,2S,1,1,2S,221"
+Validating move: PlaceFlat (Position (2,5),White)
+
+Board state: "2,x,1S,2,1C,2/x2,2C,x3/x2,2,2,x2/x6/x,21,x,21,1,x/1,2S,1,1,2S,221"
+Validating move: Slide (Position (5,3),1,Left,[1],Black,False)
+
+Board state: "2,x,1S,2,1C,2/x6/x2,22C,2,x2/x6/x,21,x,21,1,x/1,2S,1,1,2S,221"
+Validating move: PlaceFlat (Position (2,3),White)
+
+Board state: "2,x,1S,2,1C,2/x6/x2,22C,2,x2/x6/x,21,1,21,1,x/1,2S,1,1,2S,221"
+Validating move: Slide (Position (4,3),2,Left,[1,1],Black,False)
+
+Board after move: "2,x,1S,2,1C,2/x6/x3,2,x2/x2,2,x3/x,21,12C,21,1,x/1,2S,1,1,2S,221"
+Board after undo: "2,x,1S,2,1C,2/x2,2,x3/x3,2,x2/x6/x,21,12C,21,1,x/1,2S,1,1,2S,221"
