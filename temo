@@ -1,0 +1,276 @@
+Loading environment variables...
+Configuring tests...
+Running enabled tests...
+Running board tests ...
+
+Board Module
+  createEmptyBoard
+    creates a 4x4 board [✔]
+  getTopPiece
+    returns Nothing for an empty square [✔]
+    returns the top piece of a non-empty stack [✔]
+  addToStack
+    adds a piece to an empty stack [✔]
+    prevents adding to a non-flat top piece [✔]
+  getAllPieces
+    returns all pieces of a specific color [✔]
+  getPlaced
+    correctly counts placed pieces [✔]
+  letterToCol and colToLetter
+    converts between letters and column numbers [✔]
+  checkGameResult
+    detects non full board [✔]
+    detects full board [✔]
+    detects when game is not over [✔]
+    check f1 bug? [✔]
+  findRoad
+    detects a white road through mixed paths [✔]
+    off by 1 bug? [✔]
+    detects a black road through mixed paths [✔]
+    prevents road through standing stones [✔]
+  detects road win [✔]
+  uses cap for road [✔]
+  detects reserve game end [✔]
+  detects flat win [✔]
+
+Finished in 0.0011 seconds
+20 examples, 0 failures
+Running TPS tests...
+
+TPS Parsing
+  parses an empty 4x4 starting board correctly [✔]
+  parses a 5x5 starting board correctly [✔]
+  removes TPS brackets and cleans input correctly [✔]
+  parses turn and move number correctly [✔]
+  parses easy board [✔]
+  handles invalid TPS format (missing move number) [✔]
+  handles invalid TPS format (extra component) [✔]
+  handles invalid move number (non-numeric) [✔]
+  handles invalid piece (invalid character) [✔]
+  handles invalid piece (invalid character) [✔]
+  handles invalid board size (inconsistent rows) [✔]
+  handles invalid square format (invalid square) [✔]
+  handles empty input [✔]
+Board to TPS Conversion
+  converts an empty 4x4 board to TPS correctly [✔]
+  converts a 6x6 board with pieces to TPS correctly [✔]
+  converts a 6x6 board with pieces to TPS correctly [✔]
+
+Finished in 0.0007 seconds
+16 examples, 0 failures
+Running PTN tests...
+
+PTN Parsing
+  parseSingleMove
+    parses a flat placement for White [✔]
+    parses a standing placement for White [✔]
+    parses a capstone placement for White [✔]
+    parses a basic slide move for White [✔]
+    parses a slide move with multiple drops for White [✔]
+    fails to parse an invalid move format [✔]
+  parseMovePair
+    parses a move pair with White and Black moves [✔]
+    parses a move pair with only White's move (partial move) [✔]
+    fails to parse a move pair with an invalid format [✔]
+    fails to parse a move pair with an invalid White move [✔]
+    fails to parse a move pair with an invalid Black move [✔]
+  parsePTN
+    parses a full PTN string with metadata and moves [✔]
+    parses a PTN string with a partial move (only White's move) [✔]
+    parses a PTN string with missing metadata [✔]
+    fails to parse a PTN string with invalid moves [✔]
+
+Finished in 0.0005 seconds
+15 examples, 0 failures
+Running move tests...
+
+Move Validation
+  should allow placing a flat stone on an empty square [✔]
+  should reject placing a flat stone on an occupied square [✔]
+  should allow sliding a stack within the board boundaries [✔]
+  should reject sliding a stack off the board [✔]
+  should reject slide when a capstone is in the way [✔]
+  should reject slide when a standing piece is in the way [✔]
+  basic capstone slide [✔]
+  capstone with crush [✔]
+  capstone crush set incorrectly [✔]
+  should reject slide with invalid drop counts [✔]
+  should reject slide with insufficient pieces in stack [✔]
+Making Moves
+  should place a flat stone on the board [✔]
+  should slide a stack to an adjacent square [✔]
+  should handle complex slides with multiple drops [✔]
+  reject slides that would exceed board boundaries with multiple drops [✔]
+  should handle slides with standing stones in the path [✔]
+  should allow slides that crush standing stones with a capstone [✔]
+  should not allow crush with flat and cap stone [✔]
+Undo Moves
+  should undo a flat stone placement [✔]
+  should undo a standing stone placement [✔]
+  should undo a capstone placement [✔]
+  should undo a slide move [✔]
+  should reject undoing a slide with invalid drop counts [✔]
+  should reject undoing a slide with invalid drop counts [✔]
+  should reject undoing a slide move with impossible drops [✔]
+  should reject undoing a slide with beyond limit drops [✔]
+  should reject undoing a slide with insufficient pieces [✔]
+  correctly undo more complex slide move [✔]
+  correctly undo more complex slide move [✔]
+  correctly undo more complex slide move [✔]
+  undo crush [✔]
+Move Generation
+  should generate all valid first moves [✔]
+  should generate all valid placement moves for a player [✔]
+  should generate all valid slide moves for a player [✔]
+  should generate valid slides for a stack of stones [✔]
+  should generate valid slides with crushing for a capstone [✔]
+  generates all possible moves in complex TPS position [✔]
+  generates all possible moves in complex TPS position [✔]
+Edge Cases
+  should reject placing a stone outside the board boundaries [✔]
+  should reject sliding a stack outside the board boundaries [✔]
+  should reject sliding a stack with invalid drop counts [✔]
+  should reject sliding a stack with insufficient pieces [✔]
+  should reject sliding a stack with a standing stone in the way [✔]
+  should reject sliding a stack with a capstone in the way [✔]
+  should reject sliding a stack with incorrect crush setting [✔]
+Complex TPS Positions
+  should handle a complex TPS position with multiple stacks [✔]
+  should handle a TPS position with a capstone and standing stones [✔]
+  should reject a slide in a TPS position with a standing stone in the way [✔]
+  should handle a TPS position with a complex slide and multiple drops [✔]
+  should reject a slide in a TPS position with insufficient pieces [✔]
+
+Finished in 0.0018 seconds
+50 examples, 0 failures
+Running mutable state tests...
+
+convert back and forth with regular board
+Created mutable board
+  should create a new board [✔]
+  should be able to swap more complex board [✔]
+correctly reads squares
+  converts from pos to index [✔]
+  converts from index to pos [✔]
+  reads squares [✔]
+writing squares
+  writes to an empty square [✔]
+  overwrites an existing square [✔]
+making moves
+  places a flat stone on an empty square [✔]
+x6/x6/x6/x3,1,x2/x6/x6
+places a flat stone on an empty square [✔]
+1,x5/x6/x6/x6/x6/x6
+places a flat stone on an empty square [✔]
+undoing moves
+  undoes a flat stone placement [✔]
+  undoes a slide move [✔]
+move generation
+  generates all valid first moves [✔]
+game end conditions
+  detects a road win for White [✔]
+  detects a road win for Black [✔]
+  detects a flat win for White [✔]
+  detects a flat win for Black [✔]
+  detects a draw due to reserves [✔]
+  detects a road win with a capstone [✔]
+checkGameResult (mutable)
+  detects non full board [✔]
+  detects full board [✔]
+  detects when game is not over [✔]
+  detects a white road through mixed paths [✔]
+  detects a black road through mixed paths [✔]
+  detects reserve game end [✔]
+move generation (mutable)
+  should generate all valid first moves [✔]
+Empty positions: 36
+Placements: [PlaceFlat (Position (6,6),White),PlaceFlat (Position (6,5),White),PlaceFlat (Position (6,4),White),PlaceFlat (Position (6,3),White),PlaceFlat (Position (6,2),White),PlaceFlat (Position (6,1),White),PlaceFlat (Position (5,6),White),PlaceFlat (Position (5,5),White),PlaceFlat (Position (5,4),White),PlaceFlat (Position (5,3),White),PlaceFlat (Position (5,2),White),PlaceFlat (Position (5,1),White),PlaceFlat (Position (4,6),White),PlaceFlat (Position (4,5),White),PlaceFlat (Position (4,4),White),PlaceFlat (Position (4,3),White),PlaceFlat (Position (4,2),White),PlaceFlat (Position (4,1),White),PlaceFlat (Position (3,6),White),PlaceFlat (Position (3,5),White),PlaceFlat (Position (3,4),White),PlaceFlat (Position (3,3),White),PlaceFlat (Position (3,2),White),PlaceFlat (Position (3,1),White),PlaceFlat (Position (2,6),White),PlaceFlat (Position (2,5),White),PlaceFlat (Position (2,4),White),PlaceFlat (Position (2,3),White),PlaceFlat (Position (2,2),White),PlaceFlat (Position (2,1),White),PlaceFlat (Position (1,6),White),PlaceFlat (Position (1,5),White),PlaceFlat (Position (1,4),White),PlaceFlat (Position (1,3),White),PlaceFlat (Position (1,2),White),PlaceFlat (Position (1,1),White),PlaceStanding (Position (6,6),White),PlaceStanding (Position (6,5),White),PlaceStanding (Position (6,4),White),PlaceStanding (Position (6,3),White),PlaceStanding (Position (6,2),White),PlaceStanding (Position (6,1),White),PlaceStanding (Position (5,6),White),PlaceStanding (Position (5,5),White),PlaceStanding (Position (5,4),White),PlaceStanding (Position (5,3),White),PlaceStanding (Position (5,2),White),PlaceStanding (Position (5,1),White),PlaceStanding (Position (4,6),White),PlaceStanding (Position (4,5),White),PlaceStanding (Position (4,4),White),PlaceStanding (Position (4,3),White),PlaceStanding (Position (4,2),White),PlaceStanding (Position (4,1),White),PlaceStanding (Position (3,6),White),PlaceStanding (Position (3,5),White),PlaceStanding (Position (3,4),White),PlaceStanding (Position (3,3),White),PlaceStanding (Position (3,2),White),PlaceStanding (Position (3,1),White),PlaceStanding (Position (2,6),White),PlaceStanding (Position (2,5),White),PlaceStanding (Position (2,4),White),PlaceStanding (Position (2,3),White),PlaceStanding (Position (2,2),White),PlaceStanding (Position (2,1),White),PlaceStanding (Position (1,6),White),PlaceStanding (Position (1,5),White),PlaceStanding (Position (1,4),White),PlaceStanding (Position (1,3),White),PlaceStanding (Position (1,2),White),PlaceStanding (Position (1,1),White),PlaceCap (Position (6,6),White),PlaceCap (Position (6,5),White),PlaceCap (Position (6,4),White),PlaceCap (Position (6,3),White),PlaceCap (Position (6,2),White),PlaceCap (Position (6,1),White),PlaceCap (Position (5,6),White),PlaceCap (Position (5,5),White),PlaceCap (Position (5,4),White),PlaceCap (Position (5,3),White),PlaceCap (Position (5,2),White),PlaceCap (Position (5,1),White),PlaceCap (Position (4,6),White),PlaceCap (Position (4,5),White),PlaceCap (Position (4,4),White),PlaceCap (Position (4,3),White),PlaceCap (Position (4,2),White),PlaceCap (Position (4,1),White),PlaceCap (Position (3,6),White),PlaceCap (Position (3,5),White),PlaceCap (Position (3,4),White),PlaceCap (Position (3,3),White),PlaceCap (Position (3,2),White),PlaceCap (Position (3,1),White),PlaceCap (Position (2,6),White),PlaceCap (Position (2,5),White),PlaceCap (Position (2,4),White),PlaceCap (Position (2,3),White),PlaceCap (Position (2,2),White),PlaceCap (Position (2,1),White),PlaceCap (Position (1,6),White),PlaceCap (Position (1,5),White),PlaceCap (Position (1,4),White),PlaceCap (Position (1,3),White),PlaceCap (Position (1,2),White),PlaceCap (Position (1,1),White)]
+Slides: []
+  should generate all valid placement moves for a player [✔]
+Empty positions: 5
+Placements: [PlaceFlat (Position (6,1),White),PlaceFlat (Position (5,1),White),PlaceFlat (Position (4,1),White),PlaceFlat (Position (3,1),White),PlaceFlat (Position (2,1),White),PlaceStanding (Position (6,1),White),PlaceStanding (Position (5,1),White),PlaceStanding (Position (4,1),White),PlaceStanding (Position (3,1),White),PlaceStanding (Position (2,1),White),PlaceCap (Position (6,1),White),PlaceCap (Position (5,1),White),PlaceCap (Position (4,1),White),PlaceCap (Position (3,1),White),PlaceCap (Position (2,1),White)]
+Checking for crushes at position: Position (6,5) and direction: Up
+Checking for crushes at position: Position (6,5) and direction: Down
+Checking for crushes at position: Position (6,5) and direction: Left
+Checking for crushes at position: Position (6,3) and direction: Up
+Checking for crushes at position: Position (6,3) and direction: Down
+Checking for crushes at position: Position (6,3) and direction: Left
+Checking for crushes at position: Position (5,5) and direction: Up
+Checking for crushes at position: Position (5,5) and direction: Down
+Checking for crushes at position: Position (5,5) and direction: Left
+Checking for crushes at position: Position (5,5) and direction: Right
+Checking for crushes at position: Position (5,3) and direction: Up
+Checking for crushes at position: Position (5,3) and direction: Down
+Checking for crushes at position: Position (5,3) and direction: Left
+Checking for crushes at position: Position (5,3) and direction: Right
+Checking for crushes at position: Position (4,5) and direction: Up
+Checking for crushes at position: Position (4,5) and direction: Down
+Checking for crushes at position: Position (4,5) and direction: Left
+Checking for crushes at position: Position (4,5) and direction: Right
+Checking for crushes at position: Position (4,3) and direction: Up
+Checking for crushes at position: Position (4,3) and direction: Down
+Checking for crushes at position: Position (4,3) and direction: Left
+Checking for crushes at position: Position (4,3) and direction: Right
+Checking for crushes at position: Position (3,5) and direction: Up
+Checking for crushes at position: Position (3,5) and direction: Down
+Checking for crushes at position: Position (3,5) and direction: Left
+Checking for crushes at position: Position (3,5) and direction: Right
+Checking for crushes at position: Position (3,3) and direction: Up
+Checking for crushes at position: Position (3,3) and direction: Down
+Checking for crushes at position: Position (3,3) and direction: Left
+Checking for crushes at position: Position (3,3) and direction: Right
+Checking for crushes at position: Position (2,5) and direction: Up
+Checking for crushes at position: Position (2,5) and direction: Down
+Checking for crushes at position: Position (2,5) and direction: Left
+Checking for crushes at position: Position (2,5) and direction: Right
+Checking for crushes at position: Position (2,3) and direction: Up
+Checking for crushes at position: Position (2,3) and direction: Down
+Checking for crushes at position: Position (2,3) and direction: Left
+Checking for crushes at position: Position (2,3) and direction: Right
+Checking for crushes at position: Position (1,5) and direction: Up
+Checking for crushes at position: Position (1,5) and direction: Down
+Checking for crushes at position: Position (1,5) and direction: Right
+Checking for crushes at position: Position (1,3) and direction: Up
+Checking for crushes at position: Position (1,3) and direction: Down
+Checking for crushes at position: Position (1,3) and direction: Right
+Checking for crushes at position: Position (1,1) and direction: Up
+Slides: [Slide (Position (1,1),2,Right,[1,1],White,False),Slide (Position (1,1),2,Right,[2],White,False),Slide (Position (1,1),1,Right,[1],White,False)]
+  should generate all possible moves in a complex TPS position [✔]
+Empty positions: 8
+Placements: [PlaceFlat (Position (6,5),White),PlaceFlat (Position (5,3),White),PlaceFlat (Position (4,4),White),PlaceFlat (Position (4,3),White),PlaceFlat (Position (2,5),White),PlaceFlat (Position (2,1),White),PlaceFlat (Position (1,3),White),PlaceFlat (Position (1,1),White),PlaceStanding (Position (6,5),White),PlaceStanding (Position (5,3),White),PlaceStanding (Position (4,4),White),PlaceStanding (Position (4,3),White),PlaceStanding (Position (2,5),White),PlaceStanding (Position (2,1),White),PlaceStanding (Position (1,3),White),PlaceStanding (Position (1,1),White)]
+Checking for crushes at position: Position (6,2) and direction: Up
+Checking for crushes at position: Position (6,2) and direction: Left
+Checking for crushes at position: Position (6,1) and direction: Up
+Checking for crushes at position: Position (5,1) and direction: Up
+Checking for crushes at position: Position (4,2) and direction: Left
+Checking for crushes at position: Position (4,2) and direction: Right
+Checking for crushes at position: Position (4,1) and direction: Up
+Checking for crushes at position: Position (3,6) and direction: Down
+Checking for crushes at position: Position (3,5) and direction: Up
+Checking for crushes at position: Position (3,5) and direction: Down
+Checking for crushes at position: Position (3,4) and direction: Up
+Checking for crushes at position: Position (3,4) and direction: Down
+Checking for crushes at position: Position (3,4) and direction: Right
+Checking for crushes at position: Position (2,4) and direction: Right
+Checking for crushes at position: Position (2,3) and direction: Right
+Checking for crushes at position: Position (2,2) and direction: Right
+Checking for crushes at position: Position (1,4) and direction: Right
+Checking for crushes at position: Position (1,2) and direction: Right
+Slides: [Slide (Position (6,2),1,Up,[1],White,False),Slide (Position (6,2),1,Down,[1],White,False),Slide (Position (6,2),1,Left,[1],White,False),Slide (Position (6,1),1,Left,[1],White,False),Slide (Position (5,1),2,Up,[1,1],White,False),Slide (Position (5,1),2,Up,[2],White,False),Slide (Position (5,1),1,Up,[1],White,False),Slide (Position (5,1),2,Left,[1,1],White,False),Slide (Position (5,1),2,Left,[2],White,False),Slide (Position (5,1),1,Left,[1],White,False),Slide (Position (5,1),2,Right,[2],White,False),Slide (Position (5,1),1,Right,[1],White,False),Slide (Position (4,2),1,Up,[1],White,False),Slide (Position (4,2),1,Down,[1],White,False),Slide (Position (4,2),1,Right,[1],White,False),Slide (Position (4,1),1,Left,[1],White,False),Slide (Position (4,1),1,Right,[1],White,False),Slide (Position (3,6),2,Down,[2],White,False),Slide (Position (3,6),1,Down,[1],White,False),Slide (Position (3,6),2,Left,[1,1],White,False),Slide (Position (3,6),2,Left,[2],White,False),Slide (Position (3,6),1,Left,[1],White,False),Slide (Position (3,6),2,Right,[1,1],White,False),Slide (Position (3,6),2,Right,[2],White,False),Slide (Position (3,6),1,Right,[1],White,False),Slide (Position (3,5),6,Left,[5,1],White,False),Slide (Position (3,5),6,Left,[4,2],White,False),Slide (Position (3,5),6,Left,[3,3],White,False),Slide (Position (3,5),6,Left,[2,4],White,False),Slide (Position (3,5),6,Left,[1,5],White,False),Slide (Position (3,5),6,Left,[6],White,False),Slide (Position (3,5),5,Left,[4,1],White,False),Slide (Position (3,5),5,Left,[3,2],White,False),Slide (Position (3,5),5,Left,[2,3],White,False),Slide (Position (3,5),5,Left,[1,4],White,False),Slide (Position (3,5),5,Left,[5],White,False),Slide (Position (3,5),4,Left,[3,1],White,False),Slide (Position (3,5),4,Left,[2,2],White,False),Slide (Position (3,5),4,Left,[1,3],White,False),Slide (Position (3,5),4,Left,[4],White,False),Slide (Position (3,5),3,Left,[2,1],White,False),Slide (Position (3,5),3,Left,[1,2],White,False),Slide (Position (3,5),3,Left,[3],White,False),Slide (Position (3,5),2,Left,[1,1],White,False),Slide (Position (3,5),2,Left,[2],White,False),Slide (Position (3,5),1,Left,[1],White,False),Slide (Position (3,5),6,Right,[4,1,1],White,False),Slide (Position (3,5),6,Right,[3,2,1],White,False),Slide (Position (3,5),6,Right,[2,3,1],White,False),Slide (Position (3,5),6,Right,[1,4,1],White,False),Slide (Position (3,5),6,Right,[5,1],White,False),Slide (Position (3,5),6,Right,[3,1,2],White,False),Slide (Position (3,5),6,Right,[2,2,2],White,False),Slide (Position (3,5),6,Right,[1,3,2],White,False),Slide (Position (3,5),6,Right,[4,2],White,False),Slide (Position (3,5),6,Right,[2,1,3],White,False),Slide (Position (3,5),6,Right,[1,2,3],White,False),Slide (Position (3,5),6,Right,[3,3],White,False),Slide (Position (3,5),6,Right,[1,1,4],White,False),Slide (Position (3,5),6,Right,[2,4],White,False),Slide (Position (3,5),6,Right,[1,5],White,False),Slide (Position (3,5),6,Right,[6],White,False),Slide (Position (3,5),5,Right,[3,1,1],White,False),Slide (Position (3,5),5,Right,[2,2,1],White,False),Slide (Position (3,5),5,Right,[1,3,1],White,False),Slide (Position (3,5),5,Right,[4,1],White,False),Slide (Position (3,5),5,Right,[2,1,2],White,False),Slide (Position (3,5),5,Right,[1,2,2],White,False),Slide (Position (3,5),5,Right,[3,2],White,False),Slide (Position (3,5),5,Right,[1,1,3],White,False),Slide (Position (3,5),5,Right,[2,3],White,False),Slide (Position (3,5),5,Right,[1,4],White,False),Slide (Position (3,5),5,Right,[5],White,False),Slide (Position (3,5),4,Right,[2,1,1],White,False),Slide (Position (3,5),4,Right,[1,2,1],White,False),Slide (Position (3,5),4,Right,[3,1],White,False),Slide (Position (3,5),4,Right,[1,1,2],White,False),Slide (Position (3,5),4,Right,[2,2],White,False),Slide (Position (3,5),4,Right,[1,3],White,False),Slide (Position (3,5),4,Right,[4],White,False),Slide (Position (3,5),3,Right,[1,1,1],White,False),Slide (Position (3,5),3,Right,[2,1],White,False),Slide (Position (3,5),3,Right,[1,2],White,False),Slide (Position (3,5),3,Right,[3],White,False),Slide (Position (3,5),2,Right,[1,1],White,False),Slide (Position (3,5),2,Right,[2],White,False),Slide (Position (3,5),1,Right,[1],White,False),Slide (Position (3,4),4,Up,[4],White,False),Slide (Position (3,4),3,Up,[3],White,False),Slide (Position (3,4),2,Up,[2],White,False),Slide (Position (3,4),1,Up,[1],White,False),Slide (Position (3,4),4,Up,[3,1],White,True),Slide (Position (3,4),4,Left,[3,1],White,False),Slide (Position (3,4),4,Left,[2,2],White,False),Slide (Position (3,4),4,Left,[1,3],White,False),Slide (Position (3,4),4,Left,[4],White,False),Slide (Position (3,4),3,Left,[2,1],White,False),Slide (Position (3,4),3,Left,[1,2],White,False),Slide (Position (3,4),3,Left,[3],White,False),Slide (Position (3,4),2,Left,[1,1],White,False),Slide (Position (3,4),2,Left,[2],White,False),Slide (Position (3,4),1,Left,[1],White,False),Slide (Position (3,4),4,Right,[4],White,False),Slide (Position (3,4),3,Right,[3],White,False),Slide (Position (3,4),2,Right,[2],White,False),Slide (Position (3,4),1,Right,[1],White,False),Slide (Position (2,4),1,Up,[1],White,False),Slide (Position (2,4),1,Down,[1],White,False),Slide (Position (2,4),1,Left,[1],White,False),Slide (Position (2,3),1,Up,[1],White,False),Slide (Position (2,3),1,Down,[1],White,False),Slide (Position (2,3),1,Left,[1],White,False),Slide (Position (2,2),1,Up,[1],White,False),Slide (Position (2,2),1,Down,[1],White,False),Slide (Position (2,2),1,Left,[1],White,False),Slide (Position (1,4),1,Up,[1],White,False),Slide (Position (1,4),1,Down,[1],White,False),Slide (Position (1,4),1,Right,[1],White,False),Slide (Position (1,2),1,Up,[1],White,False),Slide (Position (1,2),1,Down,[1],White,False),Slide (Position (1,2),1,Right,[1],White,False)]
+Moves: 140
+Moves: [Slide (Position (3,4),2,Up,[1,1],White,True),Slide (Position (3,4),3,Up,[2,1],White,True),Slide (Position (3,4),1,Down,[1],White,True)]
+  should generate all possible moves in a complex TPS position with capstones and standing stones [✘]
+
+Failures:
+
+  test/TestMutableState.hs:453:25: 
+  1) move generation (mutable) should generate all possible moves in a complex TPS position with capstones and standing stones
+       expected: 140
+        but got: 137
+
+  To rerun use: --match "/move generation (mutable)/should generate all possible moves in a complex TPS position with capstones and standing stones/"
+
+Randomized with seed 1375535462
+
+Finished in 0.0025 seconds
+29 examples, 1 failure

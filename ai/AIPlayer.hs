@@ -5,6 +5,7 @@
 module AIPlayer where
 
 import qualified Board as B
+import Control.Concurrent (threadDelay)
 import Control.Monad (forever)
 import Data.Aeson (decode, encode)
 import Data.Text (Text)
@@ -15,10 +16,10 @@ import qualified TPS
 import WebTypes
 
 whiteStrategy :: B.GameState -> IO Text
-whiteStrategy = MG.alphaBetaBestFast
+whiteStrategy = MG.alphaBetaBest'
 
 blackStrategy :: B.GameState -> IO Text
-blackStrategy = MG.alphaBetaBest'
+blackStrategy = MG.alphaBetaBestMut
 
 myGameId :: Text
 myGameId = "game6"
@@ -50,12 +51,12 @@ clientApp conn = do
             putStrLn $ "Current turn: " ++ show currentTurn
             case B.result gs of
               B.Continue ->
-                if isOurTurn gs
+                if isOurTurn gr
                   then do
                     let strategy =
-                          case currentTurn of
-                            B.White -> whiteStrategy
-                            B.Black -> blackStrategy
+                          case curTurn gr of
+                            True -> whiteStrategy
+                            False -> blackStrategy
                     move <- strategy gs
                     let moveReq =
                           MoveRequest
@@ -69,5 +70,17 @@ clientApp conn = do
           Nothing -> putStrLn "Failed to parse game state from response."
       Nothing -> putStrLn "Failed to decode server message."
 
-isOurTurn :: B.GameState -> Bool
+isOurTurn :: GameResponse -> Bool
 isOurTurn _ = True
+
+curTurn :: GameResponse -> Bool
+curTurn gr =
+  case currentPlayer gr of
+    Just cp ->
+      case swap gr of
+        Just s ->
+          if s
+            then cp == "Black"
+            else cp == "White"
+        Nothing -> False
+    Nothing -> False

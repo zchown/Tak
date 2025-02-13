@@ -79,6 +79,7 @@ executable TakAI
                       MoveGen
                       Searches
                       Eval
+                      EvalMut
     build-depends:
         base ^>=4.16.4.0,
         Tak,

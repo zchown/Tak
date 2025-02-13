@@ -3,8 +3,12 @@
 module Searches where
 
 import qualified Board as B
+import Control.Monad (filterM, foldM, forM, forM_, unless, when)
+import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.List
 import Data.Maybe
+import Data.Vector.Mutable (IOVector)
+import qualified Data.Vector.Mutable as VM
 import Eval
 import qualified Moves as M
 import qualified MutableState as MS
@@ -88,3 +92,132 @@ alphaBeta eval gs depth
       where
         !r = checkForWinScore gs'
         !moves = M.generateAllMoves gs'
+
+negaMaxMut ::
+     (MS.MGameState s -> IO Int) -> MS.MGameState s -> Int -> IO (Maybe B.Move)
+negaMaxMut eval mgs depth
+  | depth == 0 = return Nothing
+  | otherwise = do
+    moves <- MS.generateAllMoves mgs
+    if VM.length moves == 0
+      then return Nothing
+      else do
+        color <- readIORef (MS.mTurn mgs)
+        let c =
+              case color of
+                B.White -> 1
+                B.Black -> -1
+        bestMove <-
+          foldM
+            (\acc@(score, _) i -> do
+               m <- VM.read moves i
+               MS.makeMoveNoCheck (MS.mBoard mgs) m
+               score' <- negaMax' eval mgs (depth - 1) c
+               MS.undoMoveNoChecks (MS.mBoard mgs) m
+               if score' > score
+                 then return (score', Just m)
+                 else return acc)
+            (-roadWin, Nothing)
+            [0 .. VM.length moves - 1]
+        return $ snd bestMove
+  where
+    negaMax' ::
+         (MS.MGameState s -> IO Int) -> MS.MGameState s -> Int -> Int -> IO Int
+    negaMax' eval' mgs' depth' color
+      | depth' == 0 = do
+        score <- eval' mgs'
+        return $ color * score
+      | otherwise = do
+        moves <- MS.generateAllMoves mgs'
+        if VM.length moves == 0
+          then return 0
+          else do
+            r <- MS.checkGameResult mgs'
+            if r /= B.Continue
+              then return $
+                   color *
+                   (if r == B.Road B.White
+                      then roadWin
+                      else -roadWin)
+              else do
+                bestScore <- newIORef (-roadWin)
+                forM_ [0 .. VM.length moves - 1] $ \i -> do
+                  m <- VM.read moves i
+                  alpha <- readIORef bestScore
+                  if alpha >= roadWin
+                    then return ()
+                    else do
+                      MS.makeMoveNoCheck (MS.mBoard mgs') m
+                      score <- negaMax' eval' mgs' (depth' - 1) (-color)
+                      MS.undoMoveNoChecks (MS.mBoard mgs') m
+                      bestScore' <- readIORef bestScore
+                      writeIORef bestScore $ max bestScore' (-score)
+                readIORef bestScore
+
+alphaBetaMut ::
+     (MS.MGameState s -> IO Int) -> MS.MGameState s -> Int -> IO (Maybe B.Move)
+alphaBetaMut eval mgs depth
+  | depth == 0 = return Nothing
+  | otherwise = do
+    moves <- MS.generateAllMoves mgs
+    if VM.length moves == 0
+      then return Nothing
+      else do
+        color <- readIORef (MS.mTurn mgs)
+        let c =
+              if color == B.White
+                then 1
+                else -1
+        bestMoveRef <- newIORef (Nothing, -roadWin)
+        let alphaBeta' alpha beta i =
+              when (i < VM.length moves) $ do
+                m <- VM.read moves i
+                MS.makeMoveNoCheck (MS.mBoard mgs) m
+                score <-
+                  fmap negate $
+                  alphabeta' eval mgs (depth - 1) (-beta) (-alpha) (-c)
+                MS.undoMoveNoChecks (MS.mBoard mgs) m
+                (bestMove, bestScore) <- readIORef bestMoveRef
+                when (score > bestScore) $
+                  writeIORef bestMoveRef (Just m, score)
+                let newAlpha = max alpha score
+                unless (newAlpha >= beta) $ alphaBeta' newAlpha beta (i + 1)
+        alphaBeta' (-roadWin) roadWin 0
+        fst <$> readIORef bestMoveRef
+  where
+    alphabeta' eval' mgs' depth' alpha beta color
+      | depth' == 0 = fmap (* color) (eval' mgs')
+      | otherwise = do
+        moves <- MS.generateAllMoves mgs'
+        if VM.length moves == 0
+          then return 0
+          else do
+            r <- MS.checkGameResult mgs'
+            if r /= B.Continue
+              then return $
+                   color *
+                   (if r == B.Road B.White
+                      then roadWin
+                      else -roadWin)
+              else do
+                bestScoreRef <- newIORef (-roadWin)
+                let search i alpha'
+                      | i >= VM.length moves || alpha' >= beta = return ()
+                      | otherwise = do
+                        m <- VM.read moves i
+                        MS.makeMoveNoCheck (MS.mBoard mgs') m
+                        score <-
+                          fmap negate $
+                          alphabeta'
+                            eval'
+                            mgs'
+                            (depth' - 1)
+                            (-beta)
+                            (-alpha')
+                            (-color)
+                        MS.undoMoveNoChecks (MS.mBoard mgs') m
+                        bestScore <- readIORef bestScoreRef
+                        writeIORef bestScoreRef (max bestScore score)
+                        search (i + 1) (max alpha' score)
+                search 0 alpha
+                readIORef bestScoreRef

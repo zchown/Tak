@@ -288,7 +288,7 @@ runMoveTests =
                    White
                    42
                    (Reserves 21 0)
-                   (Reserves 21 1)
+                   (Reserves 21 0)
                    Continue
                    [])
             moves' = slideMoves b White

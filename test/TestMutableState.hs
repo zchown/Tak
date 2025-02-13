@@ -7,6 +7,7 @@ import Data.IORef
 import qualified Data.Matrix as M
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Vector as V
 import Data.Vector.Mutable (IOVector)
 import qualified Data.Vector.Mutable as VM
 import qualified Moves
@@ -199,6 +200,29 @@ runMutableStateTests =
                 historyRef
         result <- MS.checkGameWin mutBoard B.Black
         result `shouldBe` B.Road B.Black
+      it "detects win for white" $ do
+        let board =
+              B.board $
+              TPS.parseTPSHard
+                "x5,2/x2,2,2,2,x/x,12,2,1,1,x/x,2,2C,1C,1,1/2,1,1,1,x2/1,1,x4 2 21"
+        mutBoard <- MS.createMutableBoard board
+        turnRef <- newIORef B.White
+        moveNumberRef <- newIORef 21
+        player1Ref <- newIORef (B.Reserves 21 0)
+        player2Ref <- newIORef (B.Reserves 21 0)
+        resultRef <- newIORef B.Continue
+        historyRef <- newIORef []
+        let gameState =
+              MS.MGameState
+                mutBoard
+                turnRef
+                moveNumberRef
+                player1Ref
+                player2Ref
+                resultRef
+                historyRef
+        result <- MS.checkGameWin mutBoard B.White
+        result `shouldBe` B.Road B.White
       it "detects a flat win for White" $ do
         let board = B.createEmptyBoard 6
         mutBoard <- MS.createMutableBoard board
@@ -345,3 +369,108 @@ runMutableStateTests =
                 gameHistory
         result <- MS.checkGameResult gameState
         result `shouldBe` B.Draw
+    describe "move generation (mutable)" $ do
+      it "should generate all valid first moves" $ do
+        let board = B.createEmptyBoard 6
+        mutBoard <- MS.createMutableBoard board
+        turnRef <- newIORef B.White
+        moveNumberRef <- newIORef 1
+        player1Ref <- newIORef (B.Reserves 21 1)
+        player2Ref <- newIORef (B.Reserves 21 1)
+        resultRef <- newIORef B.Continue
+        historyRef <- newIORef []
+        let gameState =
+              MS.MGameState
+                mutBoard
+                turnRef
+                moveNumberRef
+                player1Ref
+                player2Ref
+                resultRef
+                historyRef
+        moves <- MS.generateAllMoves gameState
+        VM.length moves `shouldBe` 36
+      it "should generate all valid placement moves for a player" $ do
+        let board = B.createEmptyBoard 6
+        mutBoard <- MS.createMutableBoard board
+        turnRef <- newIORef B.White
+        moveNumberRef <- newIORef 3
+        player1Ref <- newIORef (B.Reserves 21 1)
+        player2Ref <- newIORef (B.Reserves 21 1)
+        resultRef <- newIORef B.Continue
+        historyRef <- newIORef []
+        let gameState =
+              MS.MGameState
+                mutBoard
+                turnRef
+                moveNumberRef
+                player1Ref
+                player2Ref
+                resultRef
+                historyRef
+        moves <- MS.generateAllMoves gameState
+        VM.length moves `shouldBe` 108
+      it "should generate all possible moves in a complex TPS position" $ do
+        let tps =
+              T.pack
+                "2S,2S,2S,2S,2S,2S/1S,1S,1S,1S,1S,1S/2S,2S,2S,2S,2S,2S/1S,1S,1S,1S,1S,1S/2S,2S,2S,2S,2S,2S/11,x5 1 2"
+        let board = B.board $ TPS.parseTPSHard tps
+        mutBoard <- MS.createMutableBoard board
+        turnRef <- newIORef B.White
+        moveNumberRef <- newIORef 3
+        player1Ref <- newIORef (B.Reserves 21 1)
+        player2Ref <- newIORef (B.Reserves 21 1)
+        resultRef <- newIORef B.Continue
+        historyRef <- newIORef []
+        let gameState =
+              MS.MGameState
+                mutBoard
+                turnRef
+                moveNumberRef
+                player1Ref
+                player2Ref
+                resultRef
+                historyRef
+        moves <- MS.generateAllMoves gameState
+        VM.length moves `shouldBe` 18
+      it
+        "should generate all possible moves in a complex TPS position with capstones and standing stones" $ do
+        let tps =
+              T.pack
+                "2,2,21S,2,2,2/2,x,222221,2,2,x/1,1,2221C,x,111112C,2S/x,1,2S,x2,121211212/1,1,1212S,1S,2,1S/x2,2,1,21,1 1 42"
+        let board = B.board $ TPS.parseTPSHard tps
+        mutBoard <- MS.createMutableBoard board
+        turnRef <- newIORef B.White
+        moveNumberRef <- newIORef 42
+        player1Ref <- newIORef (B.Reserves 21 0)
+        player2Ref <- newIORef (B.Reserves 21 0)
+        resultRef <- newIORef B.Continue
+        historyRef <- newIORef []
+        let gameState =
+              MS.MGameState
+                mutBoard
+                turnRef
+                moveNumberRef
+                player1Ref
+                player2Ref
+                resultRef
+                historyRef
+        moves <- MS.generateAllMoves gameState
+        let gs =
+              B.GameState
+                board
+                B.White
+                42
+                (B.Reserves 21 0)
+                (B.Reserves 21 0)
+                B.Continue
+                []
+        let moves' = Moves.generateAllMoves gs
+        putStrLn $ "Moves: " ++ show (length moves')
+        v <- V.freeze moves
+        let listMoves = V.toList v
+        let diff = filter (\m -> notElem m moves') listMoves
+        let diff' = filter (\m -> notElem m listMoves) moves'
+        let diff'' = diff ++ diff'
+        putStrLn $ "Moves: " ++ show diff''
+        VM.length moves `shouldBe` 140

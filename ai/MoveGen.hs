@@ -6,8 +6,12 @@ module MoveGen where
 
 import qualified Board as B
 import Data.Text (Text)
+import Data.Vector.Mutable (IOVector)
+import qualified Data.Vector.Mutable as VM
 import qualified Eval as E
+import qualified EvalMut as EM
 import qualified Moves as M
+import qualified MutableState as MS
 import qualified PTN
 import qualified Searches as S
 import System.Random (randomRIO)
@@ -21,6 +25,18 @@ generateRandomMove gs = do
       randomIndex <- randomRIO (0, length moves - 1)
       putStrLn $ "Moves generated: " ++ show (length moves)
       let move = moves !! randomIndex
+      return $ PTN.moveToText move
+
+generateRandomMoveMut :: B.GameState -> IO Text
+generateRandomMoveMut gs = do
+  ms <- MS.fromGameState gs
+  moves <- MS.generateAllMoves ms
+  if VM.length moves == 0
+    then return "No valid moves"
+    else do
+      randomIndex <- randomRIO (0, VM.length moves - 1)
+      putStrLn $ "Moves generated: " ++ show (VM.length moves)
+      move <- VM.read moves randomIndex
       return $ PTN.moveToText move
 
 percentageRandomMove ::
@@ -44,11 +60,36 @@ generatorPattern search eval gs depth = do
     Just move -> return $ PTN.moveToText move
     Nothing -> return "No valid moves"
 
+mutGeneratorPattern ::
+     ((MS.MGameState s -> IO Int) -> MS.MGameState s -> Int -> IO (Maybe B.Move))
+  -> (MS.MGameState s -> IO Int)
+  -> Int
+  -> MS.MGameState s
+  -> IO Text
+mutGeneratorPattern search eval gs depth = do
+  m <- search eval depth gs
+  case m of
+    Just move -> return $ PTN.moveToText move
+    Nothing -> return "No valid moves"
+
+bestEvalMut :: B.GameState -> IO Text
+bestEvalMut gs = do
+  ms <- MS.fromGameState gs
+  mutGeneratorPattern S.negaMaxMut EM.bestEval' 3 ms
+
+alphaBetaBestMut :: B.GameState -> IO Text
+alphaBetaBestMut gs = do
+  ms <- MS.fromGameState gs
+  mutGeneratorPattern S.alphaBetaMut EM.bestEval' 3 ms
+
 betterEval :: B.GameState -> IO Text
 betterEval = generatorPattern S.negaMax E.betterEval 3
 
 bestEval :: B.GameState -> IO Text
-bestEval = generatorPattern S.negaMax E.bestEval 3
+bestEval = generatorPattern S.negaMax E.bestEval 2
+
+bestEval' :: B.GameState -> IO Text
+bestEval' = generatorPattern S.negaMax E.bestEval' 3
 
 alphaBetaBest :: B.GameState -> IO Text
 alphaBetaBest = generatorPattern S.alphaBeta E.bestEval 3

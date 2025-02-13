@@ -96,9 +96,12 @@ handleClient gameStore clientStore conn =
       Just (MoveRequest gId' moveStr turn) -> do
         result <- processMove gameStore gId' moveStr turn
         case result of
-          Right gs ->
+          Right gs -> do
+            putStrLn "Move processed successfully"
             notifyClients clientStore gId' (gameInfoToResponse gs gId')
-          Left err -> WS.sendTextData conn (encode $ errorResponse err gId')
+          Left err -> do
+            putStrLn $ "Error processing move: " ++ show err
+            WS.sendTextData conn (encode $ errorResponse err gId')
       Nothing -> putStrLn "Failed to decode move message"
 
 createNewGame :: GameStore -> Int -> IO Text

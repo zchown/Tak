@@ -23,6 +23,28 @@ data MGameState s = MGameState
   , mGameHistory :: IORef B.History
   }
 
+toGameState :: MGameState s -> IO B.GameState
+toGameState mgs = do
+  board <- toBoard (mBoard mgs)
+  turn <- readIORef (mTurn mgs)
+  moveNumber <- readIORef (mMoveNumber mgs)
+  player1 <- readIORef (mPlayer1 mgs)
+  player2 <- readIORef (mPlayer2 mgs)
+  result <- readIORef (mResult mgs)
+  history <- readIORef (mGameHistory mgs)
+  return $ B.GameState board turn moveNumber player1 player2 result history
+
+fromGameState :: B.GameState -> IO (MGameState s)
+fromGameState gs = do
+  board <- createMutableBoard (B.board gs)
+  turn <- newIORef (B.turn gs)
+  moveNumber <- newIORef (B.moveNumber gs)
+  player1 <- newIORef (B.player1 gs)
+  player2 <- newIORef (B.player2 gs)
+  result <- newIORef (B.result gs)
+  history <- newIORef (B.gameHistory gs)
+  return $ MGameState board turn moveNumber player1 player2 result history
+
 createMutableBoard :: B.Board -> IO (MBoard s)
 createMutableBoard b = do
   VM.generateM ((length squares)) (\i -> return (squares !! i))
@@ -187,8 +209,10 @@ generateAllMoves gs = do
       return vec
     else do
       placements <- generatePlacements gs
+      -- putStrLn $ "Placements: " ++ show placements
       c <- readIORef (mTurn gs)
       slides <- generateSlides (mBoard gs) c
+      -- putStrLn $ "Slides: " ++ show slides
       let allMoves = placements ++ slides
       vec <- VM.new (length allMoves)
       mapM_ (\(i, m) -> VM.write vec i m) (zip [0 ..] allMoves)
@@ -204,11 +228,12 @@ generatePlacements :: MGameState s -> IO [B.Move]
 generatePlacements gs = do
   c <- readIORef (mTurn gs)
   let reservesRef =
-        if c == B.Black
+        if c == B.White
           then mPlayer1 gs
           else mPlayer2 gs
   r <- readIORef reservesRef
   emptyPos <- emptyPositions (mBoard gs)
+  -- putStrLn $ "Empty positions: " ++ show (length emptyPos)
   return $
     concat
       [ [B.PlaceFlat (pos, c) | B.stones r > 0, pos <- emptyPos]
@@ -233,17 +258,20 @@ generateSlidesFromDir b c p dir = do
       maxCount = min size (length s)
   slideLength <- numSteps dir p b
   let edgeDist = slideToEnd b p dir
-      drops = Moves.dropSequences slideLength maxCount
+      drops = dropSequences slideLength maxCount
   noCrushes <-
     forM drops $ \d -> do
       let count = sum d
       return $ B.Slide (p, count, dir, d, c, False)
   if edgeDist == slideLength
     then return noCrushes
+      -- putStrLn $
+        -- "Checking for crushes at position: " ++
+        -- show p ++ " and direction: " ++ show dir
     else do
       let (crushPos, _, _) = B.getSlidePos p dir (slideLength + 1)
       csq <- readSquare b crushPos
-      if null csq || B.ps (head csq) /= B.Standing
+      if null csq || B.ps (head csq) /= B.Standing || B.ps (head s) /= B.Cap
         then return noCrushes
         else do
           let crushDrops = dropSequencesForCrush slideLength (maxCount - 1)
@@ -399,34 +427,38 @@ validNeighbors dir b (B.Position (x, y)) c visited = do
             not (null s) && B.pc (head s) == c && B.ps (head s) /= B.Standing
 
 slideToEnd :: MBoard s -> B.Position -> B.Direction -> Int
-slideToEnd b (B.Position (_, y)) B.Up = (boardSize b - y) - 1
+slideToEnd b (B.Position (_, y)) B.Up = (boardSize b - y)
 slideToEnd _ (B.Position (_, y)) B.Down = y - 1
 slideToEnd _ (B.Position (x, _)) B.Left = x - 1
-slideToEnd b (B.Position (x, _)) B.Right = (boardSize b - x) - 1
+slideToEnd b (B.Position (x, _)) B.Right = (boardSize b - x)
 
 emptyPositions :: MBoard s -> IO [B.Position]
-emptyPositions b = foldM foo [] [0 .. (VM.length b - 1)]
-  where
-    foo :: [B.Position] -> Int -> IO [B.Position]
-    foo acc i = do
-      let p = indexToPos b i
-      s <- readSquare b p
-      return $
-        if null s
-          then p : acc
-          else acc
+emptyPositions b = do
+  let size = boardSize b
+  foldM
+    (\acc i -> do
+       let p = indexToPos b i
+       s <- readSquare b p
+       return $
+         if null s
+           then p : acc
+           else acc)
+    []
+    [0 .. size * size - 1]
 
 controlledPositions :: MBoard s -> B.Color -> IO [B.Position]
-controlledPositions b c = foldM foo [] [0 .. (VM.length b - 1)]
-  where
-    foo :: [B.Position] -> Int -> IO [B.Position]
-    foo acc i = do
-      let p = indexToPos b i
-      s <- readSquare b p
-      return $
-        if B.controlledBy s c
-          then p : acc
-          else acc
+controlledPositions b c = do
+  let size = boardSize b
+  foldM
+    (\acc i -> do
+       let p = indexToPos b i
+       s <- readSquare b p
+       return $
+         if not (null s) && B.pc (head s) == c
+           then p : acc
+           else acc)
+    []
+    [0 .. size * size - 1]
 
 numSteps :: B.Direction -> B.Position -> MBoard s -> IO Int
 numSteps dir p b = go 0 (fst3 (B.getNextPos p dir))
@@ -465,3 +497,10 @@ canCrush board startPos@(B.Position (x, y)) dir drops = do
     (B.ps (head movingStack) == B.Cap) &&
     last drops == 1 &&
     not (null targetSquare && (B.ps (head targetSquare) == B.Standing))
+
+dropSequences :: Int -> Int -> [[Int]]
+dropSequences s c = go c
+  where
+    go :: Int -> [[Int]]
+    go 0 = []
+    go n = Moves.dropSequences s n ++ go (n - 1)
