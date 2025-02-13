@@ -145,7 +145,7 @@ makeSlide b dir p xs (d:ds) crush = do
 
 undoMoveNoChecks :: MBoard s -> B.Move -> IO ()
 undoMoveNoChecks b (B.Slide (p, _, dir, drops, _, crush)) = do
-  let (pos', _, _) = B.getNextPos p dir
+  let (pos', _, _) = B.getSlidePos p dir (length drops)
   if crush
     then do
       undoCrush b pos'

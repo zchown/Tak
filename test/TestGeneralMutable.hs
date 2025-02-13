@@ -53,23 +53,23 @@ readPTNFile file = do
 runGeneralTestsMutable :: IO ()
 runGeneralTestsMutable = do
   files <- getPTNFiles "test/ptn"
-  emptyBoard <- MS.createMutableBoard (B.createEmptyBoard 6)
-  turn <- newIORef B.White
-  moveNumber <- newIORef 0
-  player1 <- newIORef (B.Reserves 10 1)
-  player2 <- newIORef (B.Reserves 10 1)
-  resultRef <- newIORef B.Continue
-  gameHistory <- newIORef []
-  let gameState =
-        MS.MGameState
-          emptyBoard
-          turn
-          moveNumber
-          player1
-          player2
-          resultRef
-          gameHistory
   forM_ files $ \file -> do
+    emptyBoard <- MS.createMutableBoard (B.createEmptyBoard 6)
+    turn <- newIORef B.White
+    moveNumber <- newIORef 0
+    player1 <- newIORef (B.Reserves 10 1)
+    player2 <- newIORef (B.Reserves 10 1)
+    resultRef <- newIORef B.Continue
+    gameHistory <- newIORef []
+    let gameState =
+          MS.MGameState
+            emptyBoard
+            turn
+            moveNumber
+            player1
+            player2
+            resultRef
+            gameHistory
     moves <- readPTNFile file
     putStrLn $ "Validating moves from PTN file: " ++ file
     validateMoves gameState moves

@@ -82,8 +82,8 @@ runAllTests config = do
   when (runMoves config) $ putStrLn "Running move tests..." >> runMoveTests
   when (runMutableState config) $
     putStrLn "Running mutable state tests..." >> runMutableStateTests
-  -- when (runGeneral config) $
-    -- putStrLn "Running general tests normal..." >> runGeneralTests
+  when (runGeneral config) $
+    putStrLn "Running general tests normal..." >> runGeneralTests
   when (runGeneral config) $
     putStrLn "Running general tests mutable..." >> runGeneralTestsMutable
 
