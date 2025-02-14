@@ -265,9 +265,6 @@ generateSlidesFromDir b c p dir = do
       return $ B.Slide (p, count, dir, d, c, False)
   if edgeDist == slideLength
     then return noCrushes
-      -- putStrLn $
-        -- "Checking for crushes at position: " ++
-        -- show p ++ " and direction: " ++ show dir
     else do
       let (crushPos, _, _) = B.getSlidePos p dir (slideLength + 1)
       csq <- readSquare b crushPos

@@ -16,7 +16,7 @@ import qualified TPS
 import WebTypes
 
 whiteStrategy :: B.GameState -> IO Text
-whiteStrategy = MG.alphaBetaBest'
+whiteStrategy = MG.alphaBetaBest90'
 
 blackStrategy :: B.GameState -> IO Text
 blackStrategy = MG.alphaBetaBestMut

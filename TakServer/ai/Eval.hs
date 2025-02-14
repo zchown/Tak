@@ -5,7 +5,7 @@ import Data.Matrix
 import qualified Data.Vector as V
 import qualified Moves as M
 
-roadWin = 10000000
+roadWin = 1000000000
 
 flatWin = roadWin - 1
 

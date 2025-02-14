@@ -10,6 +10,7 @@ import Data.Maybe
 import Data.Vector.Mutable (IOVector)
 import qualified Data.Vector.Mutable as VM
 import Eval
+import qualified EvalMut as EM
 import qualified Moves as M
 import qualified MutableState as MS
 
@@ -132,13 +133,9 @@ negaMaxMut eval mgs depth
         if VM.length moves == 0
           then return 0
           else do
-            r <- MS.checkGameResult mgs'
-            if r /= B.Continue
-              then return $
-                   color *
-                   (if r == B.Road B.White
-                      then roadWin
-                      else -roadWin)
+            r <- EM.checkForWinScore mgs'
+            if isJust r
+              then return $ (fromJust r) * color
               else do
                 bestScore <- newIORef (-roadWin)
                 forM_ [0 .. VM.length moves - 1] $ \i -> do
@@ -192,13 +189,9 @@ alphaBetaMut eval mgs depth
         if VM.length moves == 0
           then return 0
           else do
-            r <- MS.checkGameResult mgs'
-            if r /= B.Continue
-              then return $
-                   color *
-                   (if r == B.Road B.White
-                      then roadWin
-                      else -roadWin)
+            r <- EM.checkForWinScore mgs'
+            if isJust r
+              then return $ (fromJust r) * color
               else do
                 bestScoreRef <- newIORef (-roadWin)
                 let search i alpha'

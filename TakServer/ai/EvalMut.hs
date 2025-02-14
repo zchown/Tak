@@ -9,7 +9,7 @@ import qualified Moves as M
 import qualified MutableState as MS
 
 roadWin :: Int
-roadWin = 10000000
+roadWin = 1000000000
 
 flatWin :: Int
 flatWin = roadWin - 1
