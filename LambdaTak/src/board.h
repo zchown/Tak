@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 #define u8 uint8_t
 #define u64 uint64_t
@@ -134,6 +137,8 @@ Position nextPosition(Position pos, Direction dir);
 // Returns original position if out of bounds
 Position slidePosition(Position pos, Direction dir, u8 count);
 Position* getNeighbors(Position pos);
+// updates reserves in place based on pieces on the board
+void updateReserves(GameState* state);
 
 // Print functions
 void printMove(const Move* move);

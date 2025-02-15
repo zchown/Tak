@@ -1,7 +1,4 @@
 #include "board.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 
 GameState* createGameState() {
     GameState* state = (GameState*)malloc(sizeof(GameState));
@@ -507,6 +504,42 @@ Position* getNeighbors(Position pos) {
         neighbors[index++] = (Position){pos.x, pos.y - 1};
     }
     return neighbors;
+}
+
+void updateReserves(GameState* state) {
+    u8 numWhiteStones = STONES_PER_PLAYER;
+    u8 numWhiteCaps = CAPS_PER_PLAYER;
+
+    u8 numBlackStones = STONES_PER_PLAYER;
+    u8 numBlackCaps = CAPS_PER_PLAYER;
+
+    for (int i = 0; i < TOTAL_SQUARES; i++) {
+        Piece* current = state->board->squares[i].head;
+        while (current) {
+            if (current->color == WHITE) {
+                if (current->stone == FLAT) {
+                    numWhiteStones--;
+                }
+                else if (current->stone == CAP) {
+                    numWhiteCaps--;
+                }
+            }
+            else {
+                if (current->stone == FLAT) {
+                    numBlackStones--;
+                }
+                else if (current->stone == CAP) {
+                    numBlackCaps--;
+                }
+            }
+            current = current->next;
+        }
+    }
+
+    state->player1.stones = numWhiteStones;
+    state->player1.caps = numWhiteCaps;
+    state->player2.stones = numBlackStones;
+    state->player2.caps = numBlackCaps;
 }
 
 void printMove(const Move* move) {

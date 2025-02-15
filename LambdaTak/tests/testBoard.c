@@ -7,7 +7,7 @@ void test_createPiece() {
     CU_ASSERT_PTR_NOT_NULL(piece);
     CU_ASSERT_EQUAL(piece->stone, FLAT);
     CU_ASSERT_EQUAL(piece->color, WHITE);
-    freePiece(piece);
+    freePieceStack(piece);
 }
 
 void test_createBoard() {
@@ -21,14 +21,14 @@ void test_createBoard() {
 }
 
 void test_squareInsertPiece() {
-    Square square = {NULL, {0, 0}, 0};
+    Square square = {NULL, 0};
     Piece* piece = createPiece(FLAT, WHITE);
 
     squareInsertPiece(&square, piece);
     CU_ASSERT_PTR_EQUAL(square.head, piece);
     CU_ASSERT_EQUAL(square.numPieces, 1);
 
-    freePiece(square.head);
+    freePieceStack(square.head);
 }
 
 int main() {
