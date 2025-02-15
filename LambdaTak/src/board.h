@@ -30,7 +30,6 @@ typedef struct {
 
 typedef struct {
     Piece* head;
-    Position pos;
     u8 numPieces;
 } Square;
 
@@ -46,6 +45,7 @@ typedef struct {
 typedef enum {ROAD_WHITE, ROAD_BLACK, FLAT_WHITE, FLAT_BLACK, DRAW, CONTINUE} Result;
 typedef enum {LEFT, RIGHT, UP, DOWN} Direction;
 typedef enum {CRUSH, NO_CRUSH} Crush;
+typedef enum {PLACE, SLIDE} MoveType;
 
 typedef struct {
     Position pos;
@@ -61,9 +61,12 @@ typedef struct {
     Crush crush;
 } SlideMove;
 
-typedef union {
-    PlaceMove place;
-    SlideMove slide;
+typedef struct {
+    MoveType type;
+    union {
+        PlaceMove place;
+        SlideMove slide;
+    } move;
 } Move;
 
 typedef struct GameHistory {
@@ -94,41 +97,45 @@ Board* copyBoard(const Board* board);
 // Piece management
 Piece* createPiece(Stone stone, Color color);
 void freePieceStack(Piece* piece);
-Piece* copyPieceStack(Piece* top);
-
-// General Helpers
-Color flipColor(Color color);
+Piece* copyPieceStack(const Piece* top);
 
 // Square operations
-Square* createSquare(Position pos);
+Square* createSquare();
 void freeSquare(Square* square);
 Square* squareCopy(const Square* square);
-
 Piece* squareInsertPiece(Square* square, Piece* piece);
-Piece* squareHead(Square* square);
 Piece* squareRemovePiece(Square* square);
 Piece* squareRemovePieces(Square* square, u8 numPieces);
 bool squareIsEmpty(Square* square);
 
-// Position conversions
-u64 positionToIndex(Position pos);
-Position indexToPosition(u64 index);
+// Move operations
+Move* createPlaceMove(Position pos, Color color, Stone stone);
+Move* createSlideMove(Position startPos, Direction direction, u8 count, u8* drops, Crush crush);
+void freeMove(Move* move);
+Move* copyMove(const Move* move);
 
 // Board operations
-Square* readSquare(Board* board, Position pos);
+Square* readSquare(const Board* board, Position pos);
 bool isValidPosition(Position pos);
 
-// Move execution
-bool applyMove(GameState* state, Move move);
-bool placeStone(GameState* state, PlaceMove move);
-bool slideStack(GameState* state, SlideMove move);
-
-// Game rules & validation
-bool isLegalMove(const GameState* state, Move move);
-bool canCrush(Piece* stackTop);
-Result checkGameResult(GameState* state);
+// Check for road, flat wins, or draws
+Result checkGameResult(const GameState* state);
 
 // Utility functions
+bool squareIsEmpty(Square* square);
+// No bounds checking
+u64 positionToIndex(Position pos);
+// No bounds checking
+Position indexToPosition(u64 index);
+bool isValidPosition(Position pos);
+Color oppositeColor(Color color);
+// Returns original position if out of bounds
+Position nextPosition(Position pos, Direction dir);
+// Returns original position if out of bounds
+Position slidePosition(Position pos, Direction dir, u8 count);
+Position* getNeighbors(Position pos);
+
+// Print functions
 void printMove(const Move* move);
 void printPosition(const Position* pos);
 void printPiece(const Piece* piece);
