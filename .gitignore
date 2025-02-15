@@ -4,6 +4,7 @@ dist-newstyle/
 cabal.project.local
 cabal-dev/
 frontEnd/node_modules
+LambdaTak/build/*
 .hpc/
 *.hi
 *.o
