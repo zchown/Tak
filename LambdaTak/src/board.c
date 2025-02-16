@@ -251,7 +251,7 @@ Move* createPlaceMove(Position pos, Color color, Stone stone) {
     return move;
 }
 
-Move* createSlideMove(Position startPos, Direction direction, u8 count, u8* drops, Crush crush) {
+Move* createSlideMove(Color color, Position startPos, Direction direction, u8 count, u8* drops, Crush crush) {
     Move* move = (Move*)malloc(sizeof(Move));
     if (!move) {
         printf("createSlideMove: Failed to allocate memory for move\n");
@@ -259,6 +259,7 @@ Move* createSlideMove(Position startPos, Direction direction, u8 count, u8* drop
     }
 
     move->type = SLIDE;
+    move->move.slide.color = color;
     move->move.slide.startPos = startPos;
     move->move.slide.direction = direction;
     move->move.slide.count = count;
@@ -301,6 +302,134 @@ Move* copyMove(const Move* move) {
     return newMove;
 }
 
+Move* parseMove(const char* moveStr, Color color) {
+    if (!moveStr) {
+        printf("parseMove: Move string is NULL\n");
+        return NULL;
+    }
+
+    Move* move = (Move*)malloc(sizeof(Move));
+    if (!move) {
+        printf("parseMove: Failed to allocate memory for move\n");
+        return NULL;
+    }
+
+    //first char can determine the type of move
+    char firstChar = moveStr[0];
+    if (firstChar == 'S' || firstChar == 'C' || strlen(moveStr) == 2) {
+        move->type = PLACE;
+        move->move.place.color = color;
+        if (firstChar == 'S') {
+            move->move.place.stone = STANDING;
+            move->move.place.pos = (Position){moveStr[1] - 'a', moveStr[2] - '1'};
+        }
+        else if (firstChar == 'C') {
+            move->move.place.stone = CAP;
+            move->move.place.pos = (Position){moveStr[1] - 'a', moveStr[2] - '1'};
+        }
+        else {
+            move->move.place.stone = FLAT;
+            move->move.place.pos = (Position){moveStr[0] - 'a', moveStr[1] - '1'};
+        }
+    }
+    else {
+        move->type = SLIDE;
+        move->move.slide.color = color;
+        u8 offset = 0;
+        if (isdigit(firstChar)) {
+            move->move.slide.count = firstChar - '0';
+            offset = 1;
+        }
+        else {
+            move->move.slide.count = 1;
+        }
+        move->move.slide.startPos = (Position){moveStr[offset] - 'a', moveStr[offset + 1] - '1'};
+        move->move.slide.direction = (moveStr[offset + 2] == '<') ? LEFT :
+            (moveStr[offset + 2] == '>') ? RIGHT :
+            (moveStr[offset + 2] == '+') ? UP : DOWN;
+        if (move->move.slide.count > 1) {
+            int i = 3;
+            while (isdigit(moveStr[offset + i])) {
+                move->move.slide.drops[i - 3] = moveStr[offset + i] - '0';
+                i++;
+            }
+            if (moveStr[offset + i] == '*') {
+                move->move.slide.crush = CRUSH;
+            }
+            else {
+                move->move.slide.crush = NO_CRUSH;
+            }
+        }
+        else {
+            move->move.slide.drops[0] = 1;
+            for (int i = 1; i < MAX_PICKUP; i++) {
+                move->move.slide.drops[i] = 0;
+            }
+            if (moveStr[offset + 3] == '*') {
+                move->move.slide.crush = CRUSH;
+            }
+            else {
+                move->move.slide.crush = NO_CRUSH;
+            }
+        }
+    }
+    return move;
+}
+
+char* moveToString(const Move* move) {
+    if (!move) {
+        printf("moveToString: Move is NULL\n");
+        return NULL;
+    }
+    // size is 1 for count 2 for pos 1 for dir 1 for crush and 1 for each drop
+    char* moveStr = (char*)malloc((5 + MAX_PICKUP) * sizeof(char));
+    if (!moveStr) {
+        printf("moveToString: Failed to allocate memory for move string\n");
+        return NULL;
+    }
+
+    u8 size = 0;
+    if (move->type == PLACE) {
+        if (move->move.place.stone == STANDING) {
+            moveStr[size++] = 'S';
+        }
+        else if (move->move.place.stone == CAP) {
+            moveStr[size++] = 'C';
+        }
+        moveStr[size++] = 'a' + move->move.place.pos.x;
+        moveStr[size++] = '0' + move->move.place.pos.y;
+    }
+    else {
+        if (move->move.slide.count > 1) {
+            moveStr[size++] = '0' + move->move.slide.count;
+        }
+
+        moveStr[size++] = 'a' + move->move.slide.startPos.x;
+        moveStr[size++] = '0' + move->move.slide.startPos.y;
+
+        switch (move->move.slide.direction) {
+            case LEFT: moveStr[size++] = '<'; break;
+            case RIGHT: moveStr[size++] = '>'; break;
+            case UP: moveStr[size++] = '+'; break;
+            case DOWN: moveStr[size++] = '-'; break;
+            default: break;
+        }
+
+        u8 curDrop = 0;
+        while (move->move.slide.drops[curDrop] != 0) {
+            moveStr[size++] = '0' + move->move.slide.drops[curDrop++];
+        }
+
+        if (move->move.slide.crush == CRUSH) {
+            moveStr[size++] = '*';
+        }
+    }
+
+    // realloc movestr
+    moveStr = realloc(moveStr, size); 
+    return moveStr;
+}
+
 bool checkReservesEmpty(const GameState* state) {
     return (state->player1.stones == 0 && state->player1.caps == 0) ||
         state->player2.stones == 0 && state->player2.caps == 0;
@@ -332,7 +461,7 @@ bool checkRoad(const Board* board, Color color, SearchDirection dir) {
 
         // Check if we've reached the opposite side
         if ((dir == VERTICAL && pos.y == BOARD_SIZE - 1) || 
-            (dir == HORIZONTAL && pos.x == BOARD_SIZE - 1)) {
+                (dir == HORIZONTAL && pos.x == BOARD_SIZE - 1)) {
             return true;
         }
 
@@ -348,7 +477,7 @@ bool checkRoad(const Board* board, Color color, SearchDirection dir) {
                 Square* neighborSquare = readSquare(board, neighbor);
 
                 if (!visited[neighborIndex] && neighborSquare && neighborSquare->head &&
-                    neighborSquare->head->color == color && neighborSquare->head->stone != STANDING) {
+                        neighborSquare->head->color == color && neighborSquare->head->stone != STANDING) {
                     visited[neighborIndex] = true;
                     stack[stackSize++] = neighborIndex;
                 }

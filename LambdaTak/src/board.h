@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 #define u8 uint8_t
 #define u32 uint32_t
@@ -57,6 +58,7 @@ typedef struct {
 } PlaceMove;
 
 typedef struct {
+    Color color;
     Position startPos;
     u8 count;
     Direction direction;
@@ -113,9 +115,11 @@ bool squareIsEmpty(Square* square);
 
 // Move operations
 Move* createPlaceMove(Position pos, Color color, Stone stone);
-Move* createSlideMove(Position startPos, Direction direction, u8 count, u8* drops, Crush crush);
+Move* createSlideMove(Color color, Position startPos, Direction direction, u8 count, u8* drops, Crush crush);
 void freeMove(Move* move);
 Move* copyMove(const Move* move);
+Move* parseMove(const char* moveStr, Color color);
+char* moveToString(const Move* move);
 
 // Board operations
 Square* readSquare(const Board* board, Position pos);
