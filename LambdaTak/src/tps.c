@@ -40,7 +40,7 @@ GameState* parseTPS(const char* tps) {
     }
 
     u8 rowNumber = BOARD_SIZE - 1;
-    for (int i = 0; i < BOARD_SIZE; i++) {
+    for (u32 i = 0; i < BOARD_SIZE; i++) {
         rowNumber -= i;
         curRow = rows[i];
         char* savePtr2;
@@ -64,7 +64,7 @@ GameState* parseTPS(const char* tps) {
                 Square* sq = &state->board->squares[positionToIndex(pos)];
                 Piece* lastPiece = NULL;
                 sq->head = lastPiece;
-                for (int j = 0; j < strlen(curToken); j++) {
+                for (u32 j = 0; j < strlen(curToken); j++) {
                     char c = curToken[j];
                     if (c == '1' || c == '2') {
                         Color color = c == '1' ? WHITE : BLACK;
@@ -99,4 +99,78 @@ GameState* parseTPS(const char* tps) {
     return state;
 }
 
+char* boardToTPS(Board* board) {
+    char* boardStr = malloc(256);
+    if (boardStr == NULL) {
+        printf("Failed to allocate memory for TPS\n");
+        return NULL;
+    }
 
+    u32 i = 0;
+    for (u8 row = 0; row < BOARD_SIZE; row++) {
+        if (row != 0) {
+            boardStr[i++] = '/';
+        }
+        u8 xs = 0; // used to count the number of empty squares
+        for (u8 col = 0; col < BOARD_SIZE; col++) {
+            Square* sq = &board->squares[positionToIndex((Position){col, row})];
+            if (sq->numPieces == 0) {
+                xs++;
+            }
+            else {
+                if (xs > 0) {
+                    boardStr[i++] = 'x';
+                    if (xs > 1) {
+                        boardStr[i++] = '0' + xs;
+                    }
+                    xs = 0;
+                }
+                Piece* curPiece = sq->head;
+                while (curPiece) {
+                    boardStr[i++] = curPiece->color == WHITE ? '1' : '2';
+                    if (curPiece->stone != FLAT) {
+                        boardStr[i++] = curPiece->stone == CAP ? 'C' : 'S';
+                    }
+                    curPiece = curPiece->next;
+                }
+            }
+            if (col == BOARD_SIZE - 1 && xs > 0) {
+                if (xs > 1) {
+                    boardStr[i++] = '0' + xs;
+                }
+                boardStr[i++] = 'x';
+            }
+            if (col != BOARD_SIZE - 1) {
+                boardStr[i++] = ',';
+            }
+        }
+        if (xs > 0) {
+            boardStr[i++] = 'x';
+            if (xs > 1) {
+                boardStr[i++] = '0' + xs;
+            }
+        }
+    }
+    boardStr[i++] = '\0';
+    boardStr = realloc(boardStr, i);
+    return boardStr;
+}
+
+char* gameStateToTPS(GameState* state) {
+    char* boardStr = boardToTPS(state->board);
+    if (boardStr == NULL) {
+        printf("Failed to convert board to TPS\n");
+        return NULL;
+    }
+
+    char* tps = malloc(256);
+    if (tps == NULL) {
+        printf("Failed to allocate memory for TPS\n");
+        free(boardStr);
+        return NULL;
+    }
+    int turn = state->turn == WHITE ? 1 : 2;
+    sprintf(tps, "[TPS %s %d %llu]", boardStr, turn, state->turnNumber);
+    free(boardStr);
+    return tps;
+}

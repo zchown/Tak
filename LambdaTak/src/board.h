@@ -8,7 +8,7 @@
 #include <string.h>
 
 #define u8 uint8_t
-#define u64 uint64_t
+#define u32 uint32_t
 
 #define BOARD_SIZE 6
 #define TOTAL_SQUARES (BOARD_SIZE * BOARD_SIZE)
@@ -80,7 +80,7 @@ typedef struct GameHistory {
 typedef struct {
     Board* board;
     Color turn;
-    u64 turnNumber;
+    u32 turnNumber;
     Reserves player1;
     Reserves player2;
     Result result;
@@ -127,9 +127,9 @@ Result checkGameResult(const GameState* state);
 // Utility functions
 bool squareIsEmpty(Square* square);
 // No bounds checking
-u64 positionToIndex(Position pos);
+u32 positionToIndex(Position pos);
 // No bounds checking
-Position indexToPosition(u64 index);
+Position indexToPosition(u32 index);
 bool isValidPosition(Position pos);
 Color oppositeColor(Color color);
 // Returns original position if out of bounds

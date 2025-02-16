@@ -10,8 +10,8 @@
 #include "board.h"
 
 GameState* parseTPS(const char* tps);
-char* gameStateToTPS(GameState* state);
 char* boardToTPS(Board* board);
+char* gameStateToTPS(GameState* state);
 
 #endif // TPS_H
 

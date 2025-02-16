@@ -310,7 +310,7 @@ typedef enum {VERTICAL, HORIZONTAL} SearchDirection;
 
 bool checkRoad(const Board* board, Color color, SearchDirection dir) {
     bool visited[TOTAL_SQUARES] = {false};
-    u64 stack[TOTAL_SQUARES];
+    u32 stack[TOTAL_SQUARES];
     u8 stackSize = 0;
 
     // Initialize stack with valid starting positions
@@ -319,7 +319,7 @@ bool checkRoad(const Board* board, Color color, SearchDirection dir) {
         Square* square = readSquare(board, start);
 
         if (square && square->head && square->head->color == color && square->head->stone != STANDING) {
-            u64 index = positionToIndex(start);
+            u32 index = positionToIndex(start);
             visited[index] = true;
             stack[stackSize++] = index;
         }
@@ -327,7 +327,7 @@ bool checkRoad(const Board* board, Color color, SearchDirection dir) {
 
     // DFS traversal
     while (stackSize > 0) {
-        u64 index = stack[--stackSize];
+        u32 index = stack[--stackSize];
         Position pos = indexToPosition(index);
 
         // Check if we've reached the opposite side
@@ -344,7 +344,7 @@ bool checkRoad(const Board* board, Color color, SearchDirection dir) {
         for (int i = 0; i < 4; i++) {
             Position neighbor = neighbors[i];
             if (isValidPosition(neighbor)) {
-                u64 neighborIndex = positionToIndex(neighbor);
+                u32 neighborIndex = positionToIndex(neighbor);
                 Square* neighborSquare = readSquare(board, neighbor);
 
                 if (!visited[neighborIndex] && neighborSquare && neighborSquare->head &&
@@ -427,11 +427,11 @@ bool squareIsEmpty(Square* square) {
     return square ? square->head == NULL : true;
 }
 
-u64 positionToIndex(Position pos) {
+u32 positionToIndex(Position pos) {
     return pos.y * BOARD_SIZE + pos.x;
 }
 
-Position indexToPosition(u64 index) {
+Position indexToPosition(u32 index) {
     Position pos = { index % BOARD_SIZE, index / BOARD_SIZE };
     return pos;
 }
@@ -553,7 +553,7 @@ void printMove(const Move* move) {
                 'a' + move->move.place.pos.x,
                 move->move.place.pos.y + 1,
                 (move->move.place.color == WHITE) ? '1' : '2',
-                (move->move.place.stone == FLAT) ? ' ' :
+                (move->move.place.stone == FLAT) ? '\0' :
                 (move->move.place.stone == STANDING) ? 'S' : 'C');
     }
     else {
@@ -563,7 +563,7 @@ void printMove(const Move* move) {
                 (move->move.slide.direction == LEFT) ? '<' :
                 (move->move.slide.direction == RIGHT) ? '>' :
                 (move->move.slide.direction == UP) ? '+' : '-',
-                (move->move.slide.crush == CRUSH) ? '*' : ' ',
+                (move->move.slide.crush == CRUSH) ? '*' : '\0',
                 '0' + move->move.slide.count);
         for (int i = 0; i < move->move.slide.count; i++) {
             printf(" %c", '0' + move->move.slide.drops[i]);
@@ -582,7 +582,7 @@ void printPiece(const Piece* piece) {
     char stone;
 
     switch (piece->stone) {
-        case FLAT: stone = ' '; break;
+        case FLAT: stone = '\0'; break;
         case STANDING: stone = 'S'; break;
         case CAP: stone = 'C'; break;
         default: stone = '?'; break;
