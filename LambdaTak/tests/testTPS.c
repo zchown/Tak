@@ -38,16 +38,46 @@ void test_parseTPS_with_pieces() {
 
 void test_gameStateToTPS() {
     GameState* state = parseTPS("[TPS x6/x6/x6/x6/x6/x,11,2,x2,2C 1 5]");
-
-    /* printf("\n\n"); */
-    /* printBoard(state->board); */
-    /* printf("\n\n"); */
-    /*  */
     char* tps = gameStateToTPS(state);
     CU_ASSERT_PTR_NOT_NULL(tps);
     if (tps) {
-        /* printf("\n\n%s\n\n", tps); */
         CU_ASSERT_STRING_EQUAL(tps, "[TPS x6/x6/x6/x6/x6/x,11,2,x2,2C 1 5]");
+        free(tps);
+    }
+    freeGameState(state);
+
+    state = parseTPS("[TPS 1,x3,2C,x/1,x2,2,x2/1,1,1,2,2S,x/1,x,1,x3/2,x,1,x3/x2,2,x3 2 1]");
+    tps = gameStateToTPS(state);
+    CU_ASSERT_PTR_NOT_NULL(tps);
+    if (tps) {
+        CU_ASSERT_STRING_EQUAL(tps, "[TPS 1,x3,2C,x/1,x2,2,x2/1,1,1,2,2S,x/1,x,1,x3/2,x,1,x3/x2,2,x3 2 1]");
+        free(tps);
+    }
+    freeGameState(state);
+
+    state = parseTPS("[TPS 2,x5/2,x5/2,x5/2,x5/2,x5/2,x5 2 2]");
+    tps = gameStateToTPS(state);
+    CU_ASSERT_PTR_NOT_NULL(tps);
+    if (tps) {
+        CU_ASSERT_STRING_EQUAL(tps, "[TPS 2,x5/2,x5/2,x5/2,x5/2,x5/2,x5 2 2]");
+        free(tps);
+    }
+    freeGameState(state);
+
+    state = parseTPS("[TPS x6/x6/x6/x,212121,x4/22,12,2,2,2,12/x6 1 31]");
+    tps = gameStateToTPS(state);
+    CU_ASSERT_PTR_NOT_NULL(tps);
+    if (tps) {
+        CU_ASSERT_STRING_EQUAL(tps, "[TPS x6/x6/x6/x,212121,x4/22,12,2,2,2,12/x6 1 31]");
+        free(tps);
+    }
+    freeGameState(state);
+
+    state = parseTPS("[TPS x6/x6/x6/x6/x6/x5,1 2 2]");
+    tps = gameStateToTPS(state);
+    CU_ASSERT_PTR_NOT_NULL(tps);
+    if (tps) {
+        CU_ASSERT_STRING_EQUAL(tps, "[TPS x6/x6/x6/x6/x6/x5,1 2 2]");
         free(tps);
     }
     freeGameState(state);
