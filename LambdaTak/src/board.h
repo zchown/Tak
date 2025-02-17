@@ -50,6 +50,7 @@ typedef enum {ROAD_WHITE, ROAD_BLACK, FLAT_WHITE, FLAT_BLACK, DRAW, CONTINUE} Re
 typedef enum {LEFT, RIGHT, UP, DOWN} Direction;
 typedef enum {CRUSH, NO_CRUSH} Crush;
 typedef enum {PLACE, SLIDE} MoveType;
+typedef enum {VERTICAL, HORIZONTAL} SearchDirection;
 
 typedef struct {
     Position pos;
@@ -105,9 +106,9 @@ void freePieceStack(Piece* piece);
 Piece* copyPieceStack(const Piece* top);
 
 // Square operations
-Square* createSquare();
+Square createSquare();
 void freeSquare(Square* square);
-Square* squareCopy(const Square* square);
+Square squareCopy(const Square* square);
 Piece* squareInsertPiece(Square* square, Piece* piece);
 Piece* squareRemovePiece(Square* square);
 Piece* squareRemovePieces(Square* square, u8 numPieces);

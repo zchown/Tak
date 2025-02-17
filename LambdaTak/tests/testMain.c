@@ -12,6 +12,7 @@ void test_checkRoadWin();
 void test_checkFullBoard();
 void test_parseMove_place();
 void test_parseMove_slide();
+void test_checkHardRoads();
 
 // Declare test functions from testTPS.c
 void test_parseTPS_valid();
@@ -36,6 +37,7 @@ int main() {
     CU_add_test(boardSuite, "test_checkFullBoard", test_checkFullBoard);
     CU_add_test(boardSuite, "test_parseMove_place", test_parseMove_place);
     CU_add_test(boardSuite, "test_parseMove_slide", test_parseMove_slide);
+    CU_add_test(boardSuite, "test_checkHardRoads", test_checkHardRoads);
 
     // Add TPS tests
     CU_pSuite tpsSuite = CU_add_suite("TPSTests", 0, 0);
