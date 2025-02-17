@@ -617,6 +617,37 @@ void updateReserves(GameState* state) {
     state->player2.caps = numBlackCaps;
 }
 
+int* controlledSquares(const GameState* state, Color color) {
+    int* squares = malloc(TOTAL_SQUARES * sizeof(int));
+    if (!squares) {
+        printf("controlledSquares: Failed to allocate memory for squares\n");
+        return NULL;
+    }
+    for (int i = 0; i < TOTAL_SQUARES; i++) {
+        squares[i] = -1;
+    }
+    for (int i = 0; i < TOTAL_SQUARES; i++) {
+        Square* sq = (Square*)&state->board->squares[i];
+        if (sq->numPieces > 0 && sq->head->color == color) {
+            squares[i] = i;
+        }
+    }
+    return squares;
+}
+
+int* emptySquares(const GameState* state) {
+    int* squares = malloc(TOTAL_SQUARES * sizeof(int));
+    if (!squares) {
+        printf("emptySquares: Failed to allocate memory for squares\n");
+        return NULL;
+    }
+    for (int i = 0; i < TOTAL_SQUARES; i++) {
+        Square* sq = (Square*)&state->board->squares[i];
+        squares[i] = (sq->numPieces == 0) ? i : -1;
+    }
+    return squares;
+}
+
 void printMove(const Move* move) {
     if (!move) {
         printf("printMove: Move is NULL\n");

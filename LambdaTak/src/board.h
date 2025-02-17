@@ -150,9 +150,12 @@ Position slidePosition(Position pos, Direction dir, u8 count);
 Position* getNeighbors(Position pos);
 // updates reserves in place based on pieces on the board
 void updateReserves(GameState* state);
+int* controlledSquares(const GameState* state, Color color);
+int* emptySquares(const GameState* state);
 
 // Print functions
 void printMove(const Move* move);
+void printHistory(const GameHistory* history);
 void printPosition(const Position* pos);
 void printPiece(const Piece* piece);
 void printSquare(const Square* square);
