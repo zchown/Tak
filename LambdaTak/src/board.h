@@ -100,6 +100,12 @@ Board* createEmptyBoard();
 void freeBoard(Board* board);
 Board* copyBoard(const Board* board);
 
+// History management
+GameHistory* addHistory(GameHistory* history, Move move);
+GameHistory* copyHistory(const GameHistory* history);
+GameHistory* removeHead(GameHistory* history);
+void freeHistory(GameHistory* history);
+
 // Piece management
 Piece* createPiece(Stone stone, Color color);
 void freePieceStack(Piece* piece);

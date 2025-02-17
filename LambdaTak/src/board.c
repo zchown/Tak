@@ -22,6 +22,7 @@ void freeGameState(GameState* state) {
         return;
     }
     freeBoard(state->board);
+    freeHistory(state->history);
     free(state);
 }
 
@@ -37,7 +38,7 @@ GameState* copyGameState(const GameState* state) {
     newState->player1 = state->player1;
     newState->player2 = state->player2;
     newState->result = state->result;
-    newState->history = NULL;
+    newState->history = copyHistory(state->history);
     return newState;
 }
 
@@ -74,6 +75,54 @@ Board* copyBoard(const Board* board) {
         newBoard->squares[i] = squareCopy(&board->squares[i]);
     }
     return newBoard;
+}
+
+GameHistory* addHistory(GameHistory* history, Move move) {
+    GameHistory* newHistory = malloc(sizeof(GameHistory));
+    if (!newHistory) {
+        printf("addHistory: Failed to allocate memory for new history\n");
+        return history;
+    }
+    if (history) {
+        newHistory->next = history;
+    }
+    return newHistory;
+}
+
+GameHistory* copyHistory(const GameHistory* history) {
+    GameHistory* newHistory = NULL;
+    const GameHistory* current = history;
+    while (current) {
+        GameHistory* newEntry = malloc(sizeof(GameHistory));
+        if (!newEntry) {
+            printf("copyHistory: Failed to allocate memory for new history entry\n");
+            freeHistory(newHistory);
+            return NULL;
+        }
+        newEntry->move = current->move;
+        newEntry->next = newHistory;
+        newHistory = newEntry;
+        current = current->next;
+    }
+    return newHistory;
+}
+
+GameHistory* removeHead(GameHistory* history) {
+    if (!history) {
+        printf("removeHead: History is NULL\n");
+        return NULL;
+    }
+    GameHistory* newHead = history->next;
+    free(history);
+    return newHead;
+}
+
+void freeHistory(GameHistory* history) {
+    while (history) {
+        GameHistory* next = history->next;
+        free(history);
+        history = next;
+    }
 }
 
 Square* readSquare(const Board* board, Position pos) {
@@ -313,8 +362,8 @@ Move* parseMove(const char* moveStr, Color color) {
         move->move.slide.startPos.x = moveStr[offset] - 'a';
         move->move.slide.startPos.y = moveStr[offset + 1] - '1';
         move->move.slide.direction = (moveStr[offset + 2] == '<') ? LEFT :
-                                     (moveStr[offset + 2] == '>') ? RIGHT :
-                                     (moveStr[offset + 2] == '+') ? UP : DOWN;
+            (moveStr[offset + 2] == '>') ? RIGHT :
+            (moveStr[offset + 2] == '+') ? UP : DOWN;
         if (move->move.slide.count > 1) {
             int i = 3;
             while (isdigit(moveStr[offset + i])) {
@@ -375,33 +424,6 @@ char* moveToString(const Move* move) {
     return moveStr;
 }
 
-void printMove(const Move* move) {
-    if (!move) {
-        printf("printMove: Move is NULL\n");
-        return;
-    }
-    if (move->type == PLACE) {
-        printf("Place: %c%d  Player: %c  Stone: %c\n",
-               'a' + move->move.place.pos.x,
-               move->move.place.pos.y + 1,
-               (move->move.place.color == WHITE) ? '1' : '2',
-               (move->move.place.stone == FLAT) ? '-' :
-               (move->move.place.stone == STANDING) ? 'S' : 'C');
-    } else {
-        printf("Slide: %c%d  Dir: %c  Crush: %c  Count: %d",
-               'a' + move->move.slide.startPos.x,
-               move->move.slide.startPos.y + 1,
-               (move->move.slide.direction == LEFT)  ? '<' :
-               (move->move.slide.direction == RIGHT) ? '>' :
-               (move->move.slide.direction == UP)    ? '+' : '-',
-               (move->move.slide.crush == CRUSH) ? '*' : ' ',
-               move->move.slide.count);
-        for (int i = 0; i < move->move.slide.count; i++) {
-            printf(" %d", move->move.slide.drops[i]);
-        }
-        printf("\n");
-    }
-}
 
 bool checkReservesEmpty(const GameState* state) {
     return ((state->player1.stones == 0 && state->player1.caps == 0) ||
@@ -425,7 +447,7 @@ bool checkRoad(const Board* board, Color color, SearchDirection dir) {
         u32 index = stack[--stackSize];
         Position pos = indexToPosition(index);
         if ((dir == VERTICAL && pos.y == BOARD_SIZE - 1) ||
-            (dir == HORIZONTAL && pos.x == BOARD_SIZE - 1)) {
+                (dir == HORIZONTAL && pos.x == BOARD_SIZE - 1)) {
             return true;
         }
         Position neighbors[4] = {
@@ -438,7 +460,7 @@ bool checkRoad(const Board* board, Color color, SearchDirection dir) {
                 u32 neighborIndex = positionToIndex(neighbor);
                 Square* neighborSquare = readSquare(board, neighbor);
                 if (!visited[neighborIndex] && neighborSquare && neighborSquare->head &&
-                    neighborSquare->head->color == color && neighborSquare->head->stone != STANDING) {
+                        neighborSquare->head->color == color && neighborSquare->head->stone != STANDING) {
                     visited[neighborIndex] = true;
                     stack[stackSize++] = neighborIndex;
                 }
@@ -595,6 +617,42 @@ void updateReserves(GameState* state) {
     state->player2.caps = numBlackCaps;
 }
 
+void printMove(const Move* move) {
+    if (!move) {
+        printf("printMove: Move is NULL\n");
+        return;
+    }
+    if (move->type == PLACE) {
+        printf("Place: %c%d  Player: %c  Stone: %c\n",
+                'a' + move->move.place.pos.x,
+                move->move.place.pos.y + 1,
+                (move->move.place.color == WHITE) ? '1' : '2',
+                (move->move.place.stone == FLAT) ? '-' :
+                (move->move.place.stone == STANDING) ? 'S' : 'C');
+    } else {
+        printf("Slide: %c%d  Dir: %c  Crush: %c  Count: %d",
+                'a' + move->move.slide.startPos.x,
+                move->move.slide.startPos.y + 1,
+                (move->move.slide.direction == LEFT)  ? '<' :
+                (move->move.slide.direction == RIGHT) ? '>' :
+                (move->move.slide.direction == UP)    ? '+' : '-',
+                (move->move.slide.crush == CRUSH) ? '*' : ' ',
+                move->move.slide.count);
+        for (int i = 0; i < move->move.slide.count; i++) {
+            printf(" %d", move->move.slide.drops[i]);
+        }
+        printf("\n");
+    }
+}
+
+void printHistory(const GameHistory* history) {
+    const GameHistory* current = history;
+    while (current) {
+        printMove(&current->move);
+        current = current->next;
+    }
+}
+
 void printPiece(const Piece* piece) {
     if (!piece) {
         printf("_");
@@ -655,11 +713,11 @@ void printGameState(const GameState* state) {
         return;
     }
     printf("\nTurn: %s (Turn Number: %llu)\n", 
-           (state->turn == WHITE) ? "White" : "Black",
-           state->turnNumber);
+            (state->turn == WHITE) ? "White" : "Black",
+            state->turnNumber);
     printf("Reserves - White: Stones: %d, Caps: %d | Black: Stones: %d, Caps: %d\n",
-           state->player1.stones, state->player1.caps,
-           state->player2.stones, state->player2.caps);
+            state->player1.stones, state->player1.caps,
+            state->player2.stones, state->player2.caps);
     printf("Board:\n");
     printBoard(state->board);
     printf("Game Result: ");
