@@ -16,8 +16,12 @@ GameState* undoMoveNoChecks(GameState* state);
 Move* generateAllMoves(GameState* state);
 
 // Utility functions
-u8* dropSequence(u8 count, u8 spaces, u8* drops);
-u8* dropSequencesForCrush(u8 count, u8 spaces, u8* drops);
-u8* numSteps(GameState* state, Position pos, Direction dir);
+u32** dropSequence(u32 count, u32 spaces);
+void generateCombination(u32 n, u32 k, u32 idx, u32* comb);
+u32 binomialCoefficient(u32 n, u32 k);
+u32 countValidSequences(u32 count, u32 spaces);
+u32** dropSequencesForCrush(u32 count, u32 spaces);
+u8 numSteps(GameState* state, Position pos, Direction dir);
+
 
 #endif // MOVES_H

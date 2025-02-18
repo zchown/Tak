@@ -358,7 +358,6 @@ dropSequences steps count = go steps count []
     go _ 0 acc = [acc]
     go 0 _ _ = []
     go sl remaining acc
-      | remaining < 1 = []
       | sl < 1 = []
       | otherwise =
         [ res
