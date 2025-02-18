@@ -219,6 +219,34 @@ Piece* squareInsertPiece(Square* square, Piece* piece) {
     return piece;
 }
 
+Piece* squareInsertPieces(Square* square, Piece* piece, u8 numPieces) {
+    if (!square) {
+        printf("squareInsertPieces: Square is NULL\n");
+        return NULL;
+    }
+    if (!piece) {
+        printf("squareInsertPieces: Piece is NULL\n");
+        return NULL;
+    }
+    if (numPieces == 0) {
+        printf("squareInsertPieces: numPieces is 0\n");
+        return NULL;
+    }
+    Piece* top = piece;
+    for (u8 i = 0; i < numPieces; i++) {
+        if (!piece) {
+            printf("squareInsertPieces: Piece is NULL\n");
+            return NULL;
+        }
+        piece = piece->next;
+    } 
+    Piece* leftOvers = piece->next;
+    piece->next = square->head;
+    square->head = top;
+    square->numPieces += numPieces;
+    return leftOvers;
+}
+
 Piece* squareRemovePiece(Square* square) {
     if (!square) {
         printf("squareRemovePiece: Square is NULL\n");
@@ -248,6 +276,7 @@ Piece* squareRemovePieces(Square* square, u8 numPieces) {
         printf("squareRemovePieces: numPieces is greater than the number of pieces in the square\n");
         return NULL;
     }
+    Piece* toReturn = square->head;
     Piece* top = square->head;
     Piece* prev = NULL;
     for (u8 i = 0; i < numPieces; i++) {
@@ -257,7 +286,7 @@ Piece* squareRemovePieces(Square* square, u8 numPieces) {
     if (prev) prev->next = NULL;
     square->head = top;
     square->numPieces -= numPieces;
-    return prev;
+    return toReturn;
 }
 
 bool squareIsEmpty(Square* square) {
@@ -535,6 +564,12 @@ bool isValidPosition(Position pos) {
 
 Color oppositeColor(Color color) {
     return (color == WHITE) ? BLACK : WHITE;
+}
+
+Direction oppositeDirection(Direction dir) {
+    return (dir == LEFT) ? RIGHT :
+        (dir == RIGHT) ? LEFT :
+        (dir == UP) ? DOWN : UP;
 }
 
 Position nextPosition(Position pos, Direction dir) {

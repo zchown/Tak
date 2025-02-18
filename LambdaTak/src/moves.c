@@ -97,6 +97,28 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move) {
         }
     }
     else if (move->type == SLIDE) {
+        Piece* pieces = squareRemovePieces(readSquare(state->board, move->move.slide.startPos), move->move.slide.count);
+        u8 slideLength = 0;
+        while (move->move.slide.drops[slideLength] != 0) {
+            slideLength++;
+        }
+        Position pos = slidePosition(move->move.slide.startPos, move->move.slide.direction, slideLength);
+        if (move->move.slide.crush == CRUSH) {
+            Square* sq = readSquare(state->board, pos);
+            if (!sq->head) {
+                printf("Crush move has no piece to crush\n");
+                return state;
+            }
+            else {
+                sq->head->stone = FLAT;
+            }
+        }
+        Direction dir = oppositeDirection(move->move.slide.direction);
+        for (u8 i = 0; i < slideLength; i++) {
+            Square* sq = readSquare(state->board, pos);
+            pieces = squareInsertPieces(sq, pieces, move->move.slide.drops[i]);
+            pos = nextPosition(pos, dir);
+        }
     }
 
     return state;
@@ -104,7 +126,11 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move) {
 
 MoveResult undoMoveChecks(GameState* state, const Move* move) {
     if (move->type == PLACE) {
-        
+        if (!isValidPosition(move->move.place.pos)) return INVALID_POSITION;
+        if (readSquare(state->board, move->move.place.pos)->head == NULL) return INVALID_POSITION;
+        if (readSquare(state->board, move->move.place.pos)->numPieces != 1) return INVALID_POSITION;
+        undoMoveNoChecks(state, move);
+        return SUCCESS;
     }
     else if (move->type == SLIDE) {
 
@@ -122,7 +148,32 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move) {
     return state;
 }
 
-Move* generateAllMoves(const GameState* state);
+Move* generateAllMoves(const GameState* state) {
+    if (state->result != CONTINUE) return NULL;
+    if (state->turnNumber <= 2) {
+        u8 n = (state->turnNumber == 1) ? 36 : 35;
+        Move* moves = malloc(n * sizeof(Move));
+        if (!moves) {
+            printf("Memory allocation failed for moves array\n");
+            return NULL;
+        }
+        int* es = emptySquares(state);
+        if (!es) {
+            free(moves);
+            return NULL;
+        }
+        for (u8 i = 0; i < n; i++) {
+            moves[i].type = PLACE;
+            moves[i].move.place.pos = indexToPosition(es[i]);
+            moves[i].move.place.color = state->turn;
+            moves[i].move.place.stone = FLAT;
+        }
+    }
+    else {
+        // generate place moves
+        // generate slide moves
+    }
+}
 
 
 /* 

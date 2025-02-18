@@ -116,6 +116,7 @@ Square createSquare();
 void freeSquare(Square* square);
 Square squareCopy(const Square* square);
 Piece* squareInsertPiece(Square* square, Piece* piece);
+Piece* squareInsertPieces(Square* square, Piece* piece, u8 numPieces);
 Piece* squareRemovePiece(Square* square);
 Piece* squareRemovePieces(Square* square, u8 numPieces);
 bool squareIsEmpty(Square* square);
@@ -143,6 +144,7 @@ u32 positionToIndex(Position pos);
 Position indexToPosition(u32 index);
 bool isValidPosition(Position pos);
 Color oppositeColor(Color color);
+Direction oppositeDirection(Direction dir);
 // Returns original position if out of bounds
 Position nextPosition(Position pos, Direction dir);
 // Returns original position if out of bounds
