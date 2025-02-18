@@ -1,15 +1,70 @@
 #include "moves.h"
 
-MoveResult checkMove(GameState* state, Move* move);
+MoveResult checkMove(GameState* state, const Move* move) {
+    if (move->type == PLACE) {
+        if (!isValidPosition(move->move.place.pos)) return INVALID_POSITION;
+        if (readSquare(state->board, move->move.place.pos)->head != NULL) return INVALID_POSITION;
+        if (move->move.place.color != state->turn) return INVALID_COLOR;
+        return SUCCESS;
+    }
+}
 
-GameState* makeMoveChecks(GameState* state, Move* move);
-GameState* makeMoveNoChecks(GameState* state, Move* move);
+MoveResult makeMoveChecks(GameState* state, const Move* move) {
+    if (move->type == PLACE) {
+        MoveResult result = checkMove(state, move);
+        if (result != SUCCESS) {
+        }
+        else {
+            makeMoveNoChecks(state, move);
+            return SUCCESS;
+        }
+    }
+    else if (move->type == SLIDE) {
+        MoveResult result = checkMove(state, move);
+        if (result != SUCCESS) {
+        }
+        else {
+            makeMoveNoChecks(state, move);
+            return SUCCESS;
+        }
+    }
 
-GameState* undoMoveChecks(GameState* state);
-GameState* undoMoveNoChecks(GameState* state);
+    return INVALID_MOVE_TYPE;
+}
 
-Move* generateAllMoves(GameState* state);
+GameState* makeMoveNoChecks(GameState* state, const Move* move) {
+    if (move->type == PLACE) {
+        Square* sq = readSquare(state->board, move->move.place.pos);
+        Piece* piece = createPiece(move->move.place.stone, move->move.place.color);
+        squareInsertPiece(sq, piece);
+    }
+    else if (move->type == SLIDE) {
+    }
 
+    return state;
+}
+
+MoveResult undoMoveChecks(GameState* state, const Move* move) {
+    if (move->type == PLACE) {
+        
+    }
+    else if (move->type == SLIDE) {
+
+    }
+    return INVALID_MOVE_TYPE;
+}
+GameState* undoMoveNoChecks(GameState* state, const Move* move) {
+    if (move->type == PLACE) {
+        Square* sq = readSquare(state->board, move->move.place.pos);
+        squareRemovePiece(sq);
+    }
+    else if (move->type == SLIDE) {
+    }
+
+    return state;
+}
+
+Move* generateAllMoves(const GameState* state);
 
 
 /* 
@@ -146,7 +201,7 @@ u32** dropSequencesForCrush(u32 count, u32 spaces) {
     }
 
     u32 index = 0;
-    u32 remainingBalls = count - spaces;
+    u32 remainingPieces = count - spaces;
 
     for (u32 i = 0; i < total; i++) {
         for (u32 j = 0; j < spaces; j++) {
@@ -158,31 +213,31 @@ u32** dropSequencesForCrush(u32 count, u32 spaces) {
     for (u32 i = 0; i < total; i++) {
         if (i > 0) { // Skip the first one, which is already set to 1 for each space
             u32 remaining = i;
-            u32 balls = remainingBalls;
+            u32 pieces = remainingPieces;
             u32 pos = spaces - 1;
 
-            while (balls > 0 && pos > 0) {
-                u32 maxCombinations = binomialCoefficient(balls + pos - 1, pos - 1);
-                u32 useBalls = 0;
+            while (pieces > 0 && pos > 0) {
+                u32 maxCombinations = binomialCoefficient(pieces + pos - 1, pos - 1);
+                u32 usePieces = 0;
 
                 while (remaining >= maxCombinations) {
                     remaining -= maxCombinations;
-                    useBalls++;
-                    if (balls > useBalls) {
-                        maxCombinations = maxCombinations * (balls - useBalls) / (balls + pos - useBalls);
+                    usePieces++;
+                    if (pieces > usePieces) {
+                        maxCombinations = maxCombinations * (pieces - usePieces) / (pieces + pos - usePieces);
                     }
                     else {
                         break;
                     }
                 }
 
-                sequences[i][pos - 1] += useBalls;
-                balls -= useBalls;
+                sequences[i][pos - 1] += usePieces;
+                pieces -= usePieces;
                 pos--;
             }
 
-            if (balls > 0) {
-                sequences[i][0] += balls;
+            if (pieces > 0) {
+                sequences[i][0] += pieces;
             }
         }
     }
