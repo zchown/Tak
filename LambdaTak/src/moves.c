@@ -5,8 +5,59 @@ MoveResult checkMove(GameState* state, const Move* move) {
         if (!isValidPosition(move->move.place.pos)) return INVALID_POSITION;
         if (readSquare(state->board, move->move.place.pos)->head != NULL) return INVALID_POSITION;
         if (move->move.place.color != state->turn) return INVALID_COLOR;
+        Stone stone = move->move.place.stone;
+        if (state->player1.stones == 0 && (stone == FLAT || stone == STANDING)) {
+            return INVALID_STONE;
+        }
+        if (state->player1.caps == 0 && stone == CAP) {
+            return INVALID_STONE;
+        }
         return SUCCESS;
     }
+    if (move->type == SLIDE) {
+        if (!isValidPosition(move->move.slide.startPos)) return INVALID_POSITION;
+        Square* startSq = readSquare(state->board, move->move.slide.startPos);
+        if (startSq->head == NULL) return INVALID_POSITION;
+        if (startSq->head->color != state->turn) return INVALID_COLOR;
+        if (move->move.slide.count == 0) return INVALID_COUNT;
+        if (move->move.slide.count > MAX_PICKUP) return INVALID_COUNT;
+        // enums are just ints so we can check if the value is in the range
+        if (move->move.slide.direction < 0 || move->move.slide.direction > 3) return INVALID_DIRECTION;
+
+        //check drops
+        u8 sum = 0;
+        u8 i = 0;
+        u8 len = 0;
+        while (move->move.slide.drops[i] != 0) {
+            sum += move->move.slide.drops[i];
+            if (sum > move->move.slide.count) return INVALID_DROPS;
+            i++;
+            len++;
+        }
+        if (sum != move->move.slide.count) return INVALID_DROPS;
+
+        // check if anything in way and if crush is valid
+        for (u8 j = 0; j < len; j++) {
+            Position nextPos = nextPosition(move->move.slide.startPos, move->move.slide.direction);
+            if (!isValidPosition(nextPos)) return INVALID_SLIDE;
+            Square* sq = readSquare(state->board, nextPos);
+            if (sq->head != NULL) {
+                if (j == len - 1) {
+                    if (sq->head->stone == CAP) return INVALID_SLIDE; 
+                    if (sq->head->stone == STANDING) {
+                        if (startSq->head->stone != CAP) return INVALID_CRUSH;
+                        if (move->move.slide.crush != CRUSH) return INVALID_CRUSH;
+                        if (move->move.slide.drops[j] != 1) return INVALID_CRUSH;
+                    }
+                }
+                else {
+                   if (sq->head->stone != FLAT) return INVALID_SLIDE;
+                }
+            }
+        }
+        return SUCCESS;
+    }
+    return INVALID_MOVE_TYPE;
 }
 
 MoveResult makeMoveChecks(GameState* state, const Move* move) {
@@ -37,6 +88,13 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move) {
         Square* sq = readSquare(state->board, move->move.place.pos);
         Piece* piece = createPiece(move->move.place.stone, move->move.place.color);
         squareInsertPiece(sq, piece);
+        Reserves* reserves = (move->move.place.color == WHITE) ? &state->player1 : &state->player2;
+        if (move->move.place.stone == FLAT) {
+            reserves->stones--;
+        }
+        else {
+            reserves->caps--;
+        }
     }
     else if (move->type == SLIDE) {
     }
