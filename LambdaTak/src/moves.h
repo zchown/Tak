@@ -21,7 +21,7 @@ u32** dropSequence(u32 count, u32 spaces);
 u32 binomialCoefficient(u32 n, u32 k);
 u32 countValidSequences(u32 count, u32 spaces);
 u32** dropSequencesForCrush(u32 count, u32 spaces);
-u8 numSteps(GameState* state, Position pos, Direction dir);
+u8 numSteps(const GameState* state, Position pos, Direction dir);
 
 
 #endif // MOVES_H

@@ -227,7 +227,58 @@ Move* generateAllMoves(const GameState* state) {
 
 }
 
-void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Move* moves, u32* totalMoves);
+void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Move* moves, u32* totalMoves) {
+    u8 steps = numSteps(state, pos, dir);
+    // generate all possible slides no crush
+    for (u8 curCount = 1; curCount <= MAX_PICKUP; curCount++) {
+        u32 numberOfSlides = countValidSequences(curCount, steps);
+        u32** sequences = dropSequence(curCount, steps);
+        for (u32 i = 0; i < numberOfSlides; i++) {
+            moves[*totalMoves].type = SLIDE;
+            moves[*totalMoves].move.slide.startPos = pos;
+            moves[*totalMoves].move.slide.direction = dir;
+            moves[*totalMoves].move.slide.count = curCount;
+            for (u8 j = 0; j < curCount; j++) {
+                moves[*totalMoves].move.slide.drops[j] = sequences[i][j];
+            }
+            moves[*totalMoves].move.slide.crush = NO_CRUSH;
+            (*totalMoves)++;
+            free(sequences[i]);
+        }
+        free(sequences);
+    }
+
+    // determine if we have a crush situation
+    Position crushPos = slidePosition(pos, dir, steps + 1);
+    Crush canCrush = 
+        (readSquare(state->board, pos)->head->stone == CAP) && 
+        (isValidPosition(crushPos)) && 
+        (readSquare(state->board, crushPos)->head != NULL) && 
+        (readSquare(state->board, crushPos)->head->stone == STANDING) 
+        ? CRUSH : NO_CRUSH;
+
+    if (canCrush == CRUSH) {
+        // generate all possible slides with crush
+        for (u8 curCount = steps+1; curCount <= MAX_PICKUP; curCount++) {
+            u32 numberOfSlides = binomialCoefficient(curCount - 1, steps);
+            u32** sequences = dropSequencesForCrush(curCount, steps);
+            for (u32 i = 0; i < numberOfSlides; i++) {
+                moves[*totalMoves].type = SLIDE;
+                moves[*totalMoves].move.slide.startPos = pos;
+                moves[*totalMoves].move.slide.direction = dir;
+                moves[*totalMoves].move.slide.count = curCount;
+                for (u8 j = 0; j < steps + 1; j++) {
+                    moves[*totalMoves].move.slide.drops[j] = sequences[i][j];
+                }
+                moves[*totalMoves].move.slide.crush = CRUSH;
+                (*totalMoves)++;
+                free(sequences[i]);
+            }
+            free(sequences);
+        }
+    }
+}
+
 
 
 /* 
@@ -431,7 +482,7 @@ u32 countValidSequences(u32 count, u32 spaces) {
 }
 
 
-u8 numSteps(GameState* state, Position pos, Direction dir) {
+u8 numSteps(const GameState* state, Position pos, Direction dir) {
     u8 steps = 0;
     Position nextPos = nextPosition(pos, dir);
     while (isValidPosition(nextPos)) {
