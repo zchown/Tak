@@ -136,7 +136,42 @@ MoveResult undoMoveChecks(GameState* state, const Move* move) {
         return SUCCESS;
     }
     else if (move->type == SLIDE) {
+        const SlideMove* mv = &move->move.slide;
+        if (mv->color != oppositeColor(state->turn)) return INVALID_COLOR;
+        if (!isValidPosition(mv->startPos)) return INVALID_POSITION;
+        u8 slideLength = 0;
+        while (mv->drops[slideLength] != 0) {
+            slideLength++;
+        }
+        Position endPos = slidePosition(mv->startPos, mv->direction, slideLength);
+        if (!isValidPosition(endPos)) return INVALID_POSITION;
+        Direction invDir = oppositeDirection(mv->direction);
+        
+        Position curPos = endPos;
+        u8 i = 0;
+        u8 dropsTotal = 0;
+        while(positionToIndex(nextPosition(curPos, mv->direction)) != 
+                positionToIndex(nextPosition(endPos, mv->direction))) {
+            dropsTotal += mv->drops[i];
+            if (mv->drops[i] == 0) return INVALID_DROPS;
+            if (mv->drops[i] > readSquare(state->board, curPos)->numPieces) return INVALID_DROPS;
 
+            if((positionToIndex(curPos) != positionToIndex(endPos)) 
+                    && readSquare(state->board, curPos)->head->stone != FLAT) {
+                return INVALID_SLIDE;
+            }
+            else if(positionToIndex(curPos) == positionToIndex(endPos)) {
+                if (mv->crush == CRUSH) {
+                    if (readSquare(state->board, curPos)->numPieces < 2) return INVALID_CRUSH;
+                    if (readSquare(state->board, curPos)->head->stone != CAP) return INVALID_CRUSH;
+                    if (readSquare(state->board, curPos)->head->next->stone == CAP) return INVALID_CRUSH;
+                }
+            }
+        }
+
+        if (dropsTotal != mv->count) return INVALID_COUNT;
+
+        undoMoveNoChecks(state, move);
     }
     return INVALID_MOVE_TYPE;
 }
@@ -154,8 +189,9 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move) {
     return state;
 }
 
-Move* generateAllMoves(const GameState* state) {
+GeneratedMoves* generateAllMoves(const GameState* state) {
     if (state->result != CONTINUE) return NULL;
+    GeneratedMoves* toReturn = malloc(sizeof(GeneratedMoves));
     if (state->turnNumber <= 2) {
         u8 n = (state->turnNumber == 1) ? 36 : 35;
         Move* moves = malloc(n * sizeof(Move));
@@ -174,8 +210,12 @@ Move* generateAllMoves(const GameState* state) {
             moves[i].move.place.color = state->turn;
             moves[i].move.place.stone = FLAT;
         }
-        return moves;
+
+        toReturn->moves = moves;
+        toReturn->numMoves = n;
+        return toReturn;
     }
+
     // overestimate the number of possible moves (I hope)
     // a real board will almost certainly have less than 2048 possible moves
     // https://theses.liacs.nl/pdf/LaurensBeljaards2017Tak.pdfhttps://theses.liacs.nl/pdf/LaurensBeljaards2017Tak.pdf
@@ -212,6 +252,7 @@ Move* generateAllMoves(const GameState* state) {
         }
         i++;
     }
+
     // generate slide moves
     int* cs = controlledSquares(state, state->turn);
     i = 0;
@@ -221,10 +262,10 @@ Move* generateAllMoves(const GameState* state) {
         generateSlidesInDir(state, indexToPosition(cs[i]), UP, moves, &totalMoves);
         generateSlidesInDir(state, indexToPosition(cs[i]), DOWN, moves, &totalMoves);
     }
-    // indicator for the end of the array
-    moves[totalMoves].type = -1;
-    return moves;
 
+    toReturn->moves = moves;
+    toReturn->numMoves = totalMoves;
+    return toReturn;
 }
 
 void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Move* moves, u32* totalMoves) {
@@ -278,8 +319,6 @@ void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Mo
         }
     }
 }
-
-
 
 /* 
 The following explains what we will do for dropSequence and its
