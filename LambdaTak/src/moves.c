@@ -120,7 +120,10 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move) {
             pos = nextPosition(pos, dir);
         }
     }
-
+    
+    state->turn = (state->turn == WHITE) ? BLACK : WHITE;
+    state->turnNumber++;
+    addHistory(state->history, *move);
     return state;
 }
 
@@ -145,6 +148,9 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move) {
     else if (move->type == SLIDE) {
     }
 
+    state->turn = (state->turn == WHITE) ? BLACK : WHITE;
+    state->turnNumber--;
+    removeHead(state->history);
     return state;
 }
 
