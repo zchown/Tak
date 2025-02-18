@@ -14,6 +14,7 @@ MoveResult undoMoveChecks(GameState* state, const Move* move);
 GameState* undoMoveNoChecks(GameState* state, const Move* move);
 
 Move* generateAllMoves(const GameState* state);
+void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Move* moves, u32* totalMoves);
 
 // Utility functions
 u32** dropSequence(u32 count, u32 spaces);

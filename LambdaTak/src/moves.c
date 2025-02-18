@@ -150,7 +150,7 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move) {
 
     state->turn = (state->turn == WHITE) ? BLACK : WHITE;
     state->turnNumber--;
-    removeHead(state->history);
+    state->history = removeHead(state->history);
     return state;
 }
 
@@ -174,12 +174,60 @@ Move* generateAllMoves(const GameState* state) {
             moves[i].move.place.color = state->turn;
             moves[i].move.place.stone = FLAT;
         }
+        return moves;
     }
-    else {
-        // generate place moves
-        // generate slide moves
+    // overestimate the number of possible moves (I hope)
+    // a real board will almost certainly have less than 2048 possible moves
+    // https://theses.liacs.nl/pdf/LaurensBeljaards2017Tak.pdfhttps://theses.liacs.nl/pdf/LaurensBeljaards2017Tak.pdf
+    Move* moves = malloc(2048 * sizeof(Move));
+    if (!moves) {
+        printf("Memory allocation failed for moves array\n");
+        return NULL;
     }
+    u32 totalMoves = 0;
+
+    // generate place moves
+    int* es = emptySquares(state);
+    u8 i = 0;
+    while (es[i] != -1) {
+        if (state->player1.stones > 0) {
+            moves[totalMoves].type = PLACE;
+            moves[totalMoves].move.place.pos = indexToPosition(es[i]);
+            moves[totalMoves].move.place.color = state->turn;
+            moves[totalMoves].move.place.stone = FLAT;
+            totalMoves++;
+
+            moves[totalMoves].type = PLACE;
+            moves[totalMoves].move.place.pos = indexToPosition(es[i]);
+            moves[totalMoves].move.place.color = state->turn;
+            moves[totalMoves].move.place.stone = STANDING;
+            totalMoves++;
+        }
+        if (state->player1.caps > 0) {
+            moves[totalMoves].type = PLACE;
+            moves[totalMoves].move.place.pos = indexToPosition(es[i]);
+            moves[totalMoves].move.place.color = state->turn;
+            moves[totalMoves].move.place.stone = CAP;
+            totalMoves++;
+        }
+        i++;
+    }
+    // generate slide moves
+    int* cs = controlledSquares(state, state->turn);
+    i = 0;
+    while (cs[i] != -1) {
+        generateSlidesInDir(state, indexToPosition(cs[i]), LEFT, moves, &totalMoves);
+        generateSlidesInDir(state, indexToPosition(cs[i]), RIGHT, moves, &totalMoves);
+        generateSlidesInDir(state, indexToPosition(cs[i]), UP, moves, &totalMoves);
+        generateSlidesInDir(state, indexToPosition(cs[i]), DOWN, moves, &totalMoves);
+    }
+    // indicator for the end of the array
+    moves[totalMoves].type = -1;
+    return moves;
+
 }
+
+void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Move* moves, u32* totalMoves);
 
 
 /* 
