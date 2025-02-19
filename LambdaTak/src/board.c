@@ -318,8 +318,10 @@ Move* createSlideMove(Color color, Position startPos, Direction direction, u8 co
     move->move.slide.direction = direction;
     move->move.slide.count = count;
     move->move.slide.crush = crush;
-    for (int i = 0; i < count; i++) {
+    u8 i = 0;
+    while (i < MAX_PICKUP && drops[i] != 0) {
         move->move.slide.drops[i] = drops[i];
+        i++;
     }
     return move;
 }

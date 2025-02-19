@@ -22,6 +22,9 @@ void test_gameStateToTPS();
 void test_boardToTPS();
 void test_boardToTPS_empty();
 
+void test_checkPlaceMove();
+void test_checkSlideMove();
+
 int main() {
     CU_initialize_registry();
 
@@ -47,6 +50,11 @@ int main() {
     CU_add_test(tpsSuite, "test_gameStateToTPS", test_gameStateToTPS);
     CU_add_test(tpsSuite, "test_boardToTPS", test_boardToTPS);
     CU_add_test(tpsSuite, "test_boardToTPS_empty", test_boardToTPS_empty);
+
+    // Add Move tests
+    CU_pSuite moveSuite = CU_add_suite("MoveTests", 0, 0);
+    CU_add_test(moveSuite, "test_checkPlaceMove", test_checkPlaceMove);
+    CU_add_test(moveSuite, "test_checkSlideMove", test_checkSlideMove);
 
     CU_basic_set_mode(CU_BRM_VERBOSE);
     CU_basic_run_tests();

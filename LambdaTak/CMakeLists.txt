@@ -5,7 +5,7 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED True)
 
 # Add the main executable
-add_executable(lambdaTak src/main.c src/board.c src/tps.c)
+add_executable(lambdaTak src/main.c src/board.c src/tps.c src/moves.c)
 
 # Manually find CUnit on macOS (Homebrew)
 if(APPLE)
@@ -18,7 +18,7 @@ endif()
 
 if(CUNIT_LIBRARY AND CUNIT_INCLUDE_DIR)
     message(STATUS "Found CUnit: ${CUNIT_LIBRARY}, ${CUNIT_INCLUDE_DIR}")
-    add_executable(testSuite tests/testMain.c tests/testBoard.c src/board.c src/tps.c tests/testTPS.c)
+    add_executable(testSuite tests/testMain.c tests/testBoard.c src/board.c src/tps.c tests/testTPS.c tests/testMove.c src/moves.c)
     target_include_directories(testSuite PRIVATE ${CUNIT_INCLUDE_DIR})
     target_link_libraries(testSuite PRIVATE ${CUNIT_LIBRARY})
     enable_testing()

@@ -19,6 +19,7 @@ MoveResult checkMove(GameState* state, const Move* move) {
         Square* startSq = readSquare(state->board, move->move.slide.startPos);
         if (startSq->head == NULL) return INVALID_POSITION;
         if (startSq->head->color != state->turn) return INVALID_COLOR;
+        if (move->move.slide.color != state->turn) return INVALID_COLOR;
         if (move->move.slide.count == 0) return INVALID_COUNT;
         if (move->move.slide.count > MAX_PICKUP) return INVALID_COUNT;
         // enums are just ints so we can check if the value is in the range
@@ -37,24 +38,32 @@ MoveResult checkMove(GameState* state, const Move* move) {
         if (sum != move->move.slide.count) return INVALID_DROPS;
 
         // check if anything in way and if crush is valid
+        bool shouldCrush = false;
         for (u8 j = 0; j < len; j++) {
             Position nextPos = nextPosition(move->move.slide.startPos, move->move.slide.direction);
+            /* printf("NextPos: %d %d\n", nextPos.x, nextPos.y); */
             if (!isValidPosition(nextPos)) return INVALID_SLIDE;
             Square* sq = readSquare(state->board, nextPos);
             if (sq->head != NULL) {
                 if (j == len - 1) {
                     if (sq->head->stone == CAP) return INVALID_SLIDE; 
                     if (sq->head->stone == STANDING) {
+                        /* printf("Sq->head->stone: %d\n", sq->head->stone); */
+                        /* printf("Pos: %d %d\n", nextPos.x, nextPos.y); */
                         if (startSq->head->stone != CAP) return INVALID_CRUSH;
                         if (move->move.slide.crush != CRUSH) return INVALID_CRUSH;
                         if (move->move.slide.drops[j] != 1) return INVALID_CRUSH;
+                        shouldCrush = true;
+                        /* printf("Crush\n"); */
                     }
                 }
                 else {
-                   if (sq->head->stone != FLAT) return INVALID_SLIDE;
+                    if (sq->head->stone != FLAT) return INVALID_SLIDE;
                 }
             }
         }
+        if (shouldCrush && move->move.slide.crush != CRUSH) return INVALID_CRUSH;
+        if (!shouldCrush && move->move.slide.crush == CRUSH) return INVALID_CRUSH;
         return SUCCESS;
     }
     return INVALID_MOVE_TYPE;
@@ -120,7 +129,7 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move) {
             pos = nextPosition(pos, dir);
         }
     }
-    
+
     state->turn = (state->turn == WHITE) ? BLACK : WHITE;
     state->turnNumber++;
     addHistory(state->history, *move);
@@ -140,13 +149,13 @@ MoveResult undoMoveChecks(GameState* state, const Move* move) {
         if (mv->color != oppositeColor(state->turn)) return INVALID_COLOR;
         if (!isValidPosition(mv->startPos)) return INVALID_POSITION;
         u8 slideLength = 0;
-        while (mv->drops[slideLength] != 0) {
+        while (mv->drops[slideLength] != 0 && slideLength != MAX_PICKUP) {
             slideLength++;
         }
         Position endPos = slidePosition(mv->startPos, mv->direction, slideLength);
         if (!isValidPosition(endPos)) return INVALID_POSITION;
         Direction invDir = oppositeDirection(mv->direction);
-        
+
         Position curPos = endPos;
         u8 i = 0;
         u8 dropsTotal = 0;
@@ -175,12 +184,46 @@ MoveResult undoMoveChecks(GameState* state, const Move* move) {
     }
     return INVALID_MOVE_TYPE;
 }
+
 GameState* undoMoveNoChecks(GameState* state, const Move* move) {
     if (move->type == PLACE) {
         Square* sq = readSquare(state->board, move->move.place.pos);
         squareRemovePiece(sq);
     }
     else if (move->type == SLIDE) {
+        const SlideMove* mv = &move->move.slide;
+
+        u8 slideLength = 0;
+        while (mv->drops[slideLength] != 0 && slideLength < MAX_PICKUP) {
+            slideLength++;
+        }
+
+        Position endPos = slidePosition(mv->startPos, mv->direction, slideLength);
+        Position curPos = endPos;
+        Direction invDir = oppositeDirection(mv->direction);
+        Piece* accHead = NULL;
+        Piece* accTail = NULL;
+
+        u8 curIndex = slideLength - 1;
+
+        while (positionToIndex(curPos) != positionToIndex(mv->startPos)) {
+            Piece * temp = squareRemovePieces(readSquare(state->board, curPos), mv->drops[curIndex]);
+            if (accHead) {
+                accTail->next = temp;
+                accTail = temp;
+                while (accTail->next) {
+                    accTail = accTail->next;
+                }
+            }
+            else {
+                accHead = temp;
+                accTail = temp;
+                while (accTail->next) {
+                    accTail = accTail->next;
+                }
+            }
+        }
+        squareInsertPieces(readSquare(state->board, mv->startPos), accHead, mv->count);
     }
 
     state->turn = (state->turn == WHITE) ? BLACK : WHITE;
@@ -321,8 +364,8 @@ void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Mo
 }
 
 /* 
-The following explains what we will do for dropSequence and its
-associates helper functions.
+   The following explains what we will do for dropSequence and its
+   associates helper functions.
 
 https://artofproblemsolving.com/wiki/index.php/Ball-and-urn#Restrictions 
 
@@ -420,10 +463,10 @@ u32** dropSequence(u32 count, u32 spaces) {
 }
 
 /*
-This is an easier function as we just have to generate all possible
-combinations of putting (count) balls into (spaces) where we have to
-use all spaces. And for the crush the last space must be a 1.
-*/
+   This is an easier function as we just have to generate all possible
+   combinations of putting (count) balls into (spaces) where we have to
+   use all spaces. And for the crush the last space must be a 1.
+   */
 u32** dropSequencesForCrush(u32 count, u32 spaces) {
     // this should be checked when calling this function
     // but we will check it here as well
