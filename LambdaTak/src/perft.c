@@ -16,6 +16,7 @@ u64 perft(GameState* state, int depth, int currentDepth, u64 nodes) {
             printf("movetype: %d\n", moves->moves[i].type);
             printMove(&moves->moves[i]);
             printf("tps: %s\n", gameStateToTPS(state));
+            if (
             Reserves res = (state->turn== WHITE) ? state->player1 : state->player2;
             printf("reserves, stones: %d, caps: %d\n", res.stones, res.caps);
             exit(1);
