@@ -86,6 +86,7 @@ Board* copyBoard(const Board* board) {
     return newBoard;
 }
 
+#pragma inline
 GameHistory* addHistory(GameHistory* history, Move move) {
     GameHistory* newHistory = malloc(sizeof(GameHistory));
     if (!newHistory) {
@@ -115,6 +116,7 @@ GameHistory* copyHistory(const GameHistory* history) {
     return newHistory;
 }
 
+#pragma inline
 GameHistory* removeHead(GameHistory* history) {
     if (!history) {
         printf("removeHead: History is NULL\n");
@@ -125,6 +127,7 @@ GameHistory* removeHead(GameHistory* history) {
     return newHead;
 }
 
+#pragma inline
 void freeHistory(GameHistory* history) {
     while (history) {
         GameHistory* next = history->next;
@@ -133,6 +136,7 @@ void freeHistory(GameHistory* history) {
     }
 }
 
+#pragma inline
 Square* readSquare(const Board* board, Position pos) {
     if (!board) {
         printf("readSquare: Board is NULL\n");
@@ -170,6 +174,7 @@ void freeSquare(Square* square) {
     square->numPieces = 0;
 }
 
+#pragma inline
 Piece* createPiece(Stone stone, Color color) {
     Piece* piece = malloc(sizeof(Piece));
     if (!piece) {
@@ -182,6 +187,7 @@ Piece* createPiece(Stone stone, Color color) {
     return piece;
 }
 
+#pragma inline
 void freePieceStack(Piece* piece) {
     while (piece) {
         Piece* next = piece->next;
@@ -212,6 +218,7 @@ Piece* copyPieceStack(const Piece* top) {
     return newTop;
 }
 
+#pragma inline
 Piece* squareInsertPiece(GameState* state, Square* square, Piece* piece) {
     if (!square) {
         printf("squareInsertPiece: Square is NULL\n");
@@ -239,6 +246,7 @@ Piece* squareInsertPiece(GameState* state, Square* square, Piece* piece) {
     return piece;
 }
 
+#pragma inline
 Piece* squareInsertPieces(GameState* state, Square* square, Piece* piece, u8 numPieces) {
     if (!square) {
         printf("squareInsertPieces: Square is NULL\n");
@@ -279,6 +287,7 @@ Piece* squareInsertPieces(GameState* state, Square* square, Piece* piece, u8 num
     return leftOvers;
 }
 
+#pragma inline
 Piece* squareRemovePiece(GameState* state, Square* square) {
     if (!square) {
         printf("squareRemovePiece: Square is NULL\n");
@@ -313,6 +322,7 @@ Piece* squareRemovePiece(GameState* state, Square* square) {
     return removed;
 }
 
+#pragma inline
 Piece* squareRemovePieces(GameState* state, Square* square, u8 numPieces) {
     if (!square) {
         printf("squareRemovePieces: Square is NULL\n");
@@ -357,15 +367,17 @@ Piece* squareRemovePieces(GameState* state, Square* square, u8 numPieces) {
     return toReturn;
 }
 
+#pragma inline
 bool squareIsEmpty(Square* square) {
     return (square ? (square->head == NULL) : true);
 }
 
+#pragma inline
 Move createPlaceMove(Position pos, Color color, Stone stone) {
-    Move move = {PLACE, .move.place = {pos, color, stone}};
-    return move;
+    return (Move){PLACE, .move.place = {pos, color, stone}};
 }
 
+#pragma inline
 Move createSlideMove(Color color, Position startPos, Direction direction, u8 count, u8* drops, Crush crush) {
 
     Move move = {SLIDE, .move.slide = {
@@ -375,12 +387,15 @@ Move createSlideMove(Color color, Position startPos, Direction direction, u8 cou
         .count = count,
         .crush = crush
     }};
+
+    #pragma unroll
     for (int i = 0; i < MAX_PICKUP; i++) {
         move.move.slide.drops[i] = drops[i];
     }
     return move;
 }
 
+#pragma inline
 void freeMove(Move* move) {
     if (!move) {
         printf("freeMove: Move is NULL\n");
@@ -407,66 +422,6 @@ Move* copyMove(const Move* move) {
     }
     return newMove;
 }
-
-/* Move* parseMove(const char* moveStr, Color color) { */
-/*     if (!moveStr) { */
-/*         printf("parseMove: Move string is NULL\n"); */
-/*         return NULL; */
-/*     } */
-/*     Move* move = malloc(sizeof(Move)); */
-/*     if (!move) { */
-/*         printf("parseMove: Failed to allocate memory for move\n"); */
-/*         return NULL; */
-/*     } */
-/*     char firstChar = moveStr[0]; */
-/*     if (firstChar == 'S' || firstChar == 'C' || strlen(moveStr) == 2) { */
-/*         move->type = PLACE; */
-/*         move->move.place.color = color; */
-/*         if (firstChar == 'S') { */
-/*             move->move.place.stone = STANDING; */
-/*             move->move.place.pos.x = moveStr[1] - 'a'; */
-/*             move->move.place.pos.y = moveStr[2] - '1'; */
-/*         } else if (firstChar == 'C') { */
-/*             move->move.place.stone = CAP; */
-/*             move->move.place.pos.x = moveStr[1] - 'a'; */
-/*             move->move.place.pos.y = moveStr[2] - '1'; */
-/*         } else { */
-/*             move->move.place.stone = FLAT; */
-/*             move->move.place.pos.x = moveStr[0] - 'a'; */
-/*             move->move.place.pos.y = moveStr[1] - '1'; */
-/*         } */
-/*     } else { */
-/*         move->type = SLIDE; */
-/*         move->move.slide.color = color; */
-/*         u8 offset = 0; */
-/*         if (isdigit(firstChar)) { */
-/*             move->move.slide.count = firstChar - '0'; */
-/*             offset = 1; */
-/*         } else { */
-/*             move->move.slide.count = 1; */
-/*         } */
-/*         move->move.slide.startPos.x = moveStr[offset] - 'a'; */
-/*         move->move.slide.startPos.y = moveStr[offset + 1] - '1'; */
-/*         move->move.slide.direction = (moveStr[offset + 2] == '<') ? LEFT : */
-/*             (moveStr[offset + 2] == '>') ? RIGHT : */
-/*             (moveStr[offset + 2] == '+') ? UP : DOWN; */
-/*         if (move->move.slide.count > 1) { */
-/*             int i = 3; */
-/*             while (isdigit(moveStr[offset + i])) { */
-/*                 move->move.slide.drops[i - 3] = moveStr[offset + i] - '0'; */
-/*                 i++; */
-/*             } */
-/*             move->move.slide.crush = (moveStr[offset + i] == '*') ? CRUSH : NO_CRUSH; */
-/*         } else { */
-/*             move->move.slide.drops[0] = 1; */
-/*             for (int i = 1; i < MAX_PICKUP; i++) { */
-/*                 move->move.slide.drops[i] = 0; */
-/*             } */
-/*             move->move.slide.crush = (moveStr[offset + 3] == '*') ? CRUSH : NO_CRUSH; */
-/*         } */
-/*     } */
-/*     return move; */
-/* } */
 
 char* moveToString(const Move* move) {
     if (!move) {
@@ -510,13 +465,13 @@ char* moveToString(const Move* move) {
     return moveStr;
 }
 
-// Add these implementations to board.c
-
+#pragma inline
 Bitboard positionToBit(Position pos) {
     u32 index = positionToIndex(pos);
     return 1ULL << index;
 }
 
+#pragma inline
 Position bitToPosition(Bitboard bit) {
     // Find the index of the least significant 1 bit
     int index = 0;
@@ -650,61 +605,61 @@ Result checkGameResult(const GameState* state) {
     return checkFullBoard(state, reservesEmpty);
 }
 
+#pragma inline
 u32 positionToIndex(Position pos) {
     return pos.y * BOARD_SIZE + pos.x;
 }
 
+#pragma inline
 Position indexToPosition(u32 index) {
-    Position pos = { index % BOARD_SIZE, index / BOARD_SIZE };
-    return pos;
+    return (Position){ index % BOARD_SIZE, index / BOARD_SIZE };
 }
 
+#pragma inline
 bool isValidPosition(Position pos) {
     return pos.x >= 0 && pos.x < BOARD_SIZE && pos.y >= 0 && pos.y < BOARD_SIZE;
 }
 
+#pragma inline
 Color oppositeColor(Color color) {
     return (color == WHITE) ? BLACK : WHITE;
 }
 
+#pragma inline
 Direction oppositeDirection(Direction dir) {
     return (dir == LEFT) ? RIGHT :
         (dir == RIGHT) ? LEFT :
         (dir == UP) ? DOWN : UP;
 }
 
+#pragma inline
 Position nextPosition(Position pos, Direction dir) {
-    Position newPos = pos;
-    /* printf("start: %d %d\n", newPos.x, newPos.y); */
     switch (dir) {
         case LEFT:
-            newPos.x--;
-            newPos.y = pos.y;
-            break;
+            return (Position){pos.x - 1, pos.y};
         case RIGHT:
-            newPos.x++;
-            newPos.y = pos.y;
-            break;
+            return (Position){pos.x + 1, pos.y};
         case UP:
-            newPos.y++;
-            newPos.x = pos.x;
-            break;
+            return (Position){pos.x, pos.y + 1};
         case DOWN:
-            newPos.y--;
-            newPos.x = pos.x;
-            break;
+            return (Position){pos.x, pos.y - 1};
     }
-    /* printf("end: %d %d\n", newPos.x, newPos.y); */
-    /* printf("dir: %d\n", dir); */
-    return newPos;
+    return pos;
 }
 
+#pragma inline
 Position slidePosition(Position pos, Direction dir, u8 count) {
-    Position newPos = pos;
-    for (int i = 0; i < count; i++) {
-        newPos = nextPosition(newPos, dir);
+    switch (dir) {
+        case LEFT:
+            return (Position){pos.x - count, pos.y};
+        case RIGHT:
+            return (Position){pos.x + count, pos.y};
+        case UP:
+            return (Position){pos.x, pos.y + count};
+        case DOWN:
+            return (Position){pos.x, pos.y - count};
     }
-    return newPos;
+    return pos;
 }
 
 Position* getNeighbors(Position pos) {

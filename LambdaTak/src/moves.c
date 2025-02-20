@@ -1,4 +1,5 @@
 #include "moves.h"
+#include "magic.h"
 
 MoveResult checkMove(GameState* state, const Move* move) {
     if (move->type == PLACE) {
@@ -595,27 +596,31 @@ u8** dropSequencesForCrush(u8 count, u8 spaces) {
     return sequences;
 }
 
+#pragma inline
 u8 binomialCoefficient(u8 n, u8 k) {
-    if (k > n) return 0;
-    if (k == 0 || k == n) return 1;
-
-    if (k > n - k) k = n - k;
-
-    u8 result = 1;
-    for (u8 i = 0; i < k; i++) {
-        result = result * (n - i) / (i + 1);
-    }
-
-    return result;
+    return binCoe[n * 6 + k];
+/*     if (k > n) return 0; */
+/*     if (k == 0 || k == n) return 1; */
+/*  */
+/*     if (k > n - k) k = n - k; */
+/*  */
+/*     u8 result = 1; */
+/*     for (u8 i = 0; i < k; i++) { */
+/*         result = result * (n - i) / (i + 1); */
+/*     } */
+/*  */
+/*     return result; */
 }
-
+/*  */
+#pragma inline
 u8 countValidSequences(u8 count, u8 spaces) {
-    u8 total = 0;
-    if (count == 0 || spaces == 0) return 0;
-    for (u8 m = 1; m <= spaces; m++) {
-        total += binomialCoefficient(count - 1, m - 1);
-    }
-    return total;
+    return countValSeq[count * 6 + spaces];
+/*     u8 total = 0; */
+/*     if (count == 0 || spaces == 0) return 0; */
+/*     for (u8 m = 1; m <= spaces; m++) { */
+/*         total += binomialCoefficient(count - 1, m - 1); */
+/*     } */
+/*     return total; */
 }
 
 
