@@ -321,30 +321,28 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
         return toReturn;
     }
 
-    // overestimate the number of possible moves (I hope)
-    // a real board will almost certainly have less than 2048 possible moves
-    // https://theses.liacs.nl/pdf/LaurensBeljaards2017Tak.pdfhttps://theses.liacs.nl/pdf/LaurensBeljaards2017Tak.pdf
-    Move* moves = malloc(512 * sizeof(Move));
+    // https://theses.liacs.nl/pdf/LaurensBeljaards2017Tak.pdf
+    Move* moves = malloc(256 * sizeof(Move));
     if (!moves) {
         printf("Memory allocation failed for moves array\n");
     }
 
     u32 totalMoves = 0;
     Reserves* res = (state->turn == WHITE) ? &state->player1 : &state->player2;
+    Color turn = state->turn;
 
     #pragma unroll
     for (u8 j = 0; j < TOTAL_SQUARES; j++) {
         if (state->emptySquares & (1ULL << j)) {
             Position pos = indexToPosition(j);
             if (res->stones > 0) {
-                moves[totalMoves] = createPlaceMove(pos, state->turn, FLAT);
+                moves[totalMoves] = createPlaceMove(pos, turn, FLAT);
                 totalMoves++;
-    
-                moves[totalMoves] = createPlaceMove(pos, state->turn, STANDING);
+                moves[totalMoves] = createPlaceMove(pos, turn, STANDING);
                 totalMoves++;
             }
             if (res->caps > 0) {
-                moves[totalMoves] = createPlaceMove(pos, state->turn, CAP);
+                moves[totalMoves] = createPlaceMove(pos, turn, CAP);
                 totalMoves++;
             }
         }
@@ -368,9 +366,10 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
 }
 
 void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Move* moves, u32* totalMoves) {
-
     Square* sq = readSquare(state->board, pos);
     u8 maxCount = (sq->numPieces < MAX_PICKUP) ? sq->numPieces : MAX_PICKUP;
+    Color turn = state->turn;
+    Board* board = state->board;
 
     u8 steps = numSteps(state, pos, dir);
     if (steps != 0) {
@@ -379,7 +378,7 @@ void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Mo
             u8** sequences = dropSequence(curCount, steps);
             for (u8 i = 0; i < numberOfSlides; i++) {
                 moves[*totalMoves] = 
-                    createSlideMove(state->turn, pos, dir, curCount, sequences[i], NO_CRUSH);
+                    createSlideMove(turn, pos, dir, curCount, sequences[i], NO_CRUSH);
                 (*totalMoves)++;
                 free(sequences[i]);
             }
@@ -389,28 +388,27 @@ void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Mo
     // determine if we have a crush situation
     Position crushPos = slidePosition(pos, dir, steps + 1);
     Crush canCrush = 
-        (readSquare(state->board, pos)->head->stone == CAP) && 
-        (isValidPosition(crushPos)) && 
-        (readSquare(state->board, crushPos)->head != NULL) && 
-        (readSquare(state->board, crushPos)->head->stone == STANDING) 
+        (readSquare(board, pos)->head->stone == CAP) && 
+        (isValidPosition(crushPos)) && (steps + 1 <= maxCount) &&
+        (readSquare(board, crushPos)->head != NULL) && 
+        (readSquare(board, crushPos)->head->stone == STANDING) 
         ? CRUSH : NO_CRUSH;
 
     if (canCrush == CRUSH) {
         //special case
-        if (steps == 0) {
+        if (steps == 0 || maxCount == 1) {
             moves[*totalMoves] = 
-                createSlideMove(state->turn, pos, dir, 1, (u8[]){1}, CRUSH);
+                createSlideMove(turn, pos, dir, 1, (u8[]){1, 0, 0, 0, 0, 0}, CRUSH);
             (*totalMoves)++;
             return;
         }
-
         // generate all possible slides with crush
         for (u8 curCount = steps+1; curCount <= maxCount; curCount++) {
             u32 numberOfSlides = binomialCoefficient(curCount - 1, steps - 1);
             u8** sequences = dropSequencesForCrush(curCount, steps);
             for (u8 i = 0; i < numberOfSlides; i++) {
                 moves[*totalMoves] = 
-                    createSlideMove(state->turn, pos, dir, curCount, sequences[i], CRUSH);
+                    createSlideMove(turn, pos, dir, curCount, sequences[i], CRUSH);
                 (*totalMoves)++;
                 free(sequences[i]);
             }

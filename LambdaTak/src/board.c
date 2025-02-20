@@ -823,7 +823,7 @@ void printMove(const Move* move) {
                 move->move.slide.count);
         printf("\nColor: %c", (move->move.slide.color == WHITE) ? '1' : '2');
         printf("\nDrops:");
-        for (int i = 0; i < move->move.slide.count; i++) {
+        for (int i = 0; move->move.slide.drops[i] != 0 && i < MAX_PICKUP; i++) {
             printf(" %d", move->move.slide.drops[i]);
         }
         printf("\n");

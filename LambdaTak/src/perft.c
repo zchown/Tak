@@ -13,6 +13,7 @@ u64 perft(GameState* state, int depth, int currentDepth, u64 nodes) {
         /* int r = makeMoveChecks(state, &moves->moves[i]); */
         /* if (r != SUCCESS) { */
         /*     printf("Invalid move: %d\n", r); */
+        /*     printf("Depth: %d\n", currentDepth); */
         /*     printf("movetype: %d\n", moves->moves[i].type); */
         /*     printMove(&moves->moves[i]); */
         /*     printf("tps: %s\n", gameStateToTPS(state)); */
