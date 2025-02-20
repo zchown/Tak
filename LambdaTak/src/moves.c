@@ -267,7 +267,6 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
         return NULL;
     }
     u32 totalMoves = 0;
-    printf("Generating moves\n");
 
     // generate place moves
     int* es = emptySquares(state);
@@ -305,9 +304,6 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
 
 void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Move* moves, u32* totalMoves) {
     u8 steps = numSteps(state, pos, dir);
-    if (steps == 0) {
-        return;
-    }
     // generate all possible slides no crush
     Square* sq = readSquare(state->board, pos);
     u8 maxCount = (sq->numPieces < MAX_PICKUP) ? sq->numPieces : MAX_PICKUP;
@@ -334,9 +330,18 @@ void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Mo
         ? CRUSH : NO_CRUSH;
 
     if (canCrush == CRUSH) {
+
+        //special case
+        if (steps == 0) {
+            moves[*totalMoves] = 
+                createSlideMove(state->turn, pos, dir, 1, (u8[]){1}, CRUSH);
+            (*totalMoves)++;
+            return;
+        }
+
         // generate all possible slides with crush
-        for (u8 curCount = steps+1; curCount <= MAX_PICKUP; curCount++) {
-            u32 numberOfSlides = binomialCoefficient(curCount - 1, steps);
+        for (u8 curCount = steps+1; curCount <= maxCount; curCount++) {
+            u32 numberOfSlides = binomialCoefficient(curCount - 1, steps - 1);
             u8** sequences = dropSequencesForCrush(curCount, steps);
             for (u8 i = 0; i < numberOfSlides; i++) {
                 moves[*totalMoves] = 
