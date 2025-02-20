@@ -24,6 +24,9 @@ void test_boardToTPS_empty();
 
 void test_checkPlaceMove();
 void test_checkSlideMove();
+void test_makeMove();
+void test_undoMove();
+void test_generateAllMoves();
 
 int main() {
     CU_initialize_registry();
@@ -52,9 +55,12 @@ int main() {
     CU_add_test(tpsSuite, "test_boardToTPS_empty", test_boardToTPS_empty);
 
     // Add Move tests
-    CU_pSuite moveSuite = CU_add_suite("MoveTests", 0, 0);
-    CU_add_test(moveSuite, "test_checkPlaceMove", test_checkPlaceMove);
-    CU_add_test(moveSuite, "test_checkSlideMove", test_checkSlideMove);
+    CU_pSuite suite = CU_add_suite("Move Tests", NULL, NULL);
+    CU_add_test(suite, "test_checkPlaceMove", test_checkPlaceMove);
+    CU_add_test(suite, "test_checkSlideMove", test_checkSlideMove);
+    CU_add_test(suite, "test_makeMove", test_makeMove);
+    CU_add_test(suite, "test_undoMove", test_undoMove);
+    CU_add_test(suite, "test_generateAllMoves", test_generateAllMoves);
 
     CU_basic_set_mode(CU_BRM_VERBOSE);
     CU_basic_run_tests();

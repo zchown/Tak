@@ -8,8 +8,8 @@
 #include <string.h>
 #include <ctype.h>
 
-#define u8 uint8_t
-#define u32 uint32_t
+#define u8 uint_fast8_t
+#define u32 uint_fast32_t
 
 #define BOARD_SIZE 6
 #define TOTAL_SQUARES (BOARD_SIZE * BOARD_SIZE)
@@ -122,8 +122,8 @@ Piece* squareRemovePieces(Square* square, u8 numPieces);
 bool squareIsEmpty(Square* square);
 
 // Move operations
-Move* createPlaceMove(Position pos, Color color, Stone stone);
-Move* createSlideMove(Color color, Position startPos, Direction direction, u8 count, u8* drops, Crush crush);
+Move createPlaceMove(Position pos, Color color, Stone stone);
+Move createSlideMove(Color color, Position startPos, Direction direction, u8 count, u8* drops, Crush crush);
 void freeMove(Move* move);
 Move* copyMove(const Move* move);
 Move* parseMove(const char* moveStr, Color color);

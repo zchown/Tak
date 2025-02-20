@@ -83,9 +83,7 @@ GameHistory* addHistory(GameHistory* history, Move move) {
         printf("addHistory: Failed to allocate memory for new history\n");
         return history;
     }
-    if (history) {
-        newHistory->next = history;
-    }
+    newHistory->next = history;
     return newHistory;
 }
 
@@ -233,7 +231,7 @@ Piece* squareInsertPieces(Square* square, Piece* piece, u8 numPieces) {
         return NULL;
     }
     Piece* top = piece;
-    for (u8 i = 0; i < numPieces; i++) {
+    for (u8 i = 1; i < numPieces; i++) {
         if (!piece) {
             printf("squareInsertPieces: Piece is NULL\n");
             return NULL;
@@ -293,35 +291,22 @@ bool squareIsEmpty(Square* square) {
     return (square ? (square->head == NULL) : true);
 }
 
-Move* createPlaceMove(Position pos, Color color, Stone stone) {
-    Move* move = malloc(sizeof(Move));
-    if (!move) {
-        printf("createPlaceMove: Failed to allocate memory for move\n");
-        return NULL;
-    }
-    move->type = PLACE;
-    move->move.place.pos = pos;
-    move->move.place.color = color;
-    move->move.place.stone = stone;
+Move createPlaceMove(Position pos, Color color, Stone stone) {
+    Move move = {PLACE, .move.place = {pos, color, stone}};
     return move;
 }
 
-Move* createSlideMove(Color color, Position startPos, Direction direction, u8 count, u8* drops, Crush crush) {
-    Move* move = malloc(sizeof(Move));
-    if (!move) {
-        printf("createSlideMove: Failed to allocate memory for move\n");
-        return NULL;
-    }
-    move->type = SLIDE;
-    move->move.slide.color = color;
-    move->move.slide.startPos = startPos;
-    move->move.slide.direction = direction;
-    move->move.slide.count = count;
-    move->move.slide.crush = crush;
-    u8 i = 0;
-    while (i < MAX_PICKUP && drops[i] != 0) {
-        move->move.slide.drops[i] = drops[i];
-        i++;
+Move createSlideMove(Color color, Position startPos, Direction direction, u8 count, u8* drops, Crush crush) {
+
+    Move move = {SLIDE, .move.slide = {
+        .startPos = startPos,
+        .color = color,
+        .direction = direction,
+        .count = count,
+        .crush = crush
+    }};
+    for (int i = 0; i < MAX_PICKUP; i++) {
+        move.move.slide.drops[i] = drops[i];
     }
     return move;
 }
@@ -578,16 +563,16 @@ Position nextPosition(Position pos, Direction dir) {
     Position newPos = pos;
     switch (dir) {
         case LEFT:
-            if (pos.x > 0) newPos.x--;
+            newPos.x--;
             break;
         case RIGHT:
-            if (pos.x < BOARD_SIZE - 1) newPos.x++;
+            newPos.x++;
             break;
         case UP:
-            if (pos.y < BOARD_SIZE - 1) newPos.y++;
+            newPos.y++;
             break;
         case DOWN:
-            if (pos.y > 0) newPos.y--;
+            newPos.y--;
             break;
     }
     return newPos;
@@ -660,14 +645,16 @@ int* controlledSquares(const GameState* state, Color color) {
         printf("controlledSquares: Failed to allocate memory for squares\n");
         return NULL;
     }
-    for (int i = 0; i < TOTAL_SQUARES; i++) {
-        squares[i] = -1;
-    }
+
+    int j = 0;
     for (int i = 0; i < TOTAL_SQUARES; i++) {
         Square* sq = (Square*)&state->board->squares[i];
         if (sq->numPieces > 0 && sq->head->color == color) {
-            squares[i] = i;
+            squares[j++] = i;
         }
+    }
+    for (;j < TOTAL_SQUARES; j++) {
+        squares[j] = -1;
     }
     return squares;
 }
@@ -678,9 +665,16 @@ int* emptySquares(const GameState* state) {
         printf("emptySquares: Failed to allocate memory for squares\n");
         return NULL;
     }
+    int j = 0;
     for (int i = 0; i < TOTAL_SQUARES; i++) {
         Square* sq = (Square*)&state->board->squares[i];
-        squares[i] = (sq->numPieces == 0) ? i : -1;
+        /* squares[j++] = (sq->numPieces == 0) ? i : -1; */
+        if (sq->numPieces == 0) {
+            squares[j++] = i;
+        }
+    }
+    for (;j < TOTAL_SQUARES; j++) {
+        squares[j] = -1;
     }
     return squares;
 }
@@ -695,7 +689,7 @@ void printMove(const Move* move) {
                 'a' + move->move.place.pos.x,
                 move->move.place.pos.y + 1,
                 (move->move.place.color == WHITE) ? '1' : '2',
-                (move->move.place.stone == FLAT) ? '-' :
+                (move->move.place.stone == FLAT) ? 'F' :
                 (move->move.place.stone == STANDING) ? 'S' : 'C');
     } else {
         printf("Slide: %c%d  Dir: %c  Crush: %c  Count: %d",
@@ -704,8 +698,9 @@ void printMove(const Move* move) {
                 (move->move.slide.direction == LEFT)  ? '<' :
                 (move->move.slide.direction == RIGHT) ? '>' :
                 (move->move.slide.direction == UP)    ? '+' : '-',
-                (move->move.slide.crush == CRUSH) ? '*' : ' ',
+                (move->move.slide.crush == CRUSH) ? '*' : 'X',
                 move->move.slide.count);
+        printf("\nDrops:");
         for (int i = 0; i < move->move.slide.count; i++) {
             printf(" %d", move->move.slide.drops[i]);
         }

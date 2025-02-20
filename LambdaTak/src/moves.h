@@ -7,8 +7,9 @@ typedef enum {SUCCESS, INVALID_MOVE, INVALID_POSITION, INVALID_DIRECTION, INVALI
 
 typedef struct {
     Move* moves;
-    u32 numMoves;
+    u8 numMoves;
 } GeneratedMoves;
+
 
 MoveResult checkMove(GameState* state, const Move* move);
 
@@ -22,11 +23,11 @@ GeneratedMoves* generateAllMoves(const GameState* state);
 void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Move* moves, u32* totalMoves);
 
 // Utility functions
-u32** dropSequence(u32 count, u32 spaces);
-u32 binomialCoefficient(u32 n, u32 k);
-u32 countValidSequences(u32 count, u32 spaces);
-u32** dropSequencesForCrush(u32 count, u32 spaces);
+u8** dropSequence(u8 count, u8 spaces);
+u8 binomialCoefficient(u8 n, u8 k);
+u8 countValidSequences(u8 count, u8 spaces);
+u8** dropSequencesForCrush(u8 count, u8 spaces);
 u8 numSteps(const GameState* state, Position pos, Direction dir);
-
+void freeGeneratedMoves(GeneratedMoves* moves);
 
 #endif // MOVES_H

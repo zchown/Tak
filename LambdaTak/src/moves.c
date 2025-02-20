@@ -115,7 +115,6 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move) {
         if (move->move.slide.crush == CRUSH) {
             Square* sq = readSquare(state->board, pos);
             if (!sq->head) {
-                printf("Crush move has no piece to crush\n");
                 return state;
             }
             else {
@@ -132,7 +131,7 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move) {
 
     state->turn = (state->turn == WHITE) ? BLACK : WHITE;
     state->turnNumber++;
-    addHistory(state->history, *move);
+    state->history = addHistory(state->history, *move);
     return state;
 }
 
@@ -222,6 +221,7 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move) {
                     accTail = accTail->next;
                 }
             }
+            curPos = nextPosition(curPos, invDir);
         }
         squareInsertPieces(readSquare(state->board, mv->startPos), accHead, mv->count);
     }
@@ -247,11 +247,10 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
             free(moves);
             return NULL;
         }
-        for (u8 i = 0; i < n; i++) {
-            moves[i].type = PLACE;
-            moves[i].move.place.pos = indexToPosition(es[i]);
-            moves[i].move.place.color = state->turn;
-            moves[i].move.place.stone = FLAT;
+        u8 i = 0;
+        while (es[i] != -1 && i < n) {
+            moves[i] = createPlaceMove(indexToPosition(es[i]), state->turn, FLAT);
+            i++;
         }
 
         toReturn->moves = moves;
@@ -268,29 +267,21 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
         return NULL;
     }
     u32 totalMoves = 0;
+    printf("Generating moves\n");
 
     // generate place moves
     int* es = emptySquares(state);
     u8 i = 0;
     while (es[i] != -1) {
         if (state->player1.stones > 0) {
-            moves[totalMoves].type = PLACE;
-            moves[totalMoves].move.place.pos = indexToPosition(es[i]);
-            moves[totalMoves].move.place.color = state->turn;
-            moves[totalMoves].move.place.stone = FLAT;
+            moves[totalMoves] = createPlaceMove(indexToPosition(es[i]), state->turn, FLAT);
             totalMoves++;
 
-            moves[totalMoves].type = PLACE;
-            moves[totalMoves].move.place.pos = indexToPosition(es[i]);
-            moves[totalMoves].move.place.color = state->turn;
-            moves[totalMoves].move.place.stone = STANDING;
+            moves[totalMoves] = createPlaceMove(indexToPosition(es[i]), state->turn, STANDING);
             totalMoves++;
         }
         if (state->player1.caps > 0) {
-            moves[totalMoves].type = PLACE;
-            moves[totalMoves].move.place.pos = indexToPosition(es[i]);
-            moves[totalMoves].move.place.color = state->turn;
-            moves[totalMoves].move.place.stone = CAP;
+            moves[totalMoves] = createPlaceMove(indexToPosition(es[i]), state->turn, CAP);
             totalMoves++;
         }
         i++;
@@ -304,6 +295,7 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
         generateSlidesInDir(state, indexToPosition(cs[i]), RIGHT, moves, &totalMoves);
         generateSlidesInDir(state, indexToPosition(cs[i]), UP, moves, &totalMoves);
         generateSlidesInDir(state, indexToPosition(cs[i]), DOWN, moves, &totalMoves);
+        i++;
     }
 
     toReturn->moves = moves;
@@ -313,19 +305,19 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
 
 void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Move* moves, u32* totalMoves) {
     u8 steps = numSteps(state, pos, dir);
+    if (steps == 0) {
+        return;
+    }
     // generate all possible slides no crush
-    for (u8 curCount = 1; curCount <= MAX_PICKUP; curCount++) {
+    Square* sq = readSquare(state->board, pos);
+    u8 maxCount = (sq->numPieces < MAX_PICKUP) ? sq->numPieces : MAX_PICKUP;
+
+    for (u8 curCount = 1; curCount <= maxCount; curCount++) {
         u32 numberOfSlides = countValidSequences(curCount, steps);
-        u32** sequences = dropSequence(curCount, steps);
-        for (u32 i = 0; i < numberOfSlides; i++) {
-            moves[*totalMoves].type = SLIDE;
-            moves[*totalMoves].move.slide.startPos = pos;
-            moves[*totalMoves].move.slide.direction = dir;
-            moves[*totalMoves].move.slide.count = curCount;
-            for (u8 j = 0; j < curCount; j++) {
-                moves[*totalMoves].move.slide.drops[j] = sequences[i][j];
-            }
-            moves[*totalMoves].move.slide.crush = NO_CRUSH;
+        u8** sequences = dropSequence(curCount, steps);
+        for (u8 i = 0; i < numberOfSlides; i++) {
+            moves[*totalMoves] = 
+                createSlideMove(state->turn, pos, dir, curCount, sequences[i], NO_CRUSH);
             (*totalMoves)++;
             free(sequences[i]);
         }
@@ -345,16 +337,10 @@ void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Mo
         // generate all possible slides with crush
         for (u8 curCount = steps+1; curCount <= MAX_PICKUP; curCount++) {
             u32 numberOfSlides = binomialCoefficient(curCount - 1, steps);
-            u32** sequences = dropSequencesForCrush(curCount, steps);
-            for (u32 i = 0; i < numberOfSlides; i++) {
-                moves[*totalMoves].type = SLIDE;
-                moves[*totalMoves].move.slide.startPos = pos;
-                moves[*totalMoves].move.slide.direction = dir;
-                moves[*totalMoves].move.slide.count = curCount;
-                for (u8 j = 0; j < steps + 1; j++) {
-                    moves[*totalMoves].move.slide.drops[j] = sequences[i][j];
-                }
-                moves[*totalMoves].move.slide.crush = CRUSH;
+            u8** sequences = dropSequencesForCrush(curCount, steps);
+            for (u8 i = 0; i < numberOfSlides; i++) {
+                moves[*totalMoves] = 
+                    createSlideMove(state->turn, pos, dir, curCount, sequences[i], CRUSH);
                 (*totalMoves)++;
                 free(sequences[i]);
             }
@@ -380,24 +366,24 @@ To do this we can look at the restriction of this problem where we have
 k = 1 each urn must have at least one ball. If we have up to (spaces) to work
 with we can have m spaces and sum for all valid ms 1 <= m <= spaces.
 */
-u32** dropSequence(u32 count, u32 spaces) {
+u8** dropSequence(u8 count, u8 spaces) {
     // Calculate how many valid configurations exist
     u32 total = countValidSequences(count, spaces);
 
     // Allocate memory for pointers to each configuration
-    u32** sequences = malloc(total * sizeof(u32*));
+    u8** sequences = malloc(total * sizeof(u8*));
     if (!sequences) {
         printf("Memory allocation failed for sequences array\n");
         return NULL;
     }
 
     // Allocate memory for each individual configuration
-    for (u32 i = 0; i < total; i++) {
-        sequences[i] = malloc(spaces * sizeof(u32));
+    for (u8 i = 0; i < total; i++) {
+        sequences[i] = malloc(spaces * sizeof(u8));
         if (!sequences[i]) {
             printf("Memory allocation failed for sequence %u\n", i);
             // Clean up already allocated memory
-            for (u32 j = 0; j < i; j++) {
+            for (u8 j = 0; j < i; j++) {
                 free(sequences[j]);
             }
             free(sequences);
@@ -406,15 +392,15 @@ u32** dropSequence(u32 count, u32 spaces) {
     }
 
     // Generate all valid configurations
-    u32 index = 0;
-    for (u32 spacesFilled = 1; spacesFilled <= spaces; spacesFilled++) {
+    u8 index = 0;
+    for (u8 spacesFilled = 1; spacesFilled <= spaces; spacesFilled++) {
         // Calculate how many ways we can choose which spaces to fill
         u32 numConfigurations = binomialCoefficient(count - 1, spacesFilled - 1);
         if (numConfigurations == 0) continue;
 
         // Generate each possible configuration for this number of filled spaces
-        for (u32 configIdx = 0; configIdx < numConfigurations; configIdx++) {
-            u32* currentConfig = sequences[index + configIdx];
+        for (u8 configIdx = 0; configIdx < numConfigurations; configIdx++) {
+            u8* currentConfig = sequences[index + configIdx];
 
             // Special case: all balls in first container
             if (spacesFilled == 1) {
@@ -424,7 +410,7 @@ u32** dropSequence(u32 count, u32 spaces) {
                 u32 remaining = configIdx;
                 u32 n = count - 1;
 
-                for (u32 i = 0; i < spacesFilled - 1; i++) {
+                for (u8 i = 0; i < spacesFilled - 1; i++) {
                     u32 current = (i == 0) ? 0 : currentConfig[i - 1] + 1;
 
                     while (1) {
@@ -438,11 +424,11 @@ u32** dropSequence(u32 count, u32 spaces) {
                     n = n - current - 1;
                 }
 
-                u32 lastIndex = currentConfig[spacesFilled - 2];
+                u8 lastIndex = currentConfig[spacesFilled - 2];
 
                 currentConfig[spacesFilled - 1] = (count - 1) - lastIndex;
 
-                for (u32 i = spacesFilled - 2; i > 0; i--) {
+                for (u8 i = spacesFilled - 2; i > 0; i--) {
                     currentConfig[i] = currentConfig[i] - currentConfig[i - 1];
                 }
 
@@ -451,7 +437,7 @@ u32** dropSequence(u32 count, u32 spaces) {
             }
 
             // Fill remaining containers with zeros
-            for (u32 i = spacesFilled; i < spaces; i++) {
+            for (u8 i = spacesFilled; i < spaces; i++) {
                 currentConfig[i] = 0;
             }
         }
@@ -467,7 +453,7 @@ u32** dropSequence(u32 count, u32 spaces) {
    combinations of putting (count) balls into (spaces) where we have to
    use all spaces. And for the crush the last space must be a 1.
    */
-u32** dropSequencesForCrush(u32 count, u32 spaces) {
+u8** dropSequencesForCrush(u8 count, u8 spaces) {
     // this should be checked when calling this function
     // but we will check it here as well
     if (count < spaces) {
@@ -477,18 +463,18 @@ u32** dropSequencesForCrush(u32 count, u32 spaces) {
 
     u32 total = binomialCoefficient(count - 1, spaces - 1);
 
-    u32** sequences = malloc(total * sizeof(u32*));
+    u8** sequences = malloc(total * sizeof(u8*));
     if (!sequences) {
         printf("Memory allocation failed for sequences array\n");
         return NULL;
     }
 
     // +1 for the crush
-    for (u32 i = 0; i < total; i++) {
-        sequences[i] = malloc((spaces + 1) * sizeof(u32));
+    for (u8 i = 0; i < total; i++) {
+        sequences[i] = malloc((spaces + 1) * sizeof(u8));
         if (!sequences[i]) {
             printf("Memory allocation failed for sequence %u\n", i);
-            for (u32 j = 0; j < i; j++) {
+            for (u8 j = 0; j < i; j++) {
                 free(sequences[j]);
             }
             free(sequences);
@@ -496,25 +482,25 @@ u32** dropSequencesForCrush(u32 count, u32 spaces) {
         }
     }
 
-    u32 index = 0;
-    u32 remainingPieces = count - spaces;
+    u8 index = 0;
+    u8 remainingPieces = count - spaces;
 
-    for (u32 i = 0; i < total; i++) {
-        for (u32 j = 0; j < spaces; j++) {
+    for (u8 i = 0; i < total; i++) {
+        for (u8 j = 0; j < spaces; j++) {
             sequences[i][j] = 1;
         }
         sequences[i][spaces] = 1;
     }
 
-    for (u32 i = 0; i < total; i++) {
+    for (u8 i = 0; i < total; i++) {
         if (i > 0) { // Skip the first one, which is already set to 1 for each space
             u32 remaining = i;
             u32 pieces = remainingPieces;
-            u32 pos = spaces - 1;
+            u8 pos = spaces - 1;
 
             while (pieces > 0 && pos > 0) {
                 u32 maxCombinations = binomialCoefficient(pieces + pos - 1, pos - 1);
-                u32 usePieces = 0;
+                u8 usePieces = 0;
 
                 while (remaining >= maxCombinations) {
                     remaining -= maxCombinations;
@@ -541,23 +527,24 @@ u32** dropSequencesForCrush(u32 count, u32 spaces) {
     return sequences;
 }
 
-u32 binomialCoefficient(u32 n, u32 k) {
+u8 binomialCoefficient(u8 n, u8 k) {
     if (k > n) return 0;
     if (k == 0 || k == n) return 1;
 
     if (k > n - k) k = n - k;
 
-    u32 result = 1;
-    for (u32 i = 0; i < k; i++) {
+    u8 result = 1;
+    for (u8 i = 0; i < k; i++) {
         result = result * (n - i) / (i + 1);
     }
 
     return result;
 }
 
-u32 countValidSequences(u32 count, u32 spaces) {
-    u32 total = 0;
-    for (u32 m = 1; m <= spaces; m++) {
+u8 countValidSequences(u8 count, u8 spaces) {
+    u8 total = 0;
+    if (count == 0 || spaces == 0) return 0;
+    for (u8 m = 1; m <= spaces; m++) {
         total += binomialCoefficient(count - 1, m - 1);
     }
     return total;
@@ -569,11 +556,7 @@ u8 numSteps(const GameState* state, Position pos, Direction dir) {
     Position nextPos = nextPosition(pos, dir);
     while (isValidPosition(nextPos)) {
         Square* sq = readSquare(state->board, nextPos);
-        if (sq->head == NULL) {
-            steps++;
-            nextPos = nextPosition(nextPos, dir);
-        } 
-        else if (sq->head->stone != FLAT) {
+        if (sq->head && sq->head->stone != FLAT) {
             break;
         }
         else {
@@ -582,4 +565,12 @@ u8 numSteps(const GameState* state, Position pos, Direction dir) {
         }
     }
     return steps;
+}
+
+void freeGeneratedMoves(GeneratedMoves* moves) {
+    if (!moves) return;
+    /* for (u32 i = 0; i < moves->numMoves; i++) { */
+    /*     freeMove(&moves->moves[i]); */
+    /* } */
+    free(moves);
 }
