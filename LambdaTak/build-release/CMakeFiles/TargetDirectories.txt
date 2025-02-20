@@ -1,5 +1,0 @@
-/Users/zanderchown/ComputerScience/Tak/LambdaTak/build-release/CMakeFiles/lambdaTak.dir
-/Users/zanderchown/ComputerScience/Tak/LambdaTak/build-release/CMakeFiles/testSuite.dir
-/Users/zanderchown/ComputerScience/Tak/LambdaTak/build-release/CMakeFiles/test.dir
-/Users/zanderchown/ComputerScience/Tak/LambdaTak/build-release/CMakeFiles/edit_cache.dir
-/Users/zanderchown/ComputerScience/Tak/LambdaTak/build-release/CMakeFiles/rebuild_cache.dir
