@@ -62,10 +62,10 @@ typedef struct {
 } PlaceMove;
 
 typedef struct {
+    u8 drops[MAX_PICKUP];
     Position startPos;
     Direction direction;
     u8 count;
-    u8 drops[MAX_PICKUP];
     Color color;
     Crush crush;
 } SlideMove;

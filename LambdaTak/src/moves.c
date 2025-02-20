@@ -642,5 +642,6 @@ void freeGeneratedMoves(GeneratedMoves* moves) {
     /* for (u32 i = 0; i < moves->numMoves; i++) { */
     /*     freeMove(&moves->moves[i]); */
     /* } */
+    free(moves->moves);
     free(moves);
 }
