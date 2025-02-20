@@ -14,7 +14,7 @@ MoveResult checkMove(GameState* state, const Move* move) {
         }
         return SUCCESS;
     }
-    if (move->type == SLIDE) {
+    else if (move->type == SLIDE) {
         if (!isValidPosition(move->move.slide.startPos)) return INVALID_POSITION;
         Square* startSq = readSquare(state->board, move->move.slide.startPos);
         if (startSq->head == NULL) return INVALID_POSITION;
@@ -66,13 +66,17 @@ MoveResult checkMove(GameState* state, const Move* move) {
         if (!shouldCrush && move->move.slide.crush == CRUSH) return INVALID_CRUSH;
         return SUCCESS;
     }
-    return INVALID_MOVE_TYPE;
+    else {
+        return INVALID_MOVE_TYPE;
+    }
 }
 
 MoveResult makeMoveChecks(GameState* state, const Move* move) {
     if (move->type == PLACE) {
         MoveResult result = checkMove(state, move);
         if (result != SUCCESS) {
+            printf("Invalid move: %d\n", result);
+            return result;
         }
         else {
             makeMoveNoChecks(state, move);
@@ -82,6 +86,7 @@ MoveResult makeMoveChecks(GameState* state, const Move* move) {
     else if (move->type == SLIDE) {
         MoveResult result = checkMove(state, move);
         if (result != SUCCESS) {
+            return result;
         }
         else {
             makeMoveNoChecks(state, move);
@@ -96,9 +101,9 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move) {
     if (move->type == PLACE) {
         Square* sq = readSquare(state->board, move->move.place.pos);
         Piece* piece = createPiece(move->move.place.stone, move->move.place.color);
-        squareInsertPiece(sq, piece);
+        squareInsertPiece(state, sq, piece);
         Reserves* reserves = (move->move.place.color == WHITE) ? &state->player1 : &state->player2;
-        if (move->move.place.stone == FLAT) {
+        if (move->move.place.stone == FLAT || move->move.place.stone == STANDING) {
             reserves->stones--;
         }
         else {
@@ -106,7 +111,7 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move) {
         }
     }
     else if (move->type == SLIDE) {
-        Piece* pieces = squareRemovePieces(readSquare(state->board, move->move.slide.startPos), move->move.slide.count);
+        Piece* pieces = squareRemovePieces(state, readSquare(state->board, move->move.slide.startPos), move->move.slide.count);
         u8 slideLength = 0;
         while (move->move.slide.drops[slideLength] != 0) {
             slideLength++;
@@ -124,7 +129,7 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move) {
         Direction dir = oppositeDirection(move->move.slide.direction);
         for (u8 i = 0; i < slideLength; i++) {
             Square* sq = readSquare(state->board, pos);
-            pieces = squareInsertPieces(sq, pieces, move->move.slide.drops[i]);
+            pieces = squareInsertPieces(state, sq, pieces, move->move.slide.drops[i]);
             pos = nextPosition(pos, dir);
         }
     }
@@ -187,7 +192,14 @@ MoveResult undoMoveChecks(GameState* state, const Move* move) {
 GameState* undoMoveNoChecks(GameState* state, const Move* move) {
     if (move->type == PLACE) {
         Square* sq = readSquare(state->board, move->move.place.pos);
-        squareRemovePiece(sq);
+        squareRemovePiece(state, sq);
+        Reserves* reserves = (move->move.place.color == WHITE) ? &state->player1 : &state->player2;
+        if (move->move.place.stone == FLAT || move->move.place.stone == STANDING) {
+            reserves->stones++;
+        }
+        else {
+            reserves->caps++;
+        }
     }
     else if (move->type == SLIDE) {
         const SlideMove* mv = &move->move.slide;
@@ -206,7 +218,7 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move) {
         u8 curIndex = slideLength - 1;
 
         while (positionToIndex(curPos) != positionToIndex(mv->startPos)) {
-            Piece * temp = squareRemovePieces(readSquare(state->board, curPos), mv->drops[curIndex]);
+            Piece * temp = squareRemovePieces(state, readSquare(state->board, curPos), mv->drops[curIndex]);
             if (accHead) {
                 accTail->next = temp;
                 accTail = temp;
@@ -223,7 +235,7 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move) {
             }
             curPos = nextPosition(curPos, invDir);
         }
-        squareInsertPieces(readSquare(state->board, mv->startPos), accHead, mv->count);
+        squareInsertPieces(state, readSquare(state->board, mv->startPos), accHead, mv->count);
     }
 
     state->turn = (state->turn == WHITE) ? BLACK : WHITE;
@@ -236,32 +248,37 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
     if (state->result != CONTINUE) return NULL;
     GeneratedMoves* toReturn = malloc(sizeof(GeneratedMoves));
     if (state->turnNumber <= 2) {
-        u8 n = (state->turnNumber == 1) ? 36 : 35;
-        Move* moves = malloc(n * sizeof(Move));
+        Move* moves = malloc(36 * sizeof(Move));
         if (!moves) {
             printf("Memory allocation failed for moves array\n");
             return NULL;
         }
-        int* es = emptySquares(state);
-        if (!es) {
-            free(moves);
-            return NULL;
-        }
-        u8 i = 0;
-        while (es[i] != -1 && i < n) {
-            moves[i] = createPlaceMove(indexToPosition(es[i]), state->turn, FLAT);
-            i++;
+        /* int* es = emptySquares(state); */
+        /* if (!es) { */
+        /*     free(moves); */
+        /*     return NULL; */
+        /* } */
+        /* u8 i = 0; */
+        /* while (es[i] != -1 && i < n) { */
+        /*     moves[i] = createPlaceMove(indexToPosition(es[i]), state->turn, FLAT); */
+        /*     i++; */
+        /* } */
+        u8 totalMoves = 0;
+        for (u8 j = 0; j < TOTAL_SQUARES; j++) {
+            if (state->emptySquares & (1ULL << j)) {
+                moves[totalMoves++] = createPlaceMove(indexToPosition(j), state->turn, FLAT);
+            }
         }
 
         toReturn->moves = moves;
-        toReturn->numMoves = n;
+        toReturn->numMoves = totalMoves;
         return toReturn;
     }
 
     // overestimate the number of possible moves (I hope)
     // a real board will almost certainly have less than 2048 possible moves
     // https://theses.liacs.nl/pdf/LaurensBeljaards2017Tak.pdfhttps://theses.liacs.nl/pdf/LaurensBeljaards2017Tak.pdf
-    Move* moves = malloc(2048 * sizeof(Move));
+    Move* moves = malloc(256 * sizeof(Move));
     if (!moves) {
         printf("Memory allocation failed for moves array\n");
         return NULL;
@@ -269,32 +286,56 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
     u32 totalMoves = 0;
 
     // generate place moves
-    int* es = emptySquares(state);
-    u8 i = 0;
-    while (es[i] != -1) {
-        if (state->player1.stones > 0) {
-            moves[totalMoves] = createPlaceMove(indexToPosition(es[i]), state->turn, FLAT);
-            totalMoves++;
+    /* int* es = emptySquares(state); */
+    /* u8 i = 0; */
+    /* while (es[i] != -1) { */
+    /*     if (state->player1.stones > 0) { */
+    /*         moves[totalMoves] = createPlaceMove(indexToPosition(es[i]), state->turn, FLAT); */
+    /*         totalMoves++; */
+    /*  */
+    /*         moves[totalMoves] = createPlaceMove(indexToPosition(es[i]), state->turn, STANDING); */
+    /*         totalMoves++; */
+    /*     } */
+    /*     if (state->player1.caps > 0) { */
+    /*         moves[totalMoves] = createPlaceMove(indexToPosition(es[i]), state->turn, CAP); */
+    /*         totalMoves++; */
+    /*     } */
+    /*     i++; */
+    /* } */
+    for (u8 j = 0; j < TOTAL_SQUARES; j++) {
+        if (state->emptySquares & (1ULL << j)) {
+            if (state->player1.stones > 0) {
+                moves[totalMoves] = createPlaceMove(indexToPosition(j), state->turn, FLAT);
+                totalMoves++;
 
-            moves[totalMoves] = createPlaceMove(indexToPosition(es[i]), state->turn, STANDING);
-            totalMoves++;
+                moves[totalMoves] = createPlaceMove(indexToPosition(j), state->turn, STANDING);
+                totalMoves++;
+            }
+            if (state->player1.caps > 0) {
+                moves[totalMoves] = createPlaceMove(indexToPosition(j), state->turn, CAP);
+                totalMoves++;
+            }
         }
-        if (state->player1.caps > 0) {
-            moves[totalMoves] = createPlaceMove(indexToPosition(es[i]), state->turn, CAP);
-            totalMoves++;
-        }
-        i++;
     }
 
     // generate slide moves
-    int* cs = controlledSquares(state, state->turn);
-    i = 0;
-    while (cs[i] != -1) {
-        generateSlidesInDir(state, indexToPosition(cs[i]), LEFT, moves, &totalMoves);
-        generateSlidesInDir(state, indexToPosition(cs[i]), RIGHT, moves, &totalMoves);
-        generateSlidesInDir(state, indexToPosition(cs[i]), UP, moves, &totalMoves);
-        generateSlidesInDir(state, indexToPosition(cs[i]), DOWN, moves, &totalMoves);
-        i++;
+    /* int* cs = controlledSquares(state, state->turn); */
+    /* i = 0; */
+    /* while (cs[i] != -1) { */
+    /*     generateSlidesInDir(state, indexToPosition(cs[i]), LEFT, moves, &totalMoves); */
+    /*     generateSlidesInDir(state, indexToPosition(cs[i]), RIGHT, moves, &totalMoves); */
+    /*     generateSlidesInDir(state, indexToPosition(cs[i]), UP, moves, &totalMoves); */
+    /*     generateSlidesInDir(state, indexToPosition(cs[i]), DOWN, moves, &totalMoves); */
+    /*     i++; */
+    /* } */
+    for (u8 j = 0; j < TOTAL_SQUARES; j++) {
+        Bitboard* control = (state->turn == WHITE) ? &state->whiteControlled : &state->blackControlled;
+        if (*control & (1ULL << j)) {
+            generateSlidesInDir(state, indexToPosition(j), LEFT, moves, &totalMoves);
+            generateSlidesInDir(state, indexToPosition(j), RIGHT, moves, &totalMoves);
+            generateSlidesInDir(state, indexToPosition(j), UP, moves, &totalMoves);
+            generateSlidesInDir(state, indexToPosition(j), DOWN, moves, &totalMoves);
+        }
     }
 
     toReturn->moves = moves;

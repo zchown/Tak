@@ -13,6 +13,10 @@ GameState* createGameState(void) {
     state->player2 = (Reserves){STONES_PER_PLAYER, CAPS_PER_PLAYER};
     state->result = CONTINUE;
     state->history = NULL;
+
+    state->whiteControlled = 0;
+    state->blackControlled = 0;
+    state->emptySquares = (1ULL << TOTAL_SQUARES) - 1;
     return state;
 }
 
@@ -39,6 +43,11 @@ GameState* copyGameState(const GameState* state) {
     newState->player2 = state->player2;
     newState->result = state->result;
     newState->history = copyHistory(state->history);
+
+    newState->whiteControlled = state->whiteControlled;
+    newState->blackControlled = state->blackControlled;
+    newState->emptySquares = state->emptySquares;
+
     return newState;
 }
 
@@ -202,7 +211,7 @@ Piece* copyPieceStack(const Piece* top) {
     return newTop;
 }
 
-Piece* squareInsertPiece(Square* square, Piece* piece) {
+Piece* squareInsertPiece(GameState* state, Square* square, Piece* piece) {
     if (!square) {
         printf("squareInsertPiece: Square is NULL\n");
         return NULL;
@@ -214,10 +223,20 @@ Piece* squareInsertPiece(Square* square, Piece* piece) {
     piece->next = square->head;
     square->head = piece;
     square->numPieces++;
+    if (state) {
+        Position pos = indexToPosition(square - state->board->squares);
+        Bitboard posBit = positionToBit(pos);
+        if (piece->color == WHITE) {
+            state->whiteControlled |= posBit;
+        } else {
+            state->blackControlled |= posBit;
+        }
+        state->emptySquares &= ~posBit;
+    }
     return piece;
 }
 
-Piece* squareInsertPieces(Square* square, Piece* piece, u8 numPieces) {
+Piece* squareInsertPieces(GameState* state, Square* square, Piece* piece, u8 numPieces) {
     if (!square) {
         printf("squareInsertPieces: Square is NULL\n");
         return NULL;
@@ -242,10 +261,20 @@ Piece* squareInsertPieces(Square* square, Piece* piece, u8 numPieces) {
     piece->next = square->head;
     square->head = top;
     square->numPieces += numPieces;
+    if (state) {
+        Position pos = indexToPosition(square - state->board->squares);
+        Bitboard posBit = positionToBit(pos);
+        if (top->color == WHITE) {
+            state->whiteControlled |= posBit;
+        } else {
+            state->blackControlled |= posBit;
+        }
+        state->emptySquares &= ~posBit;
+    }
     return leftOvers;
 }
 
-Piece* squareRemovePiece(Square* square) {
+Piece* squareRemovePiece(GameState* state, Square* square) {
     if (!square) {
         printf("squareRemovePiece: Square is NULL\n");
         return NULL;
@@ -258,10 +287,28 @@ Piece* squareRemovePiece(Square* square) {
     square->head = removed->next;
     square->numPieces--;
     removed->next = NULL;
+    if (state) {
+        Position pos = indexToPosition(square - state->board->squares);
+        Bitboard posBit = positionToBit(pos);
+        if (square->head) {
+            if (square->head->color == WHITE) {
+                state->whiteControlled |= posBit;
+                state->blackControlled &= ~posBit;
+            } else {
+                state->blackControlled |= posBit;
+                state->whiteControlled &= ~posBit;
+            }
+        }
+        else {
+            state->emptySquares |= posBit;
+            state->whiteControlled &= ~posBit;
+            state->blackControlled &= ~posBit;
+        }
+    }
     return removed;
 }
 
-Piece* squareRemovePieces(Square* square, u8 numPieces) {
+Piece* squareRemovePieces(GameState* state, Square* square, u8 numPieces) {
     if (!square) {
         printf("squareRemovePieces: Square is NULL\n");
         return NULL;
@@ -284,6 +331,24 @@ Piece* squareRemovePieces(Square* square, u8 numPieces) {
     if (prev) prev->next = NULL;
     square->head = top;
     square->numPieces -= numPieces;
+    if (state) {
+        Position pos = indexToPosition(square - state->board->squares);
+        Bitboard posBit = positionToBit(pos);
+        if (square->head) {
+            if (square->head->color == WHITE) {
+                state->whiteControlled |= posBit;
+                state->blackControlled &= ~posBit;
+            } else {
+                state->blackControlled |= posBit;
+                state->whiteControlled &= ~posBit;
+            }
+        }
+        else {
+            state->emptySquares |= posBit;
+            state->whiteControlled &= ~posBit;
+            state->blackControlled &= ~posBit;
+        }
+    }
     return toReturn;
 }
 
@@ -440,6 +505,49 @@ char* moveToString(const Move* move) {
     return moveStr;
 }
 
+// Add these implementations to board.c
+
+Bitboard positionToBit(Position pos) {
+    u32 index = positionToIndex(pos);
+    return 1ULL << index;
+}
+
+Position bitToPosition(Bitboard bit) {
+    // Find the index of the least significant 1 bit
+    int index = 0;
+    while ((bit & 1) == 0) {
+        bit >>= 1;
+        index++;
+    }
+    return indexToPosition(index);
+}
+
+void updateBitboards(GameState* state) {
+    if (!state || !state->board) {
+        printf("updateBitboards: Invalid state or board\n");
+        return;
+    }
+
+    // Clear all bitboards
+    state->whiteControlled = 0;
+    state->blackControlled = 0;
+    state->emptySquares = 0;
+
+    // Populate bitboards based on current board state
+    for (int i = 0; i < TOTAL_SQUARES; i++) {
+        Square* sq = &state->board->squares[i];
+        Position pos = indexToPosition(i);
+        Bitboard posBit = positionToBit(pos);
+
+        if (sq->numPieces == 0) {
+            state->emptySquares |= posBit;
+        } else if (sq->head->color == WHITE) {
+            state->whiteControlled |= posBit;
+        } else {
+            state->blackControlled |= posBit;
+        }
+    }
+}
 
 bool checkReservesEmpty(const GameState* state) {
     return ((state->player1.stones == 0 && state->player1.caps == 0) ||
@@ -700,6 +808,7 @@ void printMove(const Move* move) {
                 (move->move.slide.direction == UP)    ? '+' : '-',
                 (move->move.slide.crush == CRUSH) ? '*' : 'X',
                 move->move.slide.count);
+        printf("\nColor: %c", (move->move.slide.color == WHITE) ? '1' : '2');
         printf("\nDrops:");
         for (int i = 0; i < move->move.slide.count; i++) {
             printf(" %d", move->move.slide.drops[i]);

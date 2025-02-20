@@ -10,6 +10,7 @@
 
 #define u8 uint_fast8_t
 #define u32 uint_fast32_t
+#define u64 uint_fast64_t
 
 #define BOARD_SIZE 6
 #define TOTAL_SQUARES (BOARD_SIZE * BOARD_SIZE)
@@ -40,6 +41,8 @@ typedef struct {
 typedef struct {
     Square squares[TOTAL_SQUARES];
 } Board;
+
+typedef u64 Bitboard;
 
 typedef struct {
     u8 stones;
@@ -88,7 +91,11 @@ typedef struct {
     Reserves player2;
     Result result;
     GameHistory* history;
+    Bitboard whiteControlled;
+    Bitboard blackControlled;
+    Bitboard emptySquares;
 } GameState;
+
 
 // Game state management
 GameState* createGameState();
@@ -115,10 +122,10 @@ Piece* copyPieceStack(const Piece* top);
 Square createSquare();
 void freeSquare(Square* square);
 Square squareCopy(const Square* square);
-Piece* squareInsertPiece(Square* square, Piece* piece);
-Piece* squareInsertPieces(Square* square, Piece* piece, u8 numPieces);
-Piece* squareRemovePiece(Square* square);
-Piece* squareRemovePieces(Square* square, u8 numPieces);
+Piece* squareInsertPiece(GameState* state, Square* square, Piece* piece);
+Piece* squareInsertPieces(GameState* state, Square* square, Piece* piece, u8 numPieces);
+Piece* squareRemovePiece(GameState* state, Square* square);
+Piece* squareRemovePieces(GameState* state, Square* square, u8 numPieces);
 bool squareIsEmpty(Square* square);
 
 // Move operations
@@ -132,6 +139,11 @@ char* moveToString(const Move* move);
 // Board operations
 Square* readSquare(const Board* board, Position pos);
 bool isValidPosition(Position pos);
+
+// Bitboard operations
+Bitboard positionToBit(Position pos);
+Position bitToPosition(Bitboard bit);
+void updateBitboards(GameState* state);
 
 // Check for road, flat wins, or draws
 Result checkGameResult(const GameState* state);

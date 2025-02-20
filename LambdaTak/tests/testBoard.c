@@ -50,7 +50,7 @@ void test_createBoard() {
 void test_squareInsertPiece() {
     Square square = {NULL, 0};
     Piece* piece = createPiece(FLAT, WHITE);
-    squareInsertPiece(&square, piece);
+    squareInsertPiece(NULL, &square, piece);
     CU_ASSERT_PTR_EQUAL(square.head, piece);
     CU_ASSERT_EQUAL(square.numPieces, 1);
     freePieceStack(square.head);
@@ -59,8 +59,8 @@ void test_squareInsertPiece() {
 void test_squareRemovePiece() {
     Square square = {NULL, 0};
     Piece* piece = createPiece(FLAT, WHITE);
-    squareInsertPiece(&square, piece);
-    Piece* removed = squareRemovePiece(&square);
+    squareInsertPiece(NULL, &square, piece);
+    Piece* removed = squareRemovePiece(NULL, &square);
     CU_ASSERT_PTR_EQUAL(removed, piece);
     CU_ASSERT_EQUAL(square.numPieces, 0);
     freePieceStack(removed);
@@ -70,9 +70,9 @@ void test_squareRemovePieces() {
     Square square = {NULL, 0};
     for (int i = 0; i < 3; i++) {
         Piece* piece = createPiece(FLAT, WHITE);
-        squareInsertPiece(&square, piece);
+        squareInsertPiece(NULL, &square, piece);
     }
-    Piece* removed = squareRemovePieces(&square, 2);
+    Piece* removed = squareRemovePieces(NULL, &square, 2);
     CU_ASSERT_PTR_NOT_NULL(removed);
     CU_ASSERT_EQUAL(square.numPieces, 1);
     freePieceStack(removed);
@@ -84,7 +84,7 @@ void test_copyGameState() {
     Position pos = {0, 0};
     Piece* piece = createPiece(FLAT, WHITE);
     Square* originalSquare = readSquare(original->board, pos);
-    squareInsertPiece(originalSquare, piece);
+    squareInsertPiece(original, originalSquare, piece);
     original->turn = BLACK;
 
     GameState* copy = copyGameState(original);
@@ -93,7 +93,7 @@ void test_copyGameState() {
     CU_ASSERT_EQUAL(copySquare->numPieces, 1);
     CU_ASSERT_EQUAL(copy->turn, BLACK);
 
-    squareRemovePiece(copySquare);
+    squareRemovePiece(copy, copySquare);
     CU_ASSERT_EQUAL(copySquare->numPieces, 0);
     CU_ASSERT_EQUAL(originalSquare->numPieces, 1);
 
@@ -108,7 +108,7 @@ void test_checkRoadWin() {
         Position pos = {0, y};
         Square* sq = readSquare(state->board, pos);
         Piece* p = createPiece(FLAT, BLACK);
-        squareInsertPiece(sq, p);
+        squareInsertPiece(state, sq, p);
     }
     Result result = checkGameResult(state);
     CU_ASSERT_EQUAL(result, ROAD_BLACK);
@@ -120,26 +120,26 @@ void test_checkRoadWin() {
         Position pos = {x, 0};
         Square* sq = readSquare(state->board, pos);
         Piece* p = createPiece(FLAT, WHITE);
-        squareInsertPiece(sq, p);
+        squareInsertPiece(state, sq, p);
     }
     result = checkGameResult(state);
     CU_ASSERT_EQUAL(result, ROAD_WHITE);
 
     // Ensure that a road win is not detected if the road is not long enough
-    squareRemovePiece(readSquare(state->board, (Position){0, 0}));
+    squareRemovePiece(state, readSquare(state->board, (Position){0, 0}));
     result = checkGameResult(state);
     CU_ASSERT_EQUAL(result, CONTINUE);
 
     // Ensure that a road win is not detected if the road includes standing stones
     Piece* p = createPiece(STANDING, WHITE);
-    squareInsertPiece(readSquare(state->board, (Position){0, 0}), p);
+    squareInsertPiece(state, readSquare(state->board, (Position){0, 0}), p);
     result = checkGameResult(state);
     CU_ASSERT_EQUAL(result, CONTINUE);
 
     // Ensure that a road win is detected if the road includes a capstone
-    squareRemovePiece(readSquare(state->board, (Position){0, 0}));
+    squareRemovePiece(state, readSquare(state->board, (Position){0, 0}));
     p = createPiece(CAP, WHITE);
-    squareInsertPiece(readSquare(state->board, (Position){0, 0}), p);
+    squareInsertPiece(state, readSquare(state->board, (Position){0, 0}), p);
     result = checkGameResult(state);
     CU_ASSERT_EQUAL(result, ROAD_WHITE);
     freeGameState(state);
@@ -156,7 +156,7 @@ void test_checkFullBoard() {
                 c = BLACK;
             }
             Piece* piece = createPiece(FLAT, c);
-            squareInsertPiece(readSquare(state->board, pos), piece);
+            squareInsertPiece(state, readSquare(state->board, pos), piece);
         }
     }
     Result result = checkGameResult(state);
@@ -174,7 +174,7 @@ void test_checkFullBoard() {
                 c = BLACK;
             }
             Piece* piece = createPiece(FLAT, c);
-            squareInsertPiece(readSquare(state->board, pos), piece);
+            squareInsertPiece(state, readSquare(state->board, pos), piece);
         }
     }
     result = checkGameResult(state);
@@ -187,7 +187,7 @@ void test_checkFullBoard() {
     state->player1.stones = 0;
     state->player1.caps = 0;
 
-    squareInsertPiece(readSquare(state->board, (Position){0, 0}), createPiece(FLAT, WHITE));
+    squareInsertPiece(state, readSquare(state->board, (Position){0, 0}), createPiece(FLAT, WHITE));
 
     result = checkGameResult(state);
     CU_ASSERT_EQUAL(result, FLAT_WHITE);

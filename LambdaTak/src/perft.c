@@ -1,0 +1,51 @@
+#include "perft.h"
+#include "tps.h"
+
+u64 perft(GameState* state, int depth, int currentDepth, u64 nodes) {
+    GeneratedMoves* moves = generateAllMoves(state);
+    if (currentDepth == depth) {
+        u64 numMoves = moves->numMoves;
+        freeGeneratedMoves(moves);
+        return numMoves;
+    }
+    
+    for (int i = 0; i < moves->numMoves; i++) {
+        int r = makeMoveChecks(state, &moves->moves[i]);
+        if (r != SUCCESS) {
+            printf("Invalid move: %d\n", r);
+            printf("movetype: %d\n", moves->moves[i].type);
+            printMove(&moves->moves[i]);
+            printf("tps: %s\n", gameStateToTPS(state));
+            Reserves res = (state->turn== WHITE) ? state->player1 : state->player2;
+            printf("reserves, stones: %d, caps: %d\n", res.stones, res.caps);
+            exit(1);
+        }
+        /* makeMoveNoChecks(state, &moves->moves[i]);  */
+        nodes += perft(state, depth, currentDepth + 1, 0);
+        undoMoveNoChecks(state, &moves->moves[i]);
+    }
+    freeGeneratedMoves(moves);
+    return nodes;
+}
+
+void runPerft(GameState* state, int maxDepth) {
+    u64 nodes[maxDepth];
+    clock_t times[maxDepth];
+    for (int i = 0; i <= maxDepth; i++) {
+        nodes[i] = 0;
+        times[i] = 0;
+    }
+
+
+    GameState* copy;
+    for (int i = 0; i < maxDepth; i++) {
+        copy = copyGameState(state);
+        clock_t start = clock();
+        nodes[i] = perft(copy, i, 0, 0);
+        clock_t end = clock();
+        times[i] = end - start;
+        printf("Depth %d: %llu nodes, %f seconds, %f Mnps\n", i + 1, nodes[i], (double)times[i] / CLOCKS_PER_SEC, (double)nodes[i] / ((double)times[i] / CLOCKS_PER_SEC) / 1000000);
+        freeGameState(copy);
+    }
+}
+

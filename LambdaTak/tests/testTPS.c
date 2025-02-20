@@ -88,7 +88,7 @@ void test_boardToTPS() {
     Position pos = {0, 0};
     Piece* piece = createPiece(FLAT, WHITE);
     Square* sq = readSquare(board, pos);
-    squareInsertPiece(sq, piece);
+    squareInsertPiece(NULL, sq, piece);
 
     char* tps = boardToTPS(board);
     CU_ASSERT_PTR_NOT_NULL(tps);

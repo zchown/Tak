@@ -4,8 +4,17 @@ project(LambdaTak VERSION 1.0)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED True)
 
+# Set compiler optimization flags for different build types
+set(CMAKE_C_FLAGS_DEBUG "-g -O0")
+set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -mtune=native -funroll-loops -fprefetch-loop-arrays") 
+
+# If no build type is specified, default to Debug
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build: Debug or Release" FORCE)
+endif()
+
 # Add the main executable
-add_executable(lambdaTak src/main.c src/board.c src/tps.c src/moves.c)
+add_executable(lambdaTak src/main.c src/board.c src/tps.c src/moves.c src/perft.c)
 
 # Manually find CUnit on macOS (Homebrew)
 if(APPLE)

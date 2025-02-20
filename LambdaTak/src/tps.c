@@ -109,6 +109,7 @@ GameState* parseTPS(const char* tps) {
         }
     }
     updateReserves(state);
+    updateBitboards(state);
     /* printBoard(state->board); */
     return state;
 }
