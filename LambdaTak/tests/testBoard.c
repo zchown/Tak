@@ -193,51 +193,51 @@ void test_checkFullBoard() {
     CU_ASSERT_EQUAL(result, FLAT_WHITE);
 }
 
-void test_parseMove_place() {
-    Move* move = parseMove("a1", WHITE);
-    CU_ASSERT_PTR_NOT_NULL(move);
-    if (move) {
-        CU_ASSERT_EQUAL(move->type, PLACE);
-        CU_ASSERT_EQUAL(move->move.place.pos.x, 0);
-        CU_ASSERT_EQUAL(move->move.place.pos.y, 0);
-        freeMove(move);
-    }
-
-    move = parseMove("Cb2", BLACK);
-    CU_ASSERT_PTR_NOT_NULL(move);
-    if (move) {
-        CU_ASSERT_EQUAL(move->type, PLACE);
-        CU_ASSERT_EQUAL(move->move.place.stone, CAP);
-        CU_ASSERT_EQUAL(move->move.place.pos.x, 1);
-        freeMove(move);
-    }
-}
-
-void test_parseMove_slide() {
-    Move* move = parseMove("3a1>123*", WHITE);
-    CU_ASSERT_PTR_NOT_NULL(move);
-    if (move) {
-        CU_ASSERT_EQUAL(move->type, SLIDE);
-        CU_ASSERT_EQUAL(move->move.slide.count, 3);
-        CU_ASSERT_EQUAL(move->move.slide.direction, RIGHT);
-        CU_ASSERT_EQUAL(move->move.slide.drops[0], 1);
-        CU_ASSERT_EQUAL(move->move.slide.drops[1], 2);
-        CU_ASSERT_EQUAL(move->move.slide.drops[2], 3);
-        CU_ASSERT_EQUAL(move->move.slide.crush, CRUSH);
-        freeMove(move);
-    }
-
-    Move* move2 = parseMove("1b2<1", BLACK);
-    CU_ASSERT_PTR_NOT_NULL(move2);
-    if (move2) {
-        CU_ASSERT_EQUAL(move2->type, SLIDE);
-        CU_ASSERT_EQUAL(move2->move.slide.count, 1);
-        CU_ASSERT_EQUAL(move2->move.slide.direction, LEFT);
-        CU_ASSERT_EQUAL(move2->move.slide.drops[0], 1);
-        CU_ASSERT_EQUAL(move2->move.slide.crush, NO_CRUSH);
-        freeMove(move2);
-    }
-}
+/* void test_parseMove_place() { */
+/*     Move* move = parseMove("a1", WHITE); */
+/*     CU_ASSERT_PTR_NOT_NULL(move); */
+/*     if (move) { */
+/*         CU_ASSERT_EQUAL(move->type, PLACE); */
+/*         CU_ASSERT_EQUAL(move->move.place.pos.x, 0); */
+/*         CU_ASSERT_EQUAL(move->move.place.pos.y, 0); */
+/*         freeMove(move); */
+/*     } */
+/*  */
+/*     move = parseMove("Cb2", BLACK); */
+/*     CU_ASSERT_PTR_NOT_NULL(move); */
+/*     if (move) { */
+/*         CU_ASSERT_EQUAL(move->type, PLACE); */
+/*         CU_ASSERT_EQUAL(move->move.place.stone, CAP); */
+/*         CU_ASSERT_EQUAL(move->move.place.pos.x, 1); */
+/*         freeMove(move); */
+/*     } */
+/* } */
+/*  */
+/* void test_parseMove_slide() { */
+/*     Move* move = parseMove("3a1>123*", WHITE); */
+/*     CU_ASSERT_PTR_NOT_NULL(move); */
+/*     if (move) { */
+/*         CU_ASSERT_EQUAL(move->type, SLIDE); */
+/*         CU_ASSERT_EQUAL(move->move.slide.count, 3); */
+/*         CU_ASSERT_EQUAL(move->move.slide.direction, RIGHT); */
+/*         CU_ASSERT_EQUAL(move->move.slide.drops[0], 1); */
+/*         CU_ASSERT_EQUAL(move->move.slide.drops[1], 2); */
+/*         CU_ASSERT_EQUAL(move->move.slide.drops[2], 3); */
+/*         CU_ASSERT_EQUAL(move->move.slide.crush, CRUSH); */
+/*         freeMove(move); */
+/*     } */
+/*  */
+/*     Move* move2 = parseMove("1b2<1", BLACK); */
+/*     CU_ASSERT_PTR_NOT_NULL(move2); */
+/*     if (move2) { */
+/*         CU_ASSERT_EQUAL(move2->type, SLIDE); */
+/*         CU_ASSERT_EQUAL(move2->move.slide.count, 1); */
+/*         CU_ASSERT_EQUAL(move2->move.slide.direction, LEFT); */
+/*         CU_ASSERT_EQUAL(move2->move.slide.drops[0], 1); */
+/*         CU_ASSERT_EQUAL(move2->move.slide.crush, NO_CRUSH); */
+/*         freeMove(move2); */
+/*     } */
+/* } */
 
 void test_checkHardRoads() {
     GameState* state = parseTPS("[TPS 1,x3,2C,x/1,x2,2,x2/1,1,1,2,2S,x/1,x,1,x3/2,x,1,x3/x,x,2,x3 2 1]");

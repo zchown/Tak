@@ -4,7 +4,11 @@ MoveResult checkMove(GameState* state, const Move* move) {
     if (move->type == PLACE) {
         if (!isValidPosition(move->move.place.pos)) return INVALID_POSITION;
         if (readSquare(state->board, move->move.place.pos)->head != NULL) return INVALID_POSITION;
-        if (move->move.place.color != state->turn) return INVALID_COLOR;
+        if (move->move.place.color != state->turn) {
+            if (state->turnNumber > 2) {
+                return INVALID_COLOR;
+            }
+        }
         Stone stone = move->move.place.stone;
         if (state->player1.stones == 0 && (stone == FLAT || stone == STANDING)) {
             return INVALID_STONE;
@@ -18,7 +22,12 @@ MoveResult checkMove(GameState* state, const Move* move) {
         if (!isValidPosition(move->move.slide.startPos)) return INVALID_POSITION;
         Square* startSq = readSquare(state->board, move->move.slide.startPos);
         if (startSq->head == NULL) return INVALID_POSITION;
-        if (startSq->head->color != state->turn) return INVALID_COLOR;
+        if (startSq->head->color != move->move.slide.color) {
+            printf("StartSq->head->color: %d\n", startSq->head->color);
+            printf("Move->move.slide.color: %d\n", move->move.slide.color);
+            printMove(move);
+            return INVALID_COLOR;
+        }
         if (move->move.slide.color != state->turn) return INVALID_COLOR;
         if (move->move.slide.count == 0) return INVALID_COUNT;
         if (move->move.slide.count > MAX_PICKUP) return INVALID_COUNT;
@@ -31,11 +40,17 @@ MoveResult checkMove(GameState* state, const Move* move) {
         u8 len = 0;
         while (move->move.slide.drops[i] != 0) {
             sum += move->move.slide.drops[i];
-            if (sum > move->move.slide.count) return INVALID_DROPS;
+            if (sum > move->move.slide.count) {
+                printf("Sum: %d, count: %d\n", sum, move->move.slide.count);
+                return INVALID_DROPS;
+            }
             i++;
             len++;
         }
-        if (sum != move->move.slide.count) return INVALID_DROPS;
+        if (sum != move->move.slide.count) {
+            printf("Sum: %d, count: %d\n", sum, move->move.slide.count);
+            return INVALID_DROPS;
+        }
 
         // check if anything in way and if crush is valid
         bool shouldCrush = false;
@@ -158,13 +173,11 @@ MoveResult undoMoveChecks(GameState* state, const Move* move) {
         }
         Position endPos = slidePosition(mv->startPos, mv->direction, slideLength);
         if (!isValidPosition(endPos)) return INVALID_POSITION;
-        Direction invDir = oppositeDirection(mv->direction);
 
-        Position curPos = endPos;
+        Position curPos = nextPosition(mv->startPos, mv->direction);
         u8 i = 0;
         u8 dropsTotal = 0;
-        while(positionToIndex(nextPosition(curPos, mv->direction)) != 
-                positionToIndex(nextPosition(endPos, mv->direction))) {
+        while(i < slideLength) {
             dropsTotal += mv->drops[i];
             if (mv->drops[i] == 0) return INVALID_DROPS;
             if (mv->drops[i] > readSquare(state->board, curPos)->numPieces) return INVALID_DROPS;
@@ -180,13 +193,21 @@ MoveResult undoMoveChecks(GameState* state, const Move* move) {
                     if (readSquare(state->board, curPos)->head->next->stone == CAP) return INVALID_CRUSH;
                 }
             }
+            i++;
+            curPos = nextPosition(curPos, mv->direction);
         }
 
-        if (dropsTotal != mv->count) return INVALID_COUNT;
+        if (dropsTotal != mv->count) {
+            printf("Drops total: %d, count: %d\n", dropsTotal, mv->count);
+            return INVALID_COUNT;
+        }
 
         undoMoveNoChecks(state, move);
     }
-    return INVALID_MOVE_TYPE;
+    else {
+        return INVALID_MOVE_TYPE;
+    }
+    return SUCCESS;
 }
 
 GameState* undoMoveNoChecks(GameState* state, const Move* move) {
@@ -266,7 +287,7 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
         u8 totalMoves = 0;
         for (u8 j = 0; j < TOTAL_SQUARES; j++) {
             if (state->emptySquares & (1ULL << j)) {
-                moves[totalMoves++] = createPlaceMove(indexToPosition(j), state->turn, FLAT);
+                moves[totalMoves++] = createPlaceMove(indexToPosition(j), oppositeColor(state->turn), FLAT);
             }
         }
 
@@ -278,7 +299,7 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
     // overestimate the number of possible moves (I hope)
     // a real board will almost certainly have less than 2048 possible moves
     // https://theses.liacs.nl/pdf/LaurensBeljaards2017Tak.pdfhttps://theses.liacs.nl/pdf/LaurensBeljaards2017Tak.pdf
-    Move* moves = malloc(256 * sizeof(Move));
+    Move* moves = malloc(512 * sizeof(Move));
     if (!moves) {
         printf("Memory allocation failed for moves array\n");
         return NULL;

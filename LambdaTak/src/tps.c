@@ -183,7 +183,7 @@ char* boardToTPS(Board* board) {
         }
     }
 
-    char* boardStrRev = malloc(size);
+    char* boardStrRev = malloc(size + 1);
 
     for (u8 i = 0; i < size; i++) {
         boardStrRev[i] = boardStr[size - 1 - i];

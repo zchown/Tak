@@ -133,7 +133,7 @@ Move createPlaceMove(Position pos, Color color, Stone stone);
 Move createSlideMove(Color color, Position startPos, Direction direction, u8 count, u8* drops, Crush crush);
 void freeMove(Move* move);
 Move* copyMove(const Move* move);
-Move* parseMove(const char* moveStr, Color color);
+/* Move* parseMove(const char* moveStr, Color color); */
 char* moveToString(const Move* move);
 
 // Board operations
@@ -175,6 +175,7 @@ void printPiece(const Piece* piece);
 void printSquare(const Square* square);
 void printBoard(const Board* board);
 void printGameState(const GameState* state);
+void printBitboard(Bitboard bitboard);
 
 #endif // BOARD_H
 

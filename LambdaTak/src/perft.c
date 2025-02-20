@@ -16,14 +16,21 @@ u64 perft(GameState* state, int depth, int currentDepth, u64 nodes) {
             printf("movetype: %d\n", moves->moves[i].type);
             printMove(&moves->moves[i]);
             printf("tps: %s\n", gameStateToTPS(state));
-            if (
+            printf("color: %d\n", state->turn);
+            printf("bitboard white: %llu\n", state->whiteControlled);
+            printf("bitboard black: %llu\n", state->blackControlled);
             Reserves res = (state->turn== WHITE) ? state->player1 : state->player2;
             printf("reserves, stones: %d, caps: %d\n", res.stones, res.caps);
             exit(1);
         }
-        /* makeMoveNoChecks(state, &moves->moves[i]);  */
         nodes += perft(state, depth, currentDepth + 1, 0);
-        undoMoveNoChecks(state, &moves->moves[i]);
+        r = undoMoveChecks(state, &moves->moves[i]);
+        if (r != SUCCESS) {
+            printf("Invalid undo: %d\n", r);
+            printMove(&moves->moves[i]);
+            printf("tps: %s\n", gameStateToTPS(state));
+            exit(1);
+        }
     }
     freeGeneratedMoves(moves);
     return nodes;

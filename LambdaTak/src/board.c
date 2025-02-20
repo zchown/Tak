@@ -93,6 +93,7 @@ GameHistory* addHistory(GameHistory* history, Move move) {
         return history;
     }
     newHistory->next = history;
+    newHistory->move = move;
     return newHistory;
 }
 
@@ -228,8 +229,10 @@ Piece* squareInsertPiece(GameState* state, Square* square, Piece* piece) {
         Bitboard posBit = positionToBit(pos);
         if (piece->color == WHITE) {
             state->whiteControlled |= posBit;
+            state->blackControlled &= ~posBit;
         } else {
             state->blackControlled |= posBit;
+            state->whiteControlled &= ~posBit;
         }
         state->emptySquares &= ~posBit;
     }
@@ -266,8 +269,10 @@ Piece* squareInsertPieces(GameState* state, Square* square, Piece* piece, u8 num
         Bitboard posBit = positionToBit(pos);
         if (top->color == WHITE) {
             state->whiteControlled |= posBit;
+            state->blackControlled &= ~posBit;
         } else {
             state->blackControlled |= posBit;
+            state->whiteControlled &= ~posBit;
         }
         state->emptySquares &= ~posBit;
     }
@@ -403,65 +408,65 @@ Move* copyMove(const Move* move) {
     return newMove;
 }
 
-Move* parseMove(const char* moveStr, Color color) {
-    if (!moveStr) {
-        printf("parseMove: Move string is NULL\n");
-        return NULL;
-    }
-    Move* move = malloc(sizeof(Move));
-    if (!move) {
-        printf("parseMove: Failed to allocate memory for move\n");
-        return NULL;
-    }
-    char firstChar = moveStr[0];
-    if (firstChar == 'S' || firstChar == 'C' || strlen(moveStr) == 2) {
-        move->type = PLACE;
-        move->move.place.color = color;
-        if (firstChar == 'S') {
-            move->move.place.stone = STANDING;
-            move->move.place.pos.x = moveStr[1] - 'a';
-            move->move.place.pos.y = moveStr[2] - '1';
-        } else if (firstChar == 'C') {
-            move->move.place.stone = CAP;
-            move->move.place.pos.x = moveStr[1] - 'a';
-            move->move.place.pos.y = moveStr[2] - '1';
-        } else {
-            move->move.place.stone = FLAT;
-            move->move.place.pos.x = moveStr[0] - 'a';
-            move->move.place.pos.y = moveStr[1] - '1';
-        }
-    } else {
-        move->type = SLIDE;
-        move->move.slide.color = color;
-        u8 offset = 0;
-        if (isdigit(firstChar)) {
-            move->move.slide.count = firstChar - '0';
-            offset = 1;
-        } else {
-            move->move.slide.count = 1;
-        }
-        move->move.slide.startPos.x = moveStr[offset] - 'a';
-        move->move.slide.startPos.y = moveStr[offset + 1] - '1';
-        move->move.slide.direction = (moveStr[offset + 2] == '<') ? LEFT :
-            (moveStr[offset + 2] == '>') ? RIGHT :
-            (moveStr[offset + 2] == '+') ? UP : DOWN;
-        if (move->move.slide.count > 1) {
-            int i = 3;
-            while (isdigit(moveStr[offset + i])) {
-                move->move.slide.drops[i - 3] = moveStr[offset + i] - '0';
-                i++;
-            }
-            move->move.slide.crush = (moveStr[offset + i] == '*') ? CRUSH : NO_CRUSH;
-        } else {
-            move->move.slide.drops[0] = 1;
-            for (int i = 1; i < MAX_PICKUP; i++) {
-                move->move.slide.drops[i] = 0;
-            }
-            move->move.slide.crush = (moveStr[offset + 3] == '*') ? CRUSH : NO_CRUSH;
-        }
-    }
-    return move;
-}
+/* Move* parseMove(const char* moveStr, Color color) { */
+/*     if (!moveStr) { */
+/*         printf("parseMove: Move string is NULL\n"); */
+/*         return NULL; */
+/*     } */
+/*     Move* move = malloc(sizeof(Move)); */
+/*     if (!move) { */
+/*         printf("parseMove: Failed to allocate memory for move\n"); */
+/*         return NULL; */
+/*     } */
+/*     char firstChar = moveStr[0]; */
+/*     if (firstChar == 'S' || firstChar == 'C' || strlen(moveStr) == 2) { */
+/*         move->type = PLACE; */
+/*         move->move.place.color = color; */
+/*         if (firstChar == 'S') { */
+/*             move->move.place.stone = STANDING; */
+/*             move->move.place.pos.x = moveStr[1] - 'a'; */
+/*             move->move.place.pos.y = moveStr[2] - '1'; */
+/*         } else if (firstChar == 'C') { */
+/*             move->move.place.stone = CAP; */
+/*             move->move.place.pos.x = moveStr[1] - 'a'; */
+/*             move->move.place.pos.y = moveStr[2] - '1'; */
+/*         } else { */
+/*             move->move.place.stone = FLAT; */
+/*             move->move.place.pos.x = moveStr[0] - 'a'; */
+/*             move->move.place.pos.y = moveStr[1] - '1'; */
+/*         } */
+/*     } else { */
+/*         move->type = SLIDE; */
+/*         move->move.slide.color = color; */
+/*         u8 offset = 0; */
+/*         if (isdigit(firstChar)) { */
+/*             move->move.slide.count = firstChar - '0'; */
+/*             offset = 1; */
+/*         } else { */
+/*             move->move.slide.count = 1; */
+/*         } */
+/*         move->move.slide.startPos.x = moveStr[offset] - 'a'; */
+/*         move->move.slide.startPos.y = moveStr[offset + 1] - '1'; */
+/*         move->move.slide.direction = (moveStr[offset + 2] == '<') ? LEFT : */
+/*             (moveStr[offset + 2] == '>') ? RIGHT : */
+/*             (moveStr[offset + 2] == '+') ? UP : DOWN; */
+/*         if (move->move.slide.count > 1) { */
+/*             int i = 3; */
+/*             while (isdigit(moveStr[offset + i])) { */
+/*                 move->move.slide.drops[i - 3] = moveStr[offset + i] - '0'; */
+/*                 i++; */
+/*             } */
+/*             move->move.slide.crush = (moveStr[offset + i] == '*') ? CRUSH : NO_CRUSH; */
+/*         } else { */
+/*             move->move.slide.drops[0] = 1; */
+/*             for (int i = 1; i < MAX_PICKUP; i++) { */
+/*                 move->move.slide.drops[i] = 0; */
+/*             } */
+/*             move->move.slide.crush = (moveStr[offset + 3] == '*') ? CRUSH : NO_CRUSH; */
+/*         } */
+/*     } */
+/*     return move; */
+/* } */
 
 char* moveToString(const Move* move) {
     if (!move) {
@@ -547,6 +552,7 @@ void updateBitboards(GameState* state) {
             state->blackControlled |= posBit;
         }
     }
+    /* printBitboard(state->whiteControlled); */
 }
 
 bool checkReservesEmpty(const GameState* state) {
@@ -903,3 +909,20 @@ void printGameState(const GameState* state) {
     }
 }
 
+void printBitboard(Bitboard board) {
+    printf("Bitboard representation:\n");
+    for (int y = BOARD_SIZE - 1; y >= 0; y--) {
+        printf("%d |", y + 1);
+        for (int x = 0; x < BOARD_SIZE; x++) {
+            Position pos = {x, y};
+            Bitboard bit = positionToBit(pos);
+            printf(" %c |", (board & bit) ? '1' : '0');
+        }
+        printf("\n");
+    }
+    printf("    ");
+    for (int x = 0; x < BOARD_SIZE; x++) {
+        printf(" %c  ", 'a' + x);
+    }
+    printf("\n");
+}
