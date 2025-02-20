@@ -56,6 +56,7 @@ void validateMoves(GameState* board, Move* moves, int moveCount) {
             /* GameState* newBoard = makeMoveNoChecks(board, &moves[i]); */
             GameState* newBoard = copyGameState(board);
             /* printf("copied board\n"); */
+            printf("attempting undo\n");
             MoveResult undoResult = undoMoveChecks(newBoard, &moves[i]);
             tps = boardToTPS(newBoard->board);
             printf("Board state after undoing move: %s\n", tps);

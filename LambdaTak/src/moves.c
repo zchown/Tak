@@ -10,10 +10,11 @@ MoveResult checkMove(GameState* state, const Move* move) {
             }
         }
         Stone stone = move->move.place.stone;
-        if (state->player1.stones == 0 && (stone == FLAT || stone == STANDING)) {
+        Reserves* reserves = (move->move.place.color == WHITE) ? &state->player1 : &state->player2;
+        if (reserves->stones == 0 && (stone == FLAT || stone == STANDING)) {
             return INVALID_STONE;
         }
-        if (state->player1.caps == 0 && stone == CAP) {
+        if (reserves->caps == 0 && stone == CAP) {
             return INVALID_STONE;
         }
         return SUCCESS;
@@ -48,28 +49,36 @@ MoveResult checkMove(GameState* state, const Move* move) {
             len++;
         }
         if (sum != move->move.slide.count) {
-            printf("Sum: %d, count: %d\n", sum, move->move.slide.count);
+            /* printf("Sum: %d, count: %d\n", sum, move->move.slide.count); */
             return INVALID_DROPS;
         }
 
         // check if anything in way and if crush is valid
         bool shouldCrush = false;
+        Position nextPos = move->move.slide.startPos;
         for (u8 j = 0; j < len; j++) {
-            Position nextPos = nextPosition(move->move.slide.startPos, move->move.slide.direction);
+            printf("Drops: %d\n", move->move.slide.drops[j]);
+            Position nextPos = nextPosition(nextPos, move->move.slide.direction);
             /* printf("NextPos: %d %d\n", nextPos.x, nextPos.y); */
             if (!isValidPosition(nextPos)) return INVALID_SLIDE;
             Square* sq = readSquare(state->board, nextPos);
             if (sq->head != NULL) {
                 if (j == len - 1) {
+                    printf("Sq->head->stone: %d\n", sq->head->stone);
+                    printf("pos: %d %d\n", nextPos.x, nextPos.y);
                     if (sq->head->stone == CAP) return INVALID_SLIDE; 
                     if (sq->head->stone == STANDING) {
-                        /* printf("Sq->head->stone: %d\n", sq->head->stone); */
-                        /* printf("Pos: %d %d\n", nextPos.x, nextPos.y); */
-                        if (startSq->head->stone != CAP) return INVALID_CRUSH;
+                        if (startSq->head->stone != CAP) {
+                            printf("StartSq->head->stone: %d\n", startSq->head->stone);
+                            return INVALID_CRUSH;
+                        }
                         if (move->move.slide.crush != CRUSH) return INVALID_CRUSH;
-                        if (move->move.slide.drops[j] != 1) return INVALID_CRUSH;
+                        if (move->move.slide.drops[j] != 1) {
+                            printf("Drops: %d\n", move->move.slide.drops[j]);
+                            return INVALID_CRUSH;
+                        }
                         shouldCrush = true;
-                        /* printf("Crush\n"); */
+                        printf("Crush\n");
                     }
                 }
                 else {
@@ -77,8 +86,14 @@ MoveResult checkMove(GameState* state, const Move* move) {
                 }
             }
         }
-        if (shouldCrush && move->move.slide.crush != CRUSH) return INVALID_CRUSH;
-        if (!shouldCrush && move->move.slide.crush == CRUSH) return INVALID_CRUSH;
+        if (shouldCrush && move->move.slide.crush != CRUSH) {
+            printf("Should crush but no crush\n");
+            return INVALID_CRUSH;
+        }
+        if (!shouldCrush && move->move.slide.crush == CRUSH) {
+            printf("Should not crush but crush\n");
+            return INVALID_CRUSH;
+        }
         return SUCCESS;
     }
     else {
@@ -127,11 +142,19 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move) {
     }
     else if (move->type == SLIDE) {
         Piece* pieces = squareRemovePieces(state, readSquare(state->board, move->move.slide.startPos), move->move.slide.count);
-        u8 slideLength = 0;
+        /* Piece* cur = pieces; */
+        /* while (cur) { */
+        /*     printf("Piece, stone: %d, color: %d\n", cur->stone, cur->color); */
+        /*     cur = cur->next; */
+        /* } */
+
+        u8 slideLength = 1;
         while (move->move.slide.drops[slideLength] != 0) {
             slideLength++;
         }
+        /* printf("Slide length: %d\n", slideLength); */
         Position pos = slidePosition(move->move.slide.startPos, move->move.slide.direction, slideLength);
+        /* Position pos = nextPosition(move->move.slide.startPos, move->move.slide.direction); */
         if (move->move.slide.crush == CRUSH) {
             Square* sq = readSquare(state->board, pos);
             if (!sq->head) {
@@ -142,9 +165,10 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move) {
             }
         }
         Direction dir = oppositeDirection(move->move.slide.direction);
+        /* Direction dir = move->move.slide.direction; */
         for (u8 i = 0; i < slideLength; i++) {
             Square* sq = readSquare(state->board, pos);
-            pieces = squareInsertPieces(state, sq, pieces, move->move.slide.drops[i]);
+            pieces = squareInsertPieces(state, sq, pieces, move->move.slide.drops[slideLength - i - 1]);
             pos = nextPosition(pos, dir);
         }
     }
@@ -225,7 +249,7 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move) {
     else if (move->type == SLIDE) {
         const SlideMove* mv = &move->move.slide;
 
-        u8 slideLength = 0;
+        u8 slideLength = 1;
         while (mv->drops[slideLength] != 0 && slideLength < MAX_PICKUP) {
             slideLength++;
         }
@@ -239,7 +263,8 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move) {
         u8 curIndex = slideLength - 1;
 
         while (positionToIndex(curPos) != positionToIndex(mv->startPos)) {
-            Piece * temp = squareRemovePieces(state, readSquare(state->board, curPos), mv->drops[curIndex]);
+            /* printf("CurPos: %d %d\n", curPos.x, curPos.y); */
+            Piece * temp = squareRemovePieces(state, readSquare(state->board, curPos), mv->drops[curIndex--]);
             if (accHead) {
                 accTail->next = temp;
                 accTail = temp;
@@ -257,6 +282,11 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move) {
             curPos = nextPosition(curPos, invDir);
         }
         squareInsertPieces(state, readSquare(state->board, mv->startPos), accHead, mv->count);
+        
+        if (mv->crush == CRUSH) {
+            Square* sq = readSquare(state->board, endPos);
+            sq->head->stone = STANDING;
+        }
     }
 
     state->turn = (state->turn == WHITE) ? BLACK : WHITE;
@@ -274,16 +304,7 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
             printf("Memory allocation failed for moves array\n");
             return NULL;
         }
-        /* int* es = emptySquares(state); */
-        /* if (!es) { */
-        /*     free(moves); */
-        /*     return NULL; */
-        /* } */
-        /* u8 i = 0; */
-        /* while (es[i] != -1 && i < n) { */
-        /*     moves[i] = createPlaceMove(indexToPosition(es[i]), state->turn, FLAT); */
-        /*     i++; */
-        /* } */
+
         u8 totalMoves = 0;
         for (u8 j = 0; j < TOTAL_SQUARES; j++) {
             if (state->emptySquares & (1ULL << j)) {
@@ -306,56 +327,33 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
     }
     u32 totalMoves = 0;
 
-    // generate place moves
-    /* int* es = emptySquares(state); */
-    /* u8 i = 0; */
-    /* while (es[i] != -1) { */
-    /*     if (state->player1.stones > 0) { */
-    /*         moves[totalMoves] = createPlaceMove(indexToPosition(es[i]), state->turn, FLAT); */
-    /*         totalMoves++; */
-    /*  */
-    /*         moves[totalMoves] = createPlaceMove(indexToPosition(es[i]), state->turn, STANDING); */
-    /*         totalMoves++; */
-    /*     } */
-    /*     if (state->player1.caps > 0) { */
-    /*         moves[totalMoves] = createPlaceMove(indexToPosition(es[i]), state->turn, CAP); */
-    /*         totalMoves++; */
-    /*     } */
-    /*     i++; */
-    /* } */
+    #pragma unroll
     for (u8 j = 0; j < TOTAL_SQUARES; j++) {
         if (state->emptySquares & (1ULL << j)) {
+            Position pos = indexToPosition(j);
             if (state->player1.stones > 0) {
-                moves[totalMoves] = createPlaceMove(indexToPosition(j), state->turn, FLAT);
+                moves[totalMoves] = createPlaceMove(pos, state->turn, FLAT);
                 totalMoves++;
-
-                moves[totalMoves] = createPlaceMove(indexToPosition(j), state->turn, STANDING);
+    
+                moves[totalMoves] = createPlaceMove(pos, state->turn, STANDING);
                 totalMoves++;
             }
             if (state->player1.caps > 0) {
-                moves[totalMoves] = createPlaceMove(indexToPosition(j), state->turn, CAP);
+                moves[totalMoves] = createPlaceMove(pos, state->turn, CAP);
                 totalMoves++;
             }
         }
     }
 
-    // generate slide moves
-    /* int* cs = controlledSquares(state, state->turn); */
-    /* i = 0; */
-    /* while (cs[i] != -1) { */
-    /*     generateSlidesInDir(state, indexToPosition(cs[i]), LEFT, moves, &totalMoves); */
-    /*     generateSlidesInDir(state, indexToPosition(cs[i]), RIGHT, moves, &totalMoves); */
-    /*     generateSlidesInDir(state, indexToPosition(cs[i]), UP, moves, &totalMoves); */
-    /*     generateSlidesInDir(state, indexToPosition(cs[i]), DOWN, moves, &totalMoves); */
-    /*     i++; */
-    /* } */
+    #pragma unroll
     for (u8 j = 0; j < TOTAL_SQUARES; j++) {
         Bitboard* control = (state->turn == WHITE) ? &state->whiteControlled : &state->blackControlled;
         if (*control & (1ULL << j)) {
-            generateSlidesInDir(state, indexToPosition(j), LEFT, moves, &totalMoves);
-            generateSlidesInDir(state, indexToPosition(j), RIGHT, moves, &totalMoves);
-            generateSlidesInDir(state, indexToPosition(j), UP, moves, &totalMoves);
-            generateSlidesInDir(state, indexToPosition(j), DOWN, moves, &totalMoves);
+            Position pos = indexToPosition(j);
+            generateSlidesInDir(state, pos, LEFT, moves, &totalMoves);
+            generateSlidesInDir(state, pos, RIGHT, moves, &totalMoves);
+            generateSlidesInDir(state, pos, UP, moves, &totalMoves);
+            generateSlidesInDir(state, pos, DOWN, moves, &totalMoves);
         }
     }
 

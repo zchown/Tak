@@ -129,7 +129,6 @@ PTNParseError parseSlideMove(const char* str, Color color, bool crush, Move* mov
     }
 
     if (dropCount == 0) {
-        printf("No drops: count: %d\n", count);
         drops[0] = count;
         dropCount = 1;
     }
