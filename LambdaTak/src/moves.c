@@ -56,16 +56,20 @@ MoveResult checkMove(GameState* state, const Move* move) {
         // check if anything in way and if crush is valid
         bool shouldCrush = false;
         Position nextPos = move->move.slide.startPos;
+        /* printf("StartPos: %d %d\n", nextPos.x, nextPos.y); */
+        /* printMove(move); */
         for (u8 j = 0; j < len; j++) {
-            printf("Drops: %d\n", move->move.slide.drops[j]);
-            Position nextPos = nextPosition(nextPos, move->move.slide.direction);
-            /* printf("NextPos: %d %d\n", nextPos.x, nextPos.y); */
-            if (!isValidPosition(nextPos)) return INVALID_SLIDE;
+            /* printf("Drops: %d\n", move->move.slide.drops[j]); */
+            nextPos = nextPosition(nextPos, move->move.slide.direction);
+            if (!isValidPosition(nextPos)) {
+                printf("Invalid position: %d %d\n", nextPos.x, nextPos.y);
+                return INVALID_SLIDE;
+            }
             Square* sq = readSquare(state->board, nextPos);
             if (sq->head != NULL) {
                 if (j == len - 1) {
-                    printf("Sq->head->stone: %d\n", sq->head->stone);
-                    printf("pos: %d %d\n", nextPos.x, nextPos.y);
+                    /* printf("Sq->head->stone: %d\n", sq->head->stone); */
+                    /* printf("pos: %d %d\n", nextPos.x, nextPos.y); */
                     if (sq->head->stone == CAP) return INVALID_SLIDE; 
                     if (sq->head->stone == STANDING) {
                         if (startSq->head->stone != CAP) {
@@ -74,11 +78,11 @@ MoveResult checkMove(GameState* state, const Move* move) {
                         }
                         if (move->move.slide.crush != CRUSH) return INVALID_CRUSH;
                         if (move->move.slide.drops[j] != 1) {
-                            printf("Drops: %d\n", move->move.slide.drops[j]);
+                            /* printf("Drops: %d\n", move->move.slide.drops[j]); */
                             return INVALID_CRUSH;
                         }
                         shouldCrush = true;
-                        printf("Crush\n");
+                        /* printf("Crush\n"); */
                     }
                 }
                 else {
@@ -323,22 +327,23 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
     Move* moves = malloc(512 * sizeof(Move));
     if (!moves) {
         printf("Memory allocation failed for moves array\n");
-        return NULL;
     }
+
     u32 totalMoves = 0;
+    Reserves* res = (state->turn == WHITE) ? &state->player1 : &state->player2;
 
     #pragma unroll
     for (u8 j = 0; j < TOTAL_SQUARES; j++) {
         if (state->emptySquares & (1ULL << j)) {
             Position pos = indexToPosition(j);
-            if (state->player1.stones > 0) {
+            if (res->stones > 0) {
                 moves[totalMoves] = createPlaceMove(pos, state->turn, FLAT);
                 totalMoves++;
     
                 moves[totalMoves] = createPlaceMove(pos, state->turn, STANDING);
                 totalMoves++;
             }
-            if (state->player1.caps > 0) {
+            if (res->caps > 0) {
                 moves[totalMoves] = createPlaceMove(pos, state->turn, CAP);
                 totalMoves++;
             }
@@ -363,23 +368,24 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
 }
 
 void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Move* moves, u32* totalMoves) {
-    u8 steps = numSteps(state, pos, dir);
-    // generate all possible slides no crush
+
     Square* sq = readSquare(state->board, pos);
     u8 maxCount = (sq->numPieces < MAX_PICKUP) ? sq->numPieces : MAX_PICKUP;
 
-    for (u8 curCount = 1; curCount <= maxCount; curCount++) {
-        u32 numberOfSlides = countValidSequences(curCount, steps);
-        u8** sequences = dropSequence(curCount, steps);
-        for (u8 i = 0; i < numberOfSlides; i++) {
-            moves[*totalMoves] = 
-                createSlideMove(state->turn, pos, dir, curCount, sequences[i], NO_CRUSH);
-            (*totalMoves)++;
-            free(sequences[i]);
+    u8 steps = numSteps(state, pos, dir);
+    if (steps != 0) {
+        for (u8 curCount = 1; curCount <= maxCount; curCount++) {
+            u32 numberOfSlides = countValidSequences(curCount, steps);
+            u8** sequences = dropSequence(curCount, steps);
+            for (u8 i = 0; i < numberOfSlides; i++) {
+                moves[*totalMoves] = 
+                    createSlideMove(state->turn, pos, dir, curCount, sequences[i], NO_CRUSH);
+                (*totalMoves)++;
+                free(sequences[i]);
+            }
+            free(sequences);
         }
-        free(sequences);
     }
-
     // determine if we have a crush situation
     Position crushPos = slidePosition(pos, dir, steps + 1);
     Crush canCrush = 
@@ -390,7 +396,6 @@ void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Mo
         ? CRUSH : NO_CRUSH;
 
     if (canCrush == CRUSH) {
-
         //special case
         if (steps == 0) {
             moves[*totalMoves] = 

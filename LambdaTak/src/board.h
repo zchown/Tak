@@ -8,7 +8,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#define u8 uint_fast8_t
+#define u8 int_fast8_t
 #define u32 uint_fast32_t
 #define u64 uint_fast64_t
 

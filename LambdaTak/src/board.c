@@ -675,20 +675,27 @@ Direction oppositeDirection(Direction dir) {
 
 Position nextPosition(Position pos, Direction dir) {
     Position newPos = pos;
+    /* printf("start: %d %d\n", newPos.x, newPos.y); */
     switch (dir) {
         case LEFT:
             newPos.x--;
+            newPos.y = pos.y;
             break;
         case RIGHT:
             newPos.x++;
+            newPos.y = pos.y;
             break;
         case UP:
             newPos.y++;
+            newPos.x = pos.x;
             break;
         case DOWN:
             newPos.y--;
+            newPos.x = pos.x;
             break;
     }
+    /* printf("end: %d %d\n", newPos.x, newPos.y); */
+    /* printf("dir: %d\n", dir); */
     return newPos;
 }
 
