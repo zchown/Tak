@@ -377,11 +377,11 @@ void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Mo
     if (steps != 0) {
         for (u8 curCount = 1; curCount <= maxCount; curCount++) {
             u32 numberOfSlides = countValidSequences(curCount, steps);
-            if (curCount == 6) {
-                printf("Number of slides: %d\n", numberOfSlides);
-                printf("Steps: %d\n", steps);
-                printf("dir: %d\n", dir);
-            }
+            /* if (curCount == 6) { */
+            /*     printf("Number of slides: %d\n", numberOfSlides); */
+            /*     printf("Steps: %d\n", steps); */
+            /*     printf("dir: %d\n", dir); */
+            /* } */
             /* printf("drop seq: %d, %d\n", curCount, steps); */
             u16* sequences = dropSequence(curCount, steps);
             for (u8 i = 0; i < numberOfSlides; i++) {

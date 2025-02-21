@@ -22,10 +22,10 @@
 #define CAPS_PER_PLAYER 1
 
 // precomputed bitboards for edges
-#define RIGHT_EDGE 3490513104
-#define LEFT_EDGE 1090785345
-#define TOP_EDGE 63
-#define BOTTOM_EDGE 67645734912
+#define RIGHT_EDGE 34905131040UL
+#define LEFT_EDGE 1090785345UL
+#define TOP_EDGE 63UL
+#define BOTTOM_EDGE 67645734912UL
 
 typedef enum {FLAT, STANDING, CAP} Stone;
 typedef enum {WHITE, BLACK} Color;

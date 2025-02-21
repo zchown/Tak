@@ -548,24 +548,20 @@ bool checkReservesEmpty(const GameState* state) {
 static inline bool hasRoad(Bitboard player_controlled, Bitboard start_mask, Bitboard end_mask) {
     Bitboard reachable = player_controlled & start_mask;
     Bitboard endReachable = player_controlled & end_mask;
-    if (reachable == 0) {
+    if (reachable == 0 || endReachable == 0) {
         return false;
     }
 
     Bitboard previous;
     do {
         previous = reachable;
-        /* Bitboard shifted_left = (reachable << 1) & player_controlled; */
-        /* Bitboard shifted_right = (reachable >> 1) & player_controlled; */
-        /* Bitboard shifted_up = (reachable << BOARD_SIZE) & player_controlled; */
-        /* Bitboard shifted_down = (reachable >> BOARD_SIZE) & player_controlled; */
 
         Bitboard shifted_left = ((reachable & ~RIGHT_EDGE) << 1) & player_controlled;
         Bitboard shifted_right = ((reachable & ~LEFT_EDGE) >> 1) & player_controlled;
         Bitboard shifted_up = ((reachable & ~BOTTOM_EDGE) << BOARD_SIZE) & player_controlled;
         Bitboard shifted_down = ((reachable & ~TOP_EDGE) >> BOARD_SIZE) & player_controlled;
         reachable |= shifted_left | shifted_right | shifted_up | shifted_down;
-        /* reachable &= 68208171135; */
+        
         if (reachable & end_mask) {
             return true;
         }
@@ -608,11 +604,6 @@ Result checkFullBoard(const GameState* state, bool emptyReserves) {
     }
     Bitboard whiteFlatstones = (state->whiteControlled & ~state->standingStones) & ~state->capstones;
     Bitboard blackFlatstones = (state->blackControlled & ~state->standingStones) & ~state->capstones;
-
-    printf("White flatstones: %d\n", __builtin_popcountll(whiteFlatstones));
-    printf("White all: %d\n", __builtin_popcountll(state->whiteControlled));
-    printf("White mask: %d\n", state->whiteControlled);
-    printf("Black flatstones: %d\n", __builtin_popcountll(blackFlatstones));
 
     int diff = __builtin_popcountll(whiteFlatstones) - __builtin_popcountll(blackFlatstones);
     if (diff > 0) {

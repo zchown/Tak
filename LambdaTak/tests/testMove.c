@@ -133,7 +133,7 @@ void test_generateAllMoves() {
     /*  */
     state = parseTPS("[TPS 2S,2S,2S,2S,2S,2S/1S,1S,1S,1S,1S,1S/2S,2S,2S,2S,2S,2S/1S,1S,1S,1S,1S,1S/2S,2S,2S,2S,2S,2S/11,x5 1 3]");
     moves = generateAllMoves(state);
-    printf("Generated %d moves\n", moves->numMoves);
+    /* printf("Generated %d moves\n", moves->numMoves); */
     /* for (u8 i = 0; i < moves->numMoves; i++) { */
     /*     printMove(&moves->moves[i]); */
     /*     printf("pos: %d %d\n", moves->moves[i].move.slide.startPos.x, moves->moves[i].move.slide.startPos.y); */
