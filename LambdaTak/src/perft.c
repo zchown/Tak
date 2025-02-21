@@ -24,9 +24,9 @@ u64 perft(GameState* state, int depth, int currentDepth, u64 nodes) {
         /*     printf("reserves, stones: %d, caps: %d\n", res.stones, res.caps); */
         /*     exit(1); */
         /* } */
-        makeMoveNoChecks(state, &moves->moves[i]);
+        makeMoveNoChecks(state, &moves->moves[i], false);
         nodes += perft(state, depth, currentDepth + 1, 0);
-        undoMoveNoChecks(state, &moves->moves[i]);
+        undoMoveNoChecks(state, &moves->moves[i], false);
         /* r = undoMoveChecks(state, &moves->moves[i]); */
         /* if (r != SUCCESS) { */
         /*     printf("Invalid undo: %d\n", r); */

@@ -82,7 +82,7 @@ MoveResult makeMoveChecks(GameState* state, const Move* move) {
             return result;
         }
         else {
-            makeMoveNoChecks(state, move);
+            makeMoveNoChecks(state, move, true);
             return SUCCESS;
         }
     }
@@ -92,7 +92,7 @@ MoveResult makeMoveChecks(GameState* state, const Move* move) {
             return result;
         }
         else {
-            makeMoveNoChecks(state, move);
+            makeMoveNoChecks(state, move, true);
             return SUCCESS;
         }
     }
@@ -100,7 +100,7 @@ MoveResult makeMoveChecks(GameState* state, const Move* move) {
     return INVALID_MOVE_TYPE;
 }
 
-GameState* makeMoveNoChecks(GameState* state, const Move* move) {
+GameState* makeMoveNoChecks(GameState* state, const Move* move, bool doHistory) {
     if (move->type == PLACE) {
         PlaceMove* mv = &move->move.place;
         Square* sq = readSquare(state->board, mv->pos);
@@ -142,7 +142,9 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move) {
 
     state->turn = (state->turn == WHITE) ? BLACK : WHITE;
     state->turnNumber++;
-    state->history = addHistory(state->history, *move);
+    if (doHistory) {
+        state->history = addHistory(state->history, *move);
+    }
     return state;
 }
 
@@ -151,7 +153,7 @@ MoveResult undoMoveChecks(GameState* state, const Move* move) {
         if (!isValidPosition(move->move.place.pos)) return INVALID_POSITION;
         if (readSquare(state->board, move->move.place.pos)->head == NULL) return INVALID_POSITION;
         if (readSquare(state->board, move->move.place.pos)->numPieces != 1) return INVALID_POSITION;
-        undoMoveNoChecks(state, move);
+        undoMoveNoChecks(state, move, true);
         return SUCCESS;
     } 
     else if (move->type == SLIDE) {
@@ -198,7 +200,7 @@ MoveResult undoMoveChecks(GameState* state, const Move* move) {
             curPos = nextPosition(curPos, mv->direction);
         }
 
-        undoMoveNoChecks(state, move);
+        undoMoveNoChecks(state, move, true);
     } 
     else {
         return INVALID_MOVE_TYPE;
@@ -206,7 +208,7 @@ MoveResult undoMoveChecks(GameState* state, const Move* move) {
     return SUCCESS;
 }
 
-GameState* undoMoveNoChecks(GameState* state, const Move* move) {
+GameState* undoMoveNoChecks(GameState* state, const Move* move, bool doHistory) {
     if (move->type == PLACE) {
         Square* sq = readSquare(state->board, move->move.place.pos);
         squareRemovePiece(state, sq);
@@ -260,7 +262,9 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move) {
 
     state->turn = (state->turn == WHITE) ? BLACK : WHITE;
     state->turnNumber--;
-    state->history = removeHead(state->history);
+    if (doHistory) {
+        state->history = removeHead(state->history);
+    }
     return state;
 }
 

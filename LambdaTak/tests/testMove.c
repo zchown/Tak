@@ -100,15 +100,15 @@ void test_makeMove() {
 void test_undoMove() {
     GameState* state = parseTPS("[TPS x6/x6/x6/x6/x6/x6 1 10]");
     Move move = createPlaceMove((Position){0, 0}, WHITE, FLAT);
-    makeMoveNoChecks(state, &move);
-    undoMoveNoChecks(state, &move);
+    makeMoveNoChecks(state, &move, true);
+    undoMoveNoChecks(state, &move, true);
     CU_ASSERT_EQUAL(readSquare(state->board, (Position){0, 0})->head, NULL);
     freeGameState(state);
 
     state = parseTPS("[TPS x6/x6/x6/x2,1,x3/x6/x6 1 10]");
     move = createSlideMove(WHITE, (Position){2, 2}, RIGHT, 1, 1, NO_CRUSH);  // 1 drop packed
-    makeMoveNoChecks(state, &move);
-    undoMoveNoChecks(state, &move);
+    makeMoveNoChecks(state, &move, true);
+    undoMoveNoChecks(state, &move, true);
     CU_ASSERT_EQUAL(readSquare(state->board, (Position){2, 2})->head->stone, FLAT);
     CU_ASSERT_EQUAL(readSquare(state->board, (Position){2, 3})->head, NULL);
     freeGameState(state);
