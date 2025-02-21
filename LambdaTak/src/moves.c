@@ -36,13 +36,13 @@ MoveResult checkMove(GameState* state, const Move* move) {
             if (drop == 0) continue;
             sum += drop;
             if (sum > move->move.slide.count) {
-                printf("Invalid sum: %d\n", sum);
+                /* printf("Invalid sum: %d\n", sum); */
                 return INVALID_DROPS;
             }
             len++;
         }
         if (sum != move->move.slide.count) {
-            printf("Invalid sum: %d\n", sum);
+            /* printf("Invalid sum: %d\n", sum); */
             return INVALID_DROPS;
         }
 
@@ -334,22 +334,24 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
     }
 
     const u8 CHUNK_SIZE = 12;
+    #pragma unroll
     for (u8 chunk = 0; chunk < num_controlled; chunk += CHUNK_SIZE) {
+        #pragma unroll
         for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < num_controlled; i++) {
             Position pos = indexToPosition(controlled_positions[i]);
             generateSlidesInDir(state, pos, LEFT, moves, &totalMoves);
         }
-
+        #pragma unroll
         for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < num_controlled; i++) {
             Position pos = indexToPosition(controlled_positions[i]);
             generateSlidesInDir(state, pos, RIGHT, moves, &totalMoves);
         }
-
+        #pragma unroll
         for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < num_controlled; i++) {
             Position pos = indexToPosition(controlled_positions[i]);
             generateSlidesInDir(state, pos, UP, moves, &totalMoves);
         }
-
+        #pragma unroll
         for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < num_controlled; i++) {
             Position pos = indexToPosition(controlled_positions[i]);
             generateSlidesInDir(state, pos, DOWN, moves, &totalMoves);
@@ -375,6 +377,11 @@ void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Mo
     if (steps != 0) {
         for (u8 curCount = 1; curCount <= maxCount; curCount++) {
             u32 numberOfSlides = countValidSequences(curCount, steps);
+            if (curCount == 6) {
+                printf("Number of slides: %d\n", numberOfSlides);
+                printf("Steps: %d\n", steps);
+                printf("dir: %d\n", dir);
+            }
             /* printf("drop seq: %d, %d\n", curCount, steps); */
             u16* sequences = dropSequence(curCount, steps);
             for (u8 i = 0; i < numberOfSlides; i++) {
@@ -435,38 +442,8 @@ u8 binomialCoefficient(u8 n, u8 k) {
 
 #pragma inline
 u8 countValidSequences(u8 count, u8 spaces) {
-    return countValSeq[count * BOARD_SIZE + spaces];
+    return countValSeq[count * (BOARD_SIZE + 1)+ spaces];
 }
-
-/* u8 numSteps2(const GameState* state, Position pos, Direction dir); */
-/*  */
-/* #pragma inline */
-/* u8 numSteps(const GameState* state, Position pos, Direction dir) { */
-/*     u8 steps = 0; */
-/*     Position nextPos = nextPosition(pos, dir); */
-/*     while (isValidPosition(nextPos)) { */
-/*         Square* sq = readSquare(state->board, nextPos); */
-/*         if (sq->head && sq->head->stone != FLAT) { */
-/*             break; */
-/*         } */
-/*         else { */
-/*             steps++; */
-/*             nextPos = nextPosition(nextPos, dir); */
-/*         } */
-/*     } */
-/*  */
-/*     u8 steps2 = numSteps2(state, pos, dir); */
-/*     if (steps2 != steps) { */
-/*         printf("Steps: %d, steps2: %d\n", steps, steps2); */
-/*         printf("Position: %d %d\n", pos.x, pos.y); */
-/*         printf("Direction: %d\n", dir); */
-/*         char* tps = gameStateToTPS(state); */
-/*         printf("TPS: %s\n", tps); */
-/*         exit(1); */
-/*     } */
-/*  */
-/*     return steps; */
-/* } */
 
 #pragma inline
 u8 numSteps(const GameState* state, Position pos, Direction dir) {

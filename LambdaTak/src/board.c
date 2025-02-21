@@ -539,90 +539,89 @@ void updateBitboards(GameState* state) {
     /* printBitboard(state->whiteControlled); */
 }
 
+#pragma inline
 bool checkReservesEmpty(const GameState* state) {
     return ((state->player1.stones == 0 && state->player1.caps == 0) ||
             (state->player2.stones == 0 && state->player2.caps == 0));
 }
 
-bool checkRoad(const Board* board, Color color, SearchDirection dir) {
-    bool visited[TOTAL_SQUARES] = {false};
-    u32 stack[TOTAL_SQUARES];
-    u8 stackSize = 0;
-    for (int i = 0; i < BOARD_SIZE; i++) {
-        Position start = (dir == VERTICAL) ? (Position){i, 0} : (Position){0, i};
-        Square* square = readSquare(board, start);
-        if (square && square->head && square->head->color == color && square->head->stone != STANDING) {
-            u32 index = positionToIndex(start);
-            visited[index] = true;
-            stack[stackSize++] = index;
-        }
+static inline bool hasRoad(Bitboard player_controlled, Bitboard start_mask, Bitboard end_mask) {
+    Bitboard reachable = player_controlled & start_mask;
+    Bitboard endReachable = player_controlled & end_mask;
+    if (reachable == 0) {
+        return false;
     }
-    while (stackSize > 0) {
-        u32 index = stack[--stackSize];
-        Position pos = indexToPosition(index);
-        if ((dir == VERTICAL && pos.y == BOARD_SIZE - 1) ||
-                (dir == HORIZONTAL && pos.x == BOARD_SIZE - 1)) {
+
+    Bitboard previous;
+    do {
+        previous = reachable;
+        /* Bitboard shifted_left = (reachable << 1) & player_controlled; */
+        /* Bitboard shifted_right = (reachable >> 1) & player_controlled; */
+        /* Bitboard shifted_up = (reachable << BOARD_SIZE) & player_controlled; */
+        /* Bitboard shifted_down = (reachable >> BOARD_SIZE) & player_controlled; */
+
+        Bitboard shifted_left = ((reachable & ~RIGHT_EDGE) << 1) & player_controlled;
+        Bitboard shifted_right = ((reachable & ~LEFT_EDGE) >> 1) & player_controlled;
+        Bitboard shifted_up = ((reachable & ~BOTTOM_EDGE) << BOARD_SIZE) & player_controlled;
+        Bitboard shifted_down = ((reachable & ~TOP_EDGE) >> BOARD_SIZE) & player_controlled;
+        reachable |= shifted_left | shifted_right | shifted_up | shifted_down;
+        /* reachable &= 68208171135; */
+        if (reachable & end_mask) {
             return true;
         }
-        Position neighbors[4] = {
-            {pos.x - 1, pos.y}, {pos.x + 1, pos.y},
-            {pos.x, pos.y - 1}, {pos.x, pos.y + 1}
-        };
-        for (int i = 0; i < 4; i++) {
-            Position neighbor = neighbors[i];
-            if (isValidPosition(neighbor)) {
-                u32 neighborIndex = positionToIndex(neighbor);
-                Square* neighborSquare = readSquare(board, neighbor);
-                if (!visited[neighborIndex] && neighborSquare && neighborSquare->head &&
-                        neighborSquare->head->color == color && neighborSquare->head->stone != STANDING) {
-                    visited[neighborIndex] = true;
-                    stack[stackSize++] = neighborIndex;
-                }
-            }
-        }
-    }
+    } while (reachable != previous);
+
     return false;
 }
 
 Result checkRoadWin(const GameState* state) {
-    const Color* c = &state->turn;
-    const Color o = oppositeColor(*c);
-    const Board* board = state->board;
-    if (checkRoad(board, *c, VERTICAL) || checkRoad(board, *c, HORIZONTAL)) {
-        return (*c == WHITE) ? ROAD_WHITE : ROAD_BLACK;
+    Color current = state->turn;
+    Color opponent = oppositeColor(current);
+    Bitboard current_controlled = (current == WHITE) 
+        ? (state->whiteControlled & ~state->standingStones)
+        : (state->blackControlled & ~state->standingStones);
+    Bitboard opponent_controlled = (opponent == WHITE)
+        ? (state->whiteControlled & ~state->standingStones)
+        : (state->blackControlled & ~state->standingStones);
+
+    // Check current player's roads
+    bool current_vertical = hasRoad(current_controlled, TOP_EDGE, BOTTOM_EDGE);
+    bool current_horizontal = hasRoad(current_controlled, LEFT_EDGE, RIGHT_EDGE);
+    if (current_vertical || current_horizontal) {
+        return (current == WHITE) ? ROAD_WHITE : ROAD_BLACK;
     }
-    if (checkRoad(board, o, VERTICAL) || checkRoad(board, o, HORIZONTAL)) {
-        return (o == WHITE) ? ROAD_WHITE : ROAD_BLACK;
+
+    // Check opponent's roads
+    bool opponent_vertical = hasRoad(opponent_controlled, TOP_EDGE, BOTTOM_EDGE);
+    bool opponent_horizontal = hasRoad(opponent_controlled, LEFT_EDGE, RIGHT_EDGE);
+    if (opponent_vertical || opponent_horizontal) {
+        return (opponent == WHITE) ? ROAD_WHITE : ROAD_BLACK;
     }
+
     return CONTINUE;
 }
 
+#pragma inline
 Result checkFullBoard(const GameState* state, bool emptyReserves) {
-    bool fullBoard = true;
-    u8 numWhiteFlats = 0;
-    u8 numBlackFlats = 0;
-    for (int i = 0; i < TOTAL_SQUARES && (fullBoard || emptyReserves); i++) {
-        Square* sq = (Square*)&state->board->squares[i];
-        if (sq->numPieces == 0) {
-            fullBoard = false;
-        } else {
-            Piece* head = sq->head;
-            if (head->stone != STANDING) {
-                if (head->color == WHITE)
-                    numWhiteFlats++;
-                else
-                    numBlackFlats++;
-            }
-        }
-    }
-    if (!fullBoard && !emptyReserves)
+    if (state->emptySquares != 0 && !emptyReserves) {
         return CONTINUE;
-    else if (numWhiteFlats > numBlackFlats)
+    }
+    Bitboard whiteFlatstones = (state->whiteControlled & ~state->standingStones) & ~state->capstones;
+    Bitboard blackFlatstones = (state->blackControlled & ~state->standingStones) & ~state->capstones;
+
+    printf("White flatstones: %d\n", __builtin_popcountll(whiteFlatstones));
+    printf("White all: %d\n", __builtin_popcountll(state->whiteControlled));
+    printf("White mask: %d\n", state->whiteControlled);
+    printf("Black flatstones: %d\n", __builtin_popcountll(blackFlatstones));
+
+    int diff = __builtin_popcountll(whiteFlatstones) - __builtin_popcountll(blackFlatstones);
+    if (diff > 0) {
         return FLAT_WHITE;
-    else if (numBlackFlats > numWhiteFlats)
+    } else if (diff < 0) {
         return FLAT_BLACK;
-    else
+    } else {
         return DRAW;
+    }
 }
 
 Result checkGameResult(const GameState* state) {

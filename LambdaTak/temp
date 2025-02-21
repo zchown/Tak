@@ -1,0 +1,533 @@
+
+
+     CUnit - A unit testing framework for C - Version 2.1-3
+     http://cunit.sourceforge.net/
+
+
+Suite: BoardTests
+  Test: test_createPiece ...passed
+  Test: test_createBoard ...passed
+  Test: test_squareInsertPiece ...passed
+  Test: test_squareRemovePiece ...passed
+  Test: test_squareRemovePieces ...passed
+  Test: test_copyGameState ...passed
+  Test: test_checkRoadWin ...passed
+  Test: test_checkFullBoard ...
+6 | 1- | 1- | 1- | 1- | 1- | 2- |
+5 | 1- | 1- | 1- | 1- | 2- | 1- |
+4 | 1- | _ | _ | 2- | 1- | 1- |
+3 | _ | _ | 2- | 1- | 1- | 1- |
+2 | _ | 2- | 1- | 1- | 1- | 1- |
+1 | 2- | _ | _ | _ | _ | _ |
+      a     b     c     d     e     f   
+Result: 0
+
+6 | 1- | 2- | 1- | 2- | 1- | 2- |
+5 | 2- | 1- | 2- | 1- | 2- | 1- |
+4 | 1- | 2- | 1- | 2- | 1- | 2- |
+3 | 2- | 1- | 2- | 1- | 2- | 1- |
+2 | 1- | 2- | 1- | 2- | 1- | 2- |
+1 | 2- | 1- | 2- | 1- | 2- | 1- |
+      a     b     c     d     e     f   
+Result: 0
+White flatstones: 1
+White all: 1
+White mask: 1
+Black flatstones: 0
+FAILED
+    1. /Users/zanderchown/ComputerScience/Tak/LambdaTak/tests/testBoard.c:166  - CU_ASSERT_EQUAL(result,FLAT_WHITE)
+    2. /Users/zanderchown/ComputerScience/Tak/LambdaTak/tests/testBoard.c:186  - CU_ASSERT_EQUAL(result,DRAW)
+  Test: test_checkHardRoads ...FAILED
+    1. /Users/zanderchown/ComputerScience/Tak/LambdaTak/tests/testBoard.c:250  - CU_ASSERT_EQUAL(result,CONTINUE)
+Suite: TPSTests
+  Test: test_parseTPS_valid ...passed
+  Test: test_parseTPS_invalid ...passed
+  Test: test_parseTPS_with_pieces ...passed
+  Test: test_gameStateToTPS ...passed
+  Test: test_boardToTPS ...passed
+  Test: test_boardToTPS_empty ...passed
+Suite: Move Tests
+  Test: test_checkPlaceMove ...passed
+  Test: test_checkSlideMove ...passed
+  Test: test_makeMove ...passed
+  Test: test_undoMove ...passed
+  Test: test_generateAllMoves ...Generated 18 moves
+Number of slides: 6
+Steps: 2
+dir: 0
+Number of slides: 16
+Steps: 3
+dir: 1
+Generated 140 moves
+herePlace: a1  Player: 1  Stone: F
+herePlace: a1  Player: 1  Stone: S
+herePlace: b1  Player: 1  Stone: F
+herePlace: b1  Player: 1  Stone: S
+herePlace: a3  Player: 1  Stone: F
+herePlace: a3  Player: 1  Stone: S
+herePlace: d3  Player: 1  Stone: F
+herePlace: d3  Player: 1  Stone: S
+herePlace: e3  Player: 1  Stone: F
+herePlace: e3  Player: 1  Stone: S
+herePlace: d4  Player: 1  Stone: F
+herePlace: d4  Player: 1  Stone: S
+herePlace: b5  Player: 1  Stone: F
+herePlace: b5  Player: 1  Stone: S
+herePlace: f5  Player: 1  Stone: F
+herePlace: f5  Player: 1  Stone: S
+hereSlide: d1  Dir: <  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: e1  Dir: <  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: e1  Dir: <  Crush: X  Count: 2
+Color: 1
+Drops: 2
+alt drops: 2
+hereSlide: e1  Dir: <  Crush: X  Count: 2
+Color: 1
+Drops: 1 1
+alt drops: 9
+hereSlide: f1  Dir: <  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: b2  Dir: <  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: f2  Dir: <  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: b3  Dir: <  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: b4  Dir: <  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: c4  Dir: <  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: c4  Dir: <  Crush: X  Count: 2
+Color: 1
+Drops: 2
+alt drops: 2
+hereSlide: c4  Dir: <  Crush: X  Count: 2
+Color: 1
+Drops: 1 1
+alt drops: 9
+hereSlide: c4  Dir: <  Crush: X  Count: 3
+Color: 1
+Drops: 3
+alt drops: 3
+hereSlide: c4  Dir: <  Crush: X  Count: 3
+Color: 1
+Drops: 2 1
+alt drops: 10
+hereSlide: c4  Dir: <  Crush: X  Count: 3
+Color: 1
+Drops: 2 1
+alt drops: 10
+hereSlide: c4  Dir: <  Crush: X  Count: 4
+Color: 1
+Drops: 4
+alt drops: 4
+hereSlide: c4  Dir: <  Crush: X  Count: 4
+Color: 1
+Drops: 3 1
+alt drops: 11
+hereSlide: c4  Dir: <  Crush: X  Count: 4
+Color: 1
+Drops: 3 1
+alt drops: 11
+hereSlide: c4  Dir: <  Crush: X  Count: 4
+Color: 1
+Drops: 3 1
+alt drops: 11
+hereSlide: c5  Dir: <  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: c5  Dir: <  Crush: X  Count: 2
+Color: 1
+Drops: 2
+alt drops: 2
+hereSlide: c5  Dir: <  Crush: X  Count: 2
+Color: 1
+Drops: 1 1
+alt drops: 9
+hereSlide: c5  Dir: <  Crush: X  Count: 3
+Color: 1
+Drops: 3
+alt drops: 3
+hereSlide: c5  Dir: <  Crush: X  Count: 3
+Color: 1
+Drops: 2 1
+alt drops: 10
+hereSlide: c5  Dir: <  Crush: X  Count: 3
+Color: 1
+Drops: 2 1
+alt drops: 10
+hereSlide: c5  Dir: <  Crush: X  Count: 4
+Color: 1
+Drops: 4
+alt drops: 4
+hereSlide: c5  Dir: <  Crush: X  Count: 4
+Color: 1
+Drops: 3 1
+alt drops: 11
+hereSlide: c5  Dir: <  Crush: X  Count: 4
+Color: 1
+Drops: 3 1
+alt drops: 11
+hereSlide: c5  Dir: <  Crush: X  Count: 4
+Color: 1
+Drops: 3 1
+alt drops: 11
+hereSlide: c5  Dir: <  Crush: X  Count: 5
+Color: 1
+Drops: 5
+alt drops: 5
+hereSlide: c5  Dir: <  Crush: X  Count: 5
+Color: 1
+Drops: 4 1
+alt drops: 12
+hereSlide: c5  Dir: <  Crush: X  Count: 5
+Color: 1
+Drops: 4 1
+alt drops: 12
+hereSlide: c5  Dir: <  Crush: X  Count: 5
+Color: 1
+Drops: 4 1
+alt drops: 12
+hereSlide: c5  Dir: <  Crush: X  Count: 5
+Color: 1
+Drops: 4 1
+alt drops: 12
+hereSlide: c5  Dir: <  Crush: X  Count: 6
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: c5  Dir: <  Crush: X  Count: 6
+Color: 1
+Drops:
+alt drops: 0
+hereSlide: c5  Dir: <  Crush: X  Count: 6
+Color: 1
+Drops:
+alt drops: 0
+hereSlide: c5  Dir: <  Crush: X  Count: 6
+Color: 1
+Drops:
+alt drops: 0
+hereSlide: c5  Dir: <  Crush: X  Count: 6
+Color: 1
+Drops:
+alt drops: 0
+hereSlide: c5  Dir: <  Crush: X  Count: 6
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: d1  Dir: >  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: e1  Dir: >  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: e1  Dir: >  Crush: X  Count: 2
+Color: 1
+Drops: 2
+alt drops: 2
+hereSlide: a2  Dir: >  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: d2  Dir: >  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: a4  Dir: >  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: c4  Dir: >  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: c4  Dir: >  Crush: X  Count: 2
+Color: 1
+Drops: 2
+alt drops: 2
+hereSlide: c4  Dir: >  Crush: X  Count: 3
+Color: 1
+Drops: 3
+alt drops: 3
+hereSlide: c4  Dir: >  Crush: X  Count: 4
+Color: 1
+Drops: 4
+alt drops: 4
+hereSlide: c5  Dir: >  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: c5  Dir: >  Crush: X  Count: 2
+Color: 1
+Drops: 2
+alt drops: 2
+hereSlide: c5  Dir: >  Crush: X  Count: 2
+Color: 1
+Drops: 1 1
+alt drops: 9
+hereSlide: c5  Dir: >  Crush: X  Count: 3
+Color: 1
+Drops: 3
+alt drops: 3
+hereSlide: c5  Dir: >  Crush: X  Count: 3
+Color: 1
+Drops: 2 1
+alt drops: 10
+hereSlide: c5  Dir: >  Crush: X  Count: 3
+Color: 1
+Drops: 2 1
+alt drops: 10
+hereSlide: c5  Dir: >  Crush: X  Count: 3
+Color: 1
+Drops: 1 1 1
+alt drops: 73
+hereSlide: c5  Dir: >  Crush: X  Count: 4
+Color: 1
+Drops: 4
+alt drops: 4
+hereSlide: c5  Dir: >  Crush: X  Count: 4
+Color: 1
+Drops: 3 1
+alt drops: 11
+hereSlide: c5  Dir: >  Crush: X  Count: 4
+Color: 1
+Drops: 3 1
+alt drops: 11
+hereSlide: c5  Dir: >  Crush: X  Count: 4
+Color: 1
+Drops: 3 1
+alt drops: 11
+hereSlide: c5  Dir: >  Crush: X  Count: 4
+Color: 1
+Drops: 2 1 1
+alt drops: 74
+hereSlide: c5  Dir: >  Crush: X  Count: 4
+Color: 1
+Drops: 4
+alt drops: 4
+hereSlide: c5  Dir: >  Crush: X  Count: 4
+Color: 1
+Drops: 3 1
+alt drops: 11
+hereSlide: c5  Dir: >  Crush: X  Count: 5
+Color: 1
+Drops: 5
+alt drops: 5
+hereSlide: c5  Dir: >  Crush: X  Count: 5
+Color: 1
+Drops: 4 1
+alt drops: 12
+hereSlide: c5  Dir: >  Crush: X  Count: 5
+Color: 1
+Drops: 4 1
+alt drops: 12
+hereSlide: c5  Dir: >  Crush: X  Count: 5
+Color: 1
+Drops: 4 1
+alt drops: 12
+hereSlide: c5  Dir: >  Crush: X  Count: 5
+Color: 1
+Drops: 4 1
+alt drops: 12
+hereSlide: c5  Dir: >  Crush: X  Count: 5
+Color: 1
+Drops: 5
+alt drops: 5
+hereSlide: c5  Dir: >  Crush: X  Count: 5
+Color: 1
+Drops: 4 1
+alt drops: 12
+hereSlide: c5  Dir: >  Crush: X  Count: 5
+Color: 1
+Drops: 4 1
+alt drops: 12
+hereSlide: c5  Dir: >  Crush: X  Count: 5
+Color: 1
+Drops: 4 1
+alt drops: 12
+hereSlide: c5  Dir: >  Crush: X  Count: 5
+Color: 1
+Drops: 4 1
+alt drops: 12
+hereSlide: c5  Dir: >  Crush: X  Count: 5
+Color: 1
+Drops: 5
+alt drops: 5
+hereSlide: c5  Dir: >  Crush: X  Count: 6
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: c5  Dir: >  Crush: X  Count: 6
+Color: 1
+Drops:
+alt drops: 0
+hereSlide: c5  Dir: >  Crush: X  Count: 6
+Color: 1
+Drops:
+alt drops: 0
+hereSlide: c5  Dir: >  Crush: X  Count: 6
+Color: 1
+Drops:
+alt drops: 0
+hereSlide: c5  Dir: >  Crush: X  Count: 6
+Color: 1
+Drops:
+alt drops: 0
+hereSlide: c5  Dir: >  Crush: X  Count: 6
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: c5  Dir: >  Crush: X  Count: 6
+Color: 1
+Drops:
+alt drops: 0
+hereSlide: c5  Dir: >  Crush: X  Count: 6
+Color: 1
+Drops:
+alt drops: 0
+hereSlide: c5  Dir: >  Crush: X  Count: 6
+Color: 1
+Drops:
+alt drops: 0
+hereSlide: c5  Dir: >  Crush: X  Count: 6
+Color: 1
+Drops:
+alt drops: 0
+hereSlide: c5  Dir: >  Crush: X  Count: 6
+Color: 1
+Drops: 1 1
+alt drops: 9
+hereSlide: c5  Dir: >  Crush: X  Count: 6
+Color: 1
+Drops:
+alt drops: 0
+hereSlide: c5  Dir: >  Crush: X  Count: 6
+Color: 1
+Drops:
+alt drops: 0
+hereSlide: c5  Dir: >  Crush: X  Count: 6
+Color: 1
+Drops:
+alt drops: 0
+hereSlide: c5  Dir: >  Crush: X  Count: 6
+Color: 1
+Drops:
+alt drops: 0
+hereSlide: c5  Dir: >  Crush: X  Count: 6
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: e1  Dir: +  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: e1  Dir: +  Crush: X  Count: 2
+Color: 1
+Drops: 2
+alt drops: 2
+hereSlide: e1  Dir: +  Crush: X  Count: 2
+Color: 1
+Drops: 1 1
+alt drops: 9
+hereSlide: a2  Dir: +  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: b2  Dir: +  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: d2  Dir: +  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: f2  Dir: +  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: b3  Dir: +  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: a4  Dir: +  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: b4  Dir: +  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: c4  Dir: +  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: c4  Dir: +  Crush: X  Count: 2
+Color: 1
+Drops: 2
+alt drops: 2
+hereSlide: c4  Dir: +  Crush: X  Count: 3
+Color: 1
+Drops: 3
+alt drops: 3
+hereSlide: c4  Dir: +  Crush: X  Count: 4
+Color: 1
+Drops: 4
+alt drops: 4
+hereSlide: c4  Dir: +  Crush: *  Count: 2
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: c4  Dir: +  Crush: *  Count: 3
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: c4  Dir: +  Crush: *  Count: 4
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: a2  Dir: -  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: b2  Dir: -  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: d2  Dir: -  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+hereSlide: f2  Dir: -  Crush: X  Count: 1
+Color: 1
+Drops: 1
+alt drops: 1
+passed
+
+Run Summary:    Type  Total    Ran Passed Failed Inactive
+              suites      3      3    n/a      0        0
+               tests     20     20     18      2        0
+             asserts    109    109    106      3      n/a
+
+Elapsed time =    0.006 seconds

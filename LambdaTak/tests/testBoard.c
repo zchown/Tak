@@ -146,21 +146,23 @@ void test_checkRoadWin() {
 }
 
 void test_checkFullBoard() {
-    GameState* state = createGameState();
+    GameState* state = parseTPS("[TPS 1,1,1,1,1,2/1,1,1,1,2,1/1,x2,2,1,1/x2,2,1,1,1/x,2,1,1,1,1/2,x5 2 20]");
     // Fill the board with White flats
-    for (int i = 0; i < BOARD_SIZE; i++) {
-        for (int j = 0; j < BOARD_SIZE; j++) {
-            Position pos = {i, j};
-            Color c = WHITE;
-            if (i == j) {
-                c = BLACK;
-            }
-            Piece* piece = createPiece(FLAT, c);
-            squareInsertPiece(state, readSquare(state->board, pos), piece);
-        }
-    }
+    /* for (int i = 0; i < BOARD_SIZE; i++) { */
+    /*     for (int j = 0; j < BOARD_SIZE; j++) { */
+    /*         Position pos = {i, j}; */
+    /*         Color c = WHITE; */
+    /*         if (i == j) { */
+    /*             c = BLACK; */
+    /*         } */
+    /*         Piece* piece = createPiece(FLAT, c); */
+    /*         squareInsertPiece(state, readSquare(state->board, pos), piece); */
+    /*     } */
+    /* } */
+    /* updateBitboards(state); */
+    printBoard(state->board);
     Result result = checkGameResult(state);
-    /* printf("Result: %d\n", result); */
+    printf("Result: %d\n", result);
     CU_ASSERT_EQUAL(result, FLAT_WHITE);
     freeGameState(state);
 
@@ -177,8 +179,10 @@ void test_checkFullBoard() {
             squareInsertPiece(state, readSquare(state->board, pos), piece);
         }
     }
+    updateBitboards(state);
+    printBoard(state->board);
     result = checkGameResult(state);
-    /* printf("Result: %d\n", result); */
+    printf("Result: %d\n", result);
     CU_ASSERT_EQUAL(result, DRAW);
     freeGameState(state);
 

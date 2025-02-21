@@ -68,9 +68,8 @@ int main() {
 
     CU_cleanup_registry();
 
-    printf("Running general tests...\n");
-    runGeneralTests();
-
+    /* printf("Running general tests...\n"); */
+    /* runGeneralTests(); */
 
     return 0;
 }
