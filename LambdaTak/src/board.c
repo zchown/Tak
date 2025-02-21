@@ -378,21 +378,15 @@ Move createPlaceMove(Position pos, Color color, Stone stone) {
 }
 
 #pragma inline
-Move createSlideMove(Color color, Position startPos, Direction direction, u8 count, u8* drops, Crush crush) {
-
-    Move move = {SLIDE, .move.slide = {
+Move createSlideMove(Color color, Position startPos, Direction direction, u8 count, u16 drops, Crush crush) {
+    return (Move) {SLIDE, .move.slide = {
         .startPos = startPos,
         .color = color,
         .direction = direction,
         .count = count,
-        .crush = crush
+        .crush = crush,
+        .drops = drops
     }};
-
-    #pragma unroll
-    for (int i = 0; i < MAX_PICKUP; i++) {
-        move.move.slide.drops[i] = drops[i];
-    }
-    return move;
 }
 
 #pragma inline
@@ -454,8 +448,10 @@ char* moveToString(const Move* move) {
             default: break;
         }
         u8 curDrop = 0;
-        while (curDrop < MAX_PICKUP && move->move.slide.drops[curDrop] != 0) {
-            moveStr[size++] = '0' + move->move.slide.drops[curDrop++];
+        for (int i = 0; i < MAX_DROPS; i++) {
+            u8 drop = (move->move.slide.drops >> (i * 3)) & 0x7;
+            if (drop == 0) break;
+            moveStr[size++] = '0' + drop;
         }
         if (move->move.slide.crush == CRUSH)
             moveStr[size++] = '*';
@@ -778,9 +774,15 @@ void printMove(const Move* move) {
                 move->move.slide.count);
         printf("\nColor: %c", (move->move.slide.color == WHITE) ? '1' : '2');
         printf("\nDrops:");
-        for (int i = 0; move->move.slide.drops[i] != 0 && i < MAX_PICKUP; i++) {
-            printf(" %d", move->move.slide.drops[i]);
+        for (int i = 0; i < MAX_DROPS; i++) {
+            u8 drop = (move->move.slide.drops >> (i * 3)) & 0x7;
+            if (drop == 0) break;
+            printf(" %d", drop);
         }
+        printf("\nalt drops: %d", move->move.slide.drops);
+        /* for (int i = 0; move->move.slide.drops[i] != 0 && i < MAX_PICKUP; i++) { */
+        /*     printf(" %d", move->move.slide.drops[i]); */
+        /* } */
         printf("\n");
     }
 }

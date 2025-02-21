@@ -70,7 +70,6 @@ int main() {
 
     /* printf("Running general tests...\n"); */
     /* runGeneralTests(); */
-    printf("All tests passed successfully!\n");
 
 
     return 0;

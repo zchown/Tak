@@ -118,26 +118,23 @@ PTNParseError parseSlideMove(const char* str, Color color, bool crush, Move* mov
     if (dir == -1) return PTN_DIRECTION_ERROR;
     ptr++;
 
-    u8 drops[MAX_PICKUP];
+    u16 drops = 0;
     int dropCount = 0;
 
     while (*ptr != '\0' && isdigit(*ptr)) {
         printf("Drop: %c\n", *ptr);
-        if (dropCount >= MAX_PICKUP) return PTN_COUNT_ERROR;
-        drops[dropCount++] = *ptr - '0';
+        if (dropCount >= MAX_DROPS) return PTN_COUNT_ERROR; 
+        u8 dropValue = *ptr - '0';
+        drops |= (dropValue << (dropCount * 3));
+        dropCount++;
         ptr++;
     }
 
     if (dropCount == 0) {
-        drops[0] = count;
+        drops = count; 
         dropCount = 1;
     }
 
-    for (;dropCount < MAX_PICKUP; dropCount++) {
-        drops[dropCount] = 0;
-    }
-
-    // Create the slide move
     *move = createSlideMove(color, pos, dir, count, drops, crush ? CRUSH : NO_CRUSH);
     return PTN_PARSE_OK;
 }

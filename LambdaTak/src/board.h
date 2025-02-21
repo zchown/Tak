@@ -9,12 +9,14 @@
 #include <ctype.h>
 
 #define u8 int_fast8_t
+#define u16 uint16_t // I need it to be exactly 16 bits so fast isn't good
 #define u32 uint_fast32_t
 #define u64 uint_fast64_t
 
 #define BOARD_SIZE 6
 #define TOTAL_SQUARES (BOARD_SIZE * BOARD_SIZE)
 #define MAX_PICKUP BOARD_SIZE
+#define MAX_DROPS (MAX_PICKUP - 1)
 
 #define STONES_PER_PLAYER 30
 #define CAPS_PER_PLAYER 1
@@ -62,13 +64,15 @@ typedef struct {
 } PlaceMove;
 
 typedef struct {
-    u8 drops[MAX_PICKUP];
     Position startPos;
     Direction direction;
+    // 3 bits for each drop, 5 drops max = 15 bits + 1 extra
+    // Least significant bit is the first drop
+    u16 drops;
     u8 count;
     Color color;
     Crush crush;
-} SlideMove;
+    } SlideMove;
 
 typedef struct {
     MoveType type;
@@ -130,7 +134,7 @@ bool squareIsEmpty(Square* square);
 
 // Move operations
 Move createPlaceMove(Position pos, Color color, Stone stone);
-Move createSlideMove(Color color, Position startPos, Direction direction, u8 count, u8* drops, Crush crush);
+Move createSlideMove(Color color, Position startPos, Direction direction, u8 count, u16 drops, Crush crush);
 void freeMove(Move* move);
 Move* copyMove(const Move* move);
 /* Move* parseMove(const char* moveStr, Color color); */

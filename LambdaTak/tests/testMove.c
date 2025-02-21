@@ -38,7 +38,8 @@ void test_checkPlaceMove() {
 
 void test_checkSlideMove() {
     GameState* state = parseTPS("[TPS x6/x6/x6/x2,121,1,x2/x6/x6 1 10]");
-    u8 drops[MAX_PICKUP] = {1, 0, 0, 0, 0, 0};
+
+    uint16_t drops = 1;  // Packed 3-bit drop values (first drop = 1)
     Move move = createSlideMove(WHITE, (Position){2, 2}, RIGHT, 1, drops, NO_CRUSH);
     MoveResult result = checkMove(state, &move);
     CU_ASSERT_EQUAL(result, SUCCESS);
@@ -51,7 +52,7 @@ void test_checkSlideMove() {
     result = checkMove(state, &move);
     CU_ASSERT_EQUAL(result, INVALID_DROPS);
 
-    drops[1] = 2;
+    drops |= (2 << 3);  // Add second drop (2) at bits 5-3
     move = createSlideMove(WHITE, (Position){2, 2}, RIGHT, 2, drops, NO_CRUSH);
     result = checkMove(state, &move);
     CU_ASSERT_EQUAL(result, INVALID_DROPS);
@@ -74,7 +75,7 @@ void test_checkSlideMove() {
     result = checkMove(state, &move);
     CU_ASSERT_EQUAL(result, INVALID_SLIDE);
 
-    drops[1] = 0;
+    drops &= ~(7 << 3);  // Reset second drop (bits 5-3) to 0
     move = createSlideMove(WHITE, (Position){2, 2}, RIGHT, 1, drops, CRUSH);
     result = checkMove(state, &move);
     CU_ASSERT_EQUAL(result, SUCCESS);
@@ -89,7 +90,7 @@ void test_makeMove() {
     freeGameState(state);
 
     state = parseTPS("[TPS x6/x6/x6/x2,1,x3/x6/x6 1 10]");
-    move = createSlideMove(WHITE, (Position){2, 2}, RIGHT, 1, (u8[]){1, 0, 0, 0, 0, 0}, NO_CRUSH);
+    move = createSlideMove(WHITE, (Position){2, 2}, RIGHT, 1, 1, NO_CRUSH);  // 1 drop packed
     result = makeMoveChecks(state, &move);
     CU_ASSERT_EQUAL(result, SUCCESS);
     CU_ASSERT_EQUAL(readSquare(state->board, (Position){3, 2})->head->stone, FLAT);
@@ -105,7 +106,7 @@ void test_undoMove() {
     freeGameState(state);
 
     state = parseTPS("[TPS x6/x6/x6/x2,1,x3/x6/x6 1 10]");
-    move = createSlideMove(WHITE, (Position){2, 2}, RIGHT, 1, (u8[]){1, 0, 0, 0, 0, 0}, NO_CRUSH);
+    move = createSlideMove(WHITE, (Position){2, 2}, RIGHT, 1, 1, NO_CRUSH);  // 1 drop packed
     makeMoveNoChecks(state, &move);
     undoMoveNoChecks(state, &move);
     CU_ASSERT_EQUAL(readSquare(state->board, (Position){2, 2})->head->stone, FLAT);
@@ -132,6 +133,7 @@ void test_generateAllMoves() {
 
     state = parseTPS("[TPS 2S,2S,2S,2S,2S,2S/1S,1S,1S,1S,1S,1S/2S,2S,2S,2S,2S,2S/1S,1S,1S,1S,1S,1S/2S,2S,2S,2S,2S,2S/11,x5 1 3]");
     moves = generateAllMoves(state);
+    /* printf("Generated %d moves\n", moves->numMoves); */
     /* for (u8 i = 0; i < moves->numMoves; i++) { */
     /*     printMove(&moves->moves[i]); */
     /*     printf("pos: %d %d\n", moves->moves[i].move.slide.startPos.x, moves->moves[i].move.slide.startPos.y); */
@@ -139,12 +141,12 @@ void test_generateAllMoves() {
     CU_ASSERT_EQUAL(moves->numMoves, 18);
     freeGeneratedMoves(moves);
     freeGameState(state);
-    
+
     state = parseTPS("[TPS 2,2,21S,2,2,2/2,x,222221,2,2,x/1,1,2221C,x,111112C,2S/x,1,2S,x2,121211212/1,1,1212S,1S,2,1S/x2,2,1,21,1 1 42]");
     moves = generateAllMoves(state);
-    /* printf("\n\n%d\n\n", moves->numMoves); */
-    /* CU_ASSERT_EQUAL(moves->numMoves, 140); */
+    /* printf("Generated %d moves\n", moves->numMoves); */
     /* for (u8 i = 0; i < moves->numMoves; i++) { */
+    /*     printf("here"); */
     /*     printMove(&moves->moves[i]); */
     /* } */
     freeGeneratedMoves(moves);
