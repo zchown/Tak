@@ -88,16 +88,18 @@ typedef struct GameHistory {
 } GameHistory;
 
 typedef struct {
-    Board* board;
-    Color turn;
-    u32 turnNumber;
+    GameHistory* history;
     Reserves player1;
     Reserves player2;
+    u32 turnNumber;
+    Color turn;
     Result result;
-    GameHistory* history;
+    Board* board;
     Bitboard whiteControlled;
     Bitboard blackControlled;
     Bitboard emptySquares;
+    Bitboard standingStones;
+    Bitboard capstones;
 } GameState;
 
 

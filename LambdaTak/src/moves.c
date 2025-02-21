@@ -102,13 +102,15 @@ MoveResult makeMoveChecks(GameState* state, const Move* move) {
 
 GameState* makeMoveNoChecks(GameState* state, const Move* move) {
     if (move->type == PLACE) {
-        Square* sq = readSquare(state->board, move->move.place.pos);
-        Piece* piece = createPiece(move->move.place.stone, move->move.place.color);
+        PlaceMove* mv = &move->move.place;
+        Square* sq = readSquare(state->board, mv->pos);
+        Piece* piece = createPiece(mv->stone, mv->color);
         squareInsertPiece(state, sq, piece);
-        Reserves* reserves = (move->move.place.color == WHITE) ? &state->player1 : &state->player2;
-        if (move->move.place.stone == FLAT || move->move.place.stone == STANDING) {
+        Reserves* reserves = (mv->color == WHITE) ? &state->player1 : &state->player2;
+        if (mv->stone == FLAT || mv->stone == STANDING) {
             reserves->stones--;
-        } else {
+        }
+        else {
             reserves->caps--;
         }
     } 
@@ -125,6 +127,7 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move) {
             Square* sq = readSquare(state->board, pos);
             if (sq->head) {
                 sq->head->stone = FLAT;
+                state->standingStones &= ~(1ULL << positionToIndex(pos));
             }
         }
 
@@ -248,7 +251,7 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move) {
             curPos = nextPosition(curPos, invDir);
         }
         squareInsertPieces(state, readSquare(state->board, mv->startPos), accHead, mv->count);
-        
+
         if(mv->crush == CRUSH) {
             Square* sq = readSquare(state->board, endPos);
             sq->head->stone = STANDING;
@@ -268,6 +271,7 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
         Move* moves = malloc(36 * sizeof(Move));
         if (!moves) {
             printf("Memory allocation failed for moves array\n");
+            free(toReturn);
             return NULL;
         }
 
@@ -285,17 +289,28 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
 
     // https://theses.liacs.nl/pdf/LaurensBeljaards2017Tak.pdf
     // hope this is big enough (certainly for any reasonable position it is)
-    Move* moves = malloc(1024 * sizeof(Move));
+    Move* moves = malloc(512 * sizeof(Move));
     if (!moves) {
         printf("Memory allocation failed for moves array\n");
+        free(toReturn);
+        return NULL;
     }
 
     u32 totalMoves = 0;
     Reserves* res = (state->turn == WHITE) ? &state->player1 : &state->player2;
     Color turn = state->turn;
 
-#pragma unroll
+    u8 controlled_positions[TOTAL_SQUARES];
+    u8 num_controlled = 0;
+    Bitboard control = (state->turn == WHITE) ? 
+        state->whiteControlled : 
+        state->blackControlled;
+
     for (u8 j = 0; j < TOTAL_SQUARES; j++) {
+        if (control & (1ULL << j)) {
+            controlled_positions[num_controlled++] = j;
+        }
+
         if (state->emptySquares & (1ULL << j)) {
             Position pos = indexToPosition(j);
             if (res->stones > 0) {
@@ -311,14 +326,25 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
         }
     }
 
-#pragma unroll
-    for (u8 j = 0; j < TOTAL_SQUARES; j++) {
-        Bitboard* control = (state->turn == WHITE) ? &state->whiteControlled : &state->blackControlled;
-        if (*control & (1ULL << j)) {
-            Position pos = indexToPosition(j);
+    const u8 CHUNK_SIZE = 12;
+    for (u8 chunk = 0; chunk < num_controlled; chunk += CHUNK_SIZE) {
+        for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < num_controlled; i++) {
+            Position pos = indexToPosition(controlled_positions[i]);
             generateSlidesInDir(state, pos, LEFT, moves, &totalMoves);
+        }
+
+        for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < num_controlled; i++) {
+            Position pos = indexToPosition(controlled_positions[i]);
             generateSlidesInDir(state, pos, RIGHT, moves, &totalMoves);
+        }
+
+        for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < num_controlled; i++) {
+            Position pos = indexToPosition(controlled_positions[i]);
             generateSlidesInDir(state, pos, UP, moves, &totalMoves);
+        }
+
+        for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < num_controlled; i++) {
+            Position pos = indexToPosition(controlled_positions[i]);
             generateSlidesInDir(state, pos, DOWN, moves, &totalMoves);
         }
     }
@@ -385,158 +411,39 @@ void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Mo
     }
 }
 
-/* 
-   The following explains what we will do for dropSequence and its
-   associates helper functions.
-
-https://artofproblemsolving.com/wiki/index.php/Ball-and-urn#Restrictions 
-
-Even though our actual problem is using up to (count) balls 
-here we are going to use all (count) balls and iteration through
-all possible counts when we are generating moves.
-
-This is a specific case where we want the balls to be left aligned.
-If a space is empty all spaces to the right of it must also be empty.
-
-To do this we can look at the restriction of this problem where we have
-k = 1 each urn must have at least one ball. If we have up to (spaces) to work
-with we can have m spaces and sum for all valid ms 1 <= m <= spaces.
-*/
 #pragma inline
 u16* dropSequence(u8 count, u8 spaces) {
     return dseq[count * BOARD_SIZE + spaces - 1];
-    /* u32 total = countValidSequences(count, spaces); */
-    /* uint16_t* sequences = malloc(total * sizeof(uint16_t)); */
-    /*  */
-    /* if (!sequences) { */
-    /*     printf("Memory allocation failed for sequences array\n"); */
-    /*     return NULL; */
-    /* } */
-    /*  */
-    /* u8 index = 0; */
-    /* for (u8 spacesFilled = 1; spacesFilled <= spaces; spacesFilled++) { */
-    /*     u32 numConfigurations = binomialCoefficient(count - 1, spacesFilled - 1); */
-    /*     if (numConfigurations == 0) continue; */
-    /*  */
-    /*     for (u8 configIdx = 0; configIdx < numConfigurations; configIdx++) { */
-    /*         uint16_t packedDrops = 0; */
-    /*         u8 remaining = count; */
-    /*         u8 usedSpaces = 0; */
-    /*  */
-    /*         for (u8 i = 0; i < spacesFilled - 1; i++) { */
-    /*             u8 dropValue = (remaining > 1) ? (remaining - (spacesFilled - i - 1)) : 1; */
-    /*             packedDrops |= (dropValue << (i * 3)); */
-    /*             remaining -= dropValue; */
-    /*             usedSpaces++; */
-    /*         } */
-    /*  */
-    /*         packedDrops |= (remaining << (usedSpaces * 3));  // Place last value in remaining space */
-    /*         sequences[index + configIdx] = packedDrops; */
-    /*     } */
-    /*  */
-    /*     index += numConfigurations; */
-    /* } */
-    /*  */
-    /* u16* alt = dseq[count * BOARD_SIZE + spaces - 1]; */
-    /* for (u8 i = 0; i < total; i++) { */
-    /*     if (sequences[i] != alt[i]) { */
-    /*         printf("Count: %d, Spaces: %d\n", count, spaces); */
-    /*         printf("Mismatch at index %d: %d %d\n", i, sequences[i], alt[i]); */
-    /*     } */
-    /* } */
-    /*  */
-    /* return sequences; */
 }
 
-/*
-   This is an easier function as we just have to generate all possible
-   combinations of putting (count) balls into (spaces) where we have to
-   use all spaces. And for the crush the last space must be a 1.
-   */
 #pragma inline
 u16* dropSequencesForCrush(u8 count, u8 spaces) {
     return dseqcrush[count * MAX_DROPS + spaces - 1];
-    /* if (count < spaces) { */
-    /*     printf("Invalid input: count must be greater than or equal to spaces\n"); */
-    /*     return NULL; */
-    /* } */
-    /*  */
-    /* u32 total = binomialCoefficient(count - 1, spaces - 1); */
-    /* u16* sequences = malloc(total * sizeof(u16)); */
-    /*  */
-    /* if (!sequences) { */
-    /*     printf("Memory allocation failed for sequences array\n"); */
-    /*     return NULL; */
-    /* } */
-    /*  */
-    /* for (u8 i = 0; i < total; i++) { */
-    /*     uint16_t packedDrops = 0; */
-    /*     u8 remaining = count - 1; */
-    /*     u8 usedSpaces = 0; */
-    /*  */
-    /*     for (u8 j = 0; j < spaces - 1; j++) { */
-    /*         u8 dropValue = (remaining > 1) ? (remaining - (spaces - j - 1)) : 1; */
-    /*         packedDrops |= (dropValue << (j * 3)); */
-    /*         remaining -= dropValue; */
-    /*         usedSpaces++; */
-    /*     } */
-    /*  */
-    /*     packedDrops |= (1 << (usedSpaces * 3));  // Ensure the last value is always 1 for crush */
-    /*     sequences[i] = packedDrops; */
-    /* } */
-    /*  */
-    /* u16* alt = dseqcrush[count * 5 + spaces - 1]; */
-    /* for (u8 i = 0; i < 5; i++) { */
-    /*     if (sequences[i] != alt[i]) { */
-    /*         printf("Count: %d, Spaces: %d\n", count, spaces); */
-    /*         printf("Mismatch at index %d: %d %d\n", i, sequences[i], alt[i]); */
-    /*     } */
-    /* } */
-    /*  */
-    /* return sequences; */
 }
 
 #pragma inline
 u8 binomialCoefficient(u8 n, u8 k) {
     return binCoe[n * MAX_DROPS + k];
-    /* if (k > n) return 0; */
-    /* if (k == 0 || k == n) return 1; */
-    /*  */
-    /* if (k > n - k) k = n - k; */
-    /*  */
-    /* u8 result = 1; */
-    /* for (u8 i = 0; i < k; i++) { */
-    /*     result = result * (n - i) / (i + 1); */
-    /* } */
-    /*  */
-    /* return result; */
 }
 
 #pragma inline
 u8 countValidSequences(u8 count, u8 spaces) {
     return countValSeq[count * BOARD_SIZE + spaces];
-    /* u8 total = 0; */
-    /* if (count == 0 || spaces == 0) return 0; */
-    /* for (u8 m = 1; m <= spaces; m++) { */
-    /*     total += binomialCoefficient(count - 1, m - 1); */
-    /* } */
-    /* return total; */
 }
-
 
 #pragma inline
 u8 numSteps(const GameState* state, Position pos, Direction dir) {
     u8 steps = 0;
     Position nextPos = nextPosition(pos, dir);
+
+    Bitboard posBit = 1ULL;
     while (isValidPosition(nextPos)) {
-        Square* sq = readSquare(state->board, nextPos);
-        if (sq->head && sq->head->stone != FLAT) {
+        posBit = posBit << 1;
+        if ((state->standingStones | state->capstones) & posBit) {
             break;
         }
-        else {
-            steps++;
-            nextPos = nextPosition(nextPos, dir);
-        }
+        steps++;
+        nextPos = nextPosition(nextPos, dir);
     }
     return steps;
 }
@@ -544,9 +451,6 @@ u8 numSteps(const GameState* state, Position pos, Direction dir) {
 #pragma inline
 void freeGeneratedMoves(GeneratedMoves* moves) {
     if (!moves) return;
-    /* for (u32 i = 0; i < moves->numMoves; i++) { */
-    /*     freeMove(&moves->moves[i]); */
-    /* } */
     free(moves->moves);
     free(moves);
 }

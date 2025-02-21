@@ -241,6 +241,11 @@ Piece* squareInsertPiece(GameState* state, Square* square, Piece* piece) {
             state->blackControlled |= posBit;
             state->whiteControlled &= ~posBit;
         }
+        if (piece->stone == STANDING) {
+            state->standingStones |= posBit;
+        } else if (piece->stone == CAP) {
+            state->capstones |= posBit;
+        }
         state->emptySquares &= ~posBit;
     }
     return piece;
@@ -318,6 +323,8 @@ Piece* squareRemovePiece(GameState* state, Square* square) {
             state->whiteControlled &= ~posBit;
             state->blackControlled &= ~posBit;
         }
+        state->standingStones &= ~posBit;
+        state->capstones &= ~posBit;
     }
     return removed;
 }
@@ -367,10 +374,10 @@ Piece* squareRemovePieces(GameState* state, Square* square, u8 numPieces) {
     return toReturn;
 }
 
-#pragma inline
-bool squareIsEmpty(Square* square) {
-    return (square ? (square->head == NULL) : true);
-}
+/* #pragma inline */
+/* bool squareIsEmpty(Square* square) { */
+/*     return (square ? (square->head == NULL) : true); */
+/* } */
 
 #pragma inline
 Move createPlaceMove(Position pos, Color color, Stone stone) {
@@ -463,8 +470,7 @@ char* moveToString(const Move* move) {
 
 #pragma inline
 Bitboard positionToBit(Position pos) {
-    u32 index = positionToIndex(pos);
-    return 1ULL << index;
+    return 1ULL << positionToIndex(pos);
 }
 
 #pragma inline
@@ -488,6 +494,8 @@ void updateBitboards(GameState* state) {
     state->whiteControlled = 0;
     state->blackControlled = 0;
     state->emptySquares = 0;
+    state->standingStones = 0;
+    state->capstones = 0;
 
     // Populate bitboards based on current board state
     for (int i = 0; i < TOTAL_SQUARES; i++) {
@@ -497,10 +505,19 @@ void updateBitboards(GameState* state) {
 
         if (sq->numPieces == 0) {
             state->emptySquares |= posBit;
-        } else if (sq->head->color == WHITE) {
-            state->whiteControlled |= posBit;
-        } else {
-            state->blackControlled |= posBit;
+        }
+        else {
+            Piece* top = sq->head;
+            if (top->color == WHITE) {
+                state->whiteControlled |= posBit;
+            } else {
+                state->blackControlled |= posBit;
+            }
+            if (top->stone == STANDING) {
+                state->standingStones |= posBit;
+            } else if (top->stone == CAP) {
+                state->capstones |= posBit;
+            }
         }
     }
     /* printBitboard(state->whiteControlled); */
@@ -711,45 +728,45 @@ void updateReserves(GameState* state) {
     state->player2.caps = numBlackCaps;
 }
 
-int* controlledSquares(const GameState* state, Color color) {
-    int* squares = malloc(TOTAL_SQUARES * sizeof(int));
-    if (!squares) {
-        printf("controlledSquares: Failed to allocate memory for squares\n");
-        return NULL;
-    }
-
-    int j = 0;
-    for (int i = 0; i < TOTAL_SQUARES; i++) {
-        Square* sq = (Square*)&state->board->squares[i];
-        if (sq->numPieces > 0 && sq->head->color == color) {
-            squares[j++] = i;
-        }
-    }
-    for (;j < TOTAL_SQUARES; j++) {
-        squares[j] = -1;
-    }
-    return squares;
-}
-
-int* emptySquares(const GameState* state) {
-    int* squares = malloc(TOTAL_SQUARES * sizeof(int));
-    if (!squares) {
-        printf("emptySquares: Failed to allocate memory for squares\n");
-        return NULL;
-    }
-    int j = 0;
-    for (int i = 0; i < TOTAL_SQUARES; i++) {
-        Square* sq = (Square*)&state->board->squares[i];
-        /* squares[j++] = (sq->numPieces == 0) ? i : -1; */
-        if (sq->numPieces == 0) {
-            squares[j++] = i;
-        }
-    }
-    for (;j < TOTAL_SQUARES; j++) {
-        squares[j] = -1;
-    }
-    return squares;
-}
+/* int* controlledSquares(const GameState* state, Color color) { */
+/*     int* squares = malloc(TOTAL_SQUARES * sizeof(int)); */
+/*     if (!squares) { */
+/*         printf("controlledSquares: Failed to allocate memory for squares\n"); */
+/*         return NULL; */
+/*     } */
+/*  */
+/*     int j = 0; */
+/*     for (int i = 0; i < TOTAL_SQUARES; i++) { */
+/*         Square* sq = (Square*)&state->board->squares[i]; */
+/*         if (sq->numPieces > 0 && sq->head->color == color) { */
+/*             squares[j++] = i; */
+/*         } */
+/*     } */
+/*     for (;j < TOTAL_SQUARES; j++) { */
+/*         squares[j] = -1; */
+/*     } */
+/*     return squares; */
+/* } */
+/*  */
+/* int* emptySquares(const GameState* state) { */
+/*     int* squares = malloc(TOTAL_SQUARES * sizeof(int)); */
+/*     if (!squares) { */
+/*         printf("emptySquares: Failed to allocate memory for squares\n"); */
+/*         return NULL; */
+/*     } */
+/*     int j = 0; */
+/*     for (int i = 0; i < TOTAL_SQUARES; i++) { */
+/*         Square* sq = (Square*)&state->board->squares[i]; */
+/*          squares[j++] = (sq->numPieces == 0) ? i : -1; */ 
+/*         if (sq->numPieces == 0) { */
+/*             squares[j++] = i; */
+/*         } */
+/*     } */
+/*     for (;j < TOTAL_SQUARES; j++) { */
+/*         squares[j] = -1; */
+/*     } */
+/*     return squares; */
+/* } */
 
 void printMove(const Move* move) {
     if (!move) {
