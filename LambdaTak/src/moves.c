@@ -257,6 +257,7 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move, bool doHistory) 
         if(mv->crush == CRUSH) {
             Square* sq = readSquare(state->board, endPos);
             sq->head->stone = STANDING;
+            state->standingStones |= 1ULL << positionToIndex(endPos);
         }
     }
 
@@ -439,10 +440,23 @@ u8 countValidSequences(u8 count, u8 spaces) {
 u8 numSteps(const GameState* state, Position pos, Direction dir) {
     u8 steps = 0;
     Position nextPos = nextPosition(pos, dir);
+    Bitboard posBit = positionToBit(pos);
 
-    Bitboard posBit = 1ULL;
     while (isValidPosition(nextPos)) {
-        posBit = posBit << 1;
+        switch (dir) {
+            case UP:
+                posBit <<= BOARD_SIZE;
+                break;
+            case DOWN:
+                posBit >>= BOARD_SIZE;
+                break;
+            case RIGHT:
+                posBit <<= 1;
+                break;
+            case LEFT:
+                posBit >>= 1;
+                break;
+        }
         if ((state->standingStones | state->capstones) & posBit) {
             break;
         }
@@ -451,6 +465,7 @@ u8 numSteps(const GameState* state, Position pos, Direction dir) {
     }
     return steps;
 }
+
 
 #pragma inline
 void freeGeneratedMoves(GeneratedMoves* moves) {
