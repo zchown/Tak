@@ -283,9 +283,19 @@ Piece* squareInsertPieces(GameState* state, Square* square, Piece* piece, u8 num
         if (top->color == WHITE) {
             state->whiteControlled |= posBit;
             state->blackControlled &= ~posBit;
+            if (top->stone == STANDING) {
+                state->standingStones |= posBit;
+            } else if (top->stone == CAP) {
+                state->capstones |= posBit;
+            }
         } else {
             state->blackControlled |= posBit;
             state->whiteControlled &= ~posBit;
+            if (top->stone == STANDING) {
+                state->standingStones |= posBit;
+            } else if (top->stone == CAP) {
+                state->capstones |= posBit;
+            }
         }
         state->emptySquares &= ~posBit;
     }
@@ -360,15 +370,21 @@ Piece* squareRemovePieces(GameState* state, Square* square, u8 numPieces) {
             if (square->head->color == WHITE) {
                 state->whiteControlled |= posBit;
                 state->blackControlled &= ~posBit;
+                state->standingStones &= ~posBit;
+                state->capstones &= ~posBit;
             } else {
                 state->blackControlled |= posBit;
                 state->whiteControlled &= ~posBit;
+                state->standingStones &= ~posBit;
+                state->capstones &= ~posBit;
             }
         }
         else {
             state->emptySquares |= posBit;
             state->whiteControlled &= ~posBit;
             state->blackControlled &= ~posBit;
+            state->standingStones &= ~posBit;
+            state->capstones &= ~posBit;
         }
     }
     return toReturn;

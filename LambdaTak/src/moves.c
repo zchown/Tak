@@ -115,15 +115,16 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move, bool doHistory) 
         }
     } 
     else if (move->type == SLIDE) {
-        Piece* pieces = squareRemovePieces(state, readSquare(state->board, move->move.slide.startPos), move->move.slide.count);
+        SlideMove* mv = &move->move.slide;
+        Piece* pieces = squareRemovePieces(state, readSquare(state->board, mv->startPos), mv->count);
 
         u8 slideLength = 1;
-        while (((move->move.slide.drops >> (slideLength * 3)) & 0x7) != 0) {
+        while (((mv->drops >> (slideLength * 3)) & 0x7) != 0) {
             slideLength++;
         }
 
-        Position pos = slidePosition(move->move.slide.startPos, move->move.slide.direction, slideLength);
-        if (move->move.slide.crush == CRUSH) {
+        Position pos = slidePosition(mv->startPos, mv->direction, slideLength);
+        if (mv->crush == CRUSH) {
             Square* sq = readSquare(state->board, pos);
             if (sq->head) {
                 sq->head->stone = FLAT;
@@ -131,10 +132,10 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move, bool doHistory) 
             }
         }
 
-        Direction dir = oppositeDirection(move->move.slide.direction);
+        Direction dir = oppositeDirection(mv->direction);
         for (u8 i = 0; i < slideLength; i++) {
             Square* sq = readSquare(state->board, pos);
-            u8 dropCount = (move->move.slide.drops >> ((slideLength - i - 1) * 3)) & 0x7;
+            u8 dropCount = (mv->drops >> ((slideLength - i - 1) * 3)) & 0x7;
             pieces = squareInsertPieces(state, sq, pieces, dropCount);
             pos = nextPosition(pos, dir);
         }
@@ -210,10 +211,11 @@ MoveResult undoMoveChecks(GameState* state, const Move* move) {
 
 GameState* undoMoveNoChecks(GameState* state, const Move* move, bool doHistory) {
     if (move->type == PLACE) {
-        Square* sq = readSquare(state->board, move->move.place.pos);
+        PlaceMove* mv = &move->move.place;
+        Square* sq = readSquare(state->board, mv->pos);
         squareRemovePiece(state, sq);
-        Reserves* reserves = (move->move.place.color == WHITE) ? &state->player1 : &state->player2;
-        if (move->move.place.stone == FLAT || move->move.place.stone == STANDING) {
+        Reserves* reserves = (mv->color == WHITE) ? &state->player1 : &state->player2;
+        if (mv->stone == FLAT || mv->stone == STANDING) {
             reserves->stones++;
         } else {
             reserves->caps++;
@@ -436,13 +438,48 @@ u8 countValidSequences(u8 count, u8 spaces) {
     return countValSeq[count * BOARD_SIZE + spaces];
 }
 
+/* u8 numSteps2(const GameState* state, Position pos, Direction dir); */
+/*  */
+/* #pragma inline */
+/* u8 numSteps(const GameState* state, Position pos, Direction dir) { */
+/*     u8 steps = 0; */
+/*     Position nextPos = nextPosition(pos, dir); */
+/*     while (isValidPosition(nextPos)) { */
+/*         Square* sq = readSquare(state->board, nextPos); */
+/*         if (sq->head && sq->head->stone != FLAT) { */
+/*             break; */
+/*         } */
+/*         else { */
+/*             steps++; */
+/*             nextPos = nextPosition(nextPos, dir); */
+/*         } */
+/*     } */
+/*  */
+/*     u8 steps2 = numSteps2(state, pos, dir); */
+/*     if (steps2 != steps) { */
+/*         printf("Steps: %d, steps2: %d\n", steps, steps2); */
+/*         printf("Position: %d %d\n", pos.x, pos.y); */
+/*         printf("Direction: %d\n", dir); */
+/*         char* tps = gameStateToTPS(state); */
+/*         printf("TPS: %s\n", tps); */
+/*         exit(1); */
+/*     } */
+/*  */
+/*     return steps; */
+/* } */
+
 #pragma inline
 u8 numSteps(const GameState* state, Position pos, Direction dir) {
     u8 steps = 0;
-    Position nextPos = nextPosition(pos, dir);
-    Bitboard posBit = positionToBit(pos);
+    pos = nextPosition(pos, dir);
+    Bitboard posBit = 1ULL << positionToIndex(pos);
 
-    while (isValidPosition(nextPos)) {
+    for (u8 i = 0; i < MAX_DROPS; i++) {
+        if (!isValidPosition(pos)) return steps;
+        if ((state->standingStones | state->capstones) & posBit) {
+            return steps;
+        }
+        pos = nextPosition(pos, dir);
         switch (dir) {
             case UP:
                 posBit <<= BOARD_SIZE;
@@ -457,15 +494,10 @@ u8 numSteps(const GameState* state, Position pos, Direction dir) {
                 posBit >>= 1;
                 break;
         }
-        if ((state->standingStones | state->capstones) & posBit) {
-            break;
-        }
         steps++;
-        nextPos = nextPosition(nextPos, dir);
     }
     return steps;
 }
-
 
 #pragma inline
 void freeGeneratedMoves(GeneratedMoves* moves) {
