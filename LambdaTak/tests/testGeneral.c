@@ -204,7 +204,7 @@ bool areEqualBoards(const GameState* b1, const GameState* b2) {
 
 void runGeneralTests(void) {
     int fileCount;
-    char** files = getPTNFiles(".", &fileCount);
+    char** files = getPTNFiles("./tests/ptn", &fileCount);
 
     if (!files || fileCount == 0) {
         fprintf(stderr, "No PTN files found\n");
