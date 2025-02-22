@@ -1,14 +1,24 @@
 #include "perft.h"
-#include "tps.h"
 
 u64 perft(GameState* state, int depth, int currentDepth, u64 nodes) {
+    /* if (checkGameResult(state) != CONTINUE) { */
+    /*     return 1; */
+    /* } */
+
+    char* tps = gameStateToTPS(state);
+    printf("TPS: %s\n", tps);
     GeneratedMoves* moves = generateAllMoves(state);
+    printf("Depth: %d, Nodes: %llu\n", currentDepth, nodes);
+    printf("Moves: %d\n", moves->numMoves);
+    for (int i = 0; i < moves->numMoves; i++) {
+        printMove(&moves->moves[i]);
+    }
     if (currentDepth == depth) {
         u64 numMoves = moves->numMoves;
         freeGeneratedMoves(moves);
         return numMoves;
     }
-    
+
     for (int i = 0; i < moves->numMoves; i++) {
         /* int r = makeMoveChecks(state, &moves->moves[i]); */
         /* if (r != SUCCESS) { */

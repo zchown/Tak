@@ -36,10 +36,20 @@ typedef struct Piece {
     struct Piece* next;
 } Piece;
 
-typedef struct {
-    u8 x;
-    u8 y;
-} Position;
+typedef u8 Position;
+
+#define SET_POS(x, y) ((x) + (y) * BOARD_SIZE)
+#define GET_X(pos) ((pos) % BOARD_SIZE)
+#define GET_Y(pos) ((pos) / BOARD_SIZE)
+#define VALID_POSITION(pos) ((pos) >= 0 && (pos) < TOTAL_SQUARES)
+#define RIGHT_POSITION(x) (((x) % BOARD_SIZE == BOARD_SIZE - 1) ? 100 : (x) + 1)
+#define LEFT_POSITION(x) (((x) % BOARD_SIZE == 0) ? 100 : (x) - 1)
+#define UP_POSITION(y) ((y) + 6 >= TOTAL_SQUARES ? 100 : (y) + 6)
+#define DOWN_POSITION(y) ((y) - 6 < 0 ? 100 : (y) - 6)
+#define RIGHT_SLIDE_POSITION(x, count) (((x) % BOARD_SIZE + count >= BOARD_SIZE) ? 100 : (x) + count)
+#define LEFT_SLIDE_POSITION(x, count) (((x) % BOARD_SIZE - count < 0) ? 100 : (x) - count)
+#define UP_SLIDE_POSITION(y, count) ((y) + count * BOARD_SIZE >= TOTAL_SQUARES ? 100 : (y) + count * BOARD_SIZE)
+#define DOWN_SLIDE_POSITION(y, count) ((y) - count * BOARD_SIZE < 0 ? 100 : (y) - count * BOARD_SIZE)
 
 typedef struct {
     Piece* head;
@@ -70,14 +80,14 @@ typedef struct {
 } PlaceMove;
 
 typedef struct {
-    Position startPos;
     Direction direction;
     // 3 bits for each drop, 5 drops max = 15 bits + 1 extra
     // Least significant bit is the first drop
+    Crush crush;
+    Color color;
     u16 drops;
     u8 count;
-    Color color;
-    Crush crush;
+    Position startPos;
     } SlideMove;
 
 typedef struct {
@@ -110,12 +120,12 @@ typedef struct {
 
 
 // Game state management
-GameState* createGameState();
+GameState* createGameState(void);
 void freeGameState(GameState* state);
 GameState* copyGameState(const GameState* state);
 
 // Board management
-Board* createEmptyBoard();
+Board* createEmptyBoard(void);
 void freeBoard(Board* board);
 Board* copyBoard(const Board* board);
 
@@ -131,7 +141,7 @@ void freePieceStack(Piece* piece);
 Piece* copyPieceStack(const Piece* top);
 
 // Square operations
-Square createSquare();
+Square createSquare(void);
 void freeSquare(Square* square);
 Square squareCopy(const Square* square);
 Piece* squareInsertPiece(GameState* state, Square* square, Piece* piece);
@@ -150,7 +160,6 @@ char* moveToString(const Move* move);
 
 // Board operations
 Square* readSquare(const Board* board, Position pos);
-bool isValidPosition(Position pos);
 
 // Bitboard operations
 Bitboard positionToBit(Position pos);
@@ -162,18 +171,12 @@ Result checkGameResult(const GameState* state);
 
 // Utility functions
 bool squareIsEmpty(Square* square);
-// No bounds checking
-u32 positionToIndex(Position pos);
-// No bounds checking
-Position indexToPosition(u32 index);
-bool isValidPosition(Position pos);
 Color oppositeColor(Color color);
 Direction oppositeDirection(Direction dir);
 // Returns original position if out of bounds
 Position nextPosition(Position pos, Direction dir);
 // Returns original position if out of bounds
 Position slidePosition(Position pos, Direction dir, u8 count);
-Position* getNeighbors(Position pos);
 // updates reserves in place based on pieces on the board
 void updateReserves(GameState* state);
 int* controlledSquares(const GameState* state, Color color);

@@ -3,7 +3,7 @@
 
 MoveResult checkMove(GameState* state, const Move* move) {
     if (move->type == PLACE) {
-        if (!isValidPosition(move->move.place.pos)) return INVALID_POSITION;
+        if (!VALID_POSITION(move->move.place.pos)) return INVALID_POSITION;
         if (readSquare(state->board, move->move.place.pos)->head != NULL) return INVALID_POSITION;
         if (move->move.place.color != state->turn) {
             if (state->turnNumber > 2) return INVALID_COLOR;
@@ -19,7 +19,7 @@ MoveResult checkMove(GameState* state, const Move* move) {
         return SUCCESS;
     } 
     else if (move->type == SLIDE) {
-        if (!isValidPosition(move->move.slide.startPos)) return INVALID_POSITION;
+        if (!VALID_POSITION(move->move.slide.startPos)) return INVALID_POSITION;
         Square* startSq = readSquare(state->board, move->move.slide.startPos);
         if (startSq->head == NULL) return INVALID_POSITION;
         if (startSq->head->color != move->move.slide.color) return INVALID_COLOR;
@@ -51,7 +51,7 @@ MoveResult checkMove(GameState* state, const Move* move) {
         Position nextPos = move->move.slide.startPos;
         for (u8 j = 0; j < len; j++) {
             nextPos = nextPosition(nextPos, move->move.slide.direction);
-            if (!isValidPosition(nextPos)) return INVALID_SLIDE;
+            if (!VALID_POSITION(nextPos)) return INVALID_SLIDE;
             Square* sq = readSquare(state->board, nextPos);
             if (sq->head != NULL) {
                 if (j == len - 1) {  
@@ -128,7 +128,7 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move, bool doHistory) 
             Square* sq = readSquare(state->board, pos);
             if (sq->head) {
                 sq->head->stone = FLAT;
-                state->standingStones &= ~(1ULL << positionToIndex(pos));
+                state->standingStones &= ~(1ULL << pos);
             }
         }
 
@@ -151,7 +151,7 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move, bool doHistory) 
 
 MoveResult undoMoveChecks(GameState* state, const Move* move) {
     if (move->type == PLACE) {
-        if (!isValidPosition(move->move.place.pos)) return INVALID_POSITION;
+        if (!VALID_POSITION(move->move.place.pos)) return INVALID_POSITION;
         if (readSquare(state->board, move->move.place.pos)->head == NULL) return INVALID_POSITION;
         if (readSquare(state->board, move->move.place.pos)->numPieces != 1) return INVALID_POSITION;
         undoMoveNoChecks(state, move, true);
@@ -160,7 +160,7 @@ MoveResult undoMoveChecks(GameState* state, const Move* move) {
     else if (move->type == SLIDE) {
         const SlideMove* mv = &move->move.slide;
         if (mv->color != oppositeColor(state->turn)) return INVALID_COLOR;
-        if (!isValidPosition(mv->startPos)) return INVALID_POSITION;
+        if (!VALID_POSITION(mv->startPos)) return INVALID_POSITION;
 
         // Determine slide length from packed drops
         u8 slideLength = 0;
@@ -171,7 +171,7 @@ MoveResult undoMoveChecks(GameState* state, const Move* move) {
         }
 
         Position endPos = slidePosition(mv->startPos, mv->direction, slideLength);
-        if (!isValidPosition(endPos)) return INVALID_POSITION;
+        if (!VALID_POSITION(endPos)) return INVALID_POSITION;
 
         // Validate drops count
         if (dropsTotal != mv->count) return INVALID_COUNT;
@@ -186,11 +186,10 @@ MoveResult undoMoveChecks(GameState* state, const Move* move) {
             if (drop == 0) return INVALID_DROPS;
             if (drop > readSquare(state->board, curPos)->numPieces) return INVALID_DROPS;
 
-            if ((positionToIndex(curPos) != positionToIndex(endPos)) &&
-                    readSquare(state->board, curPos)->head->stone != FLAT) {
+            if (curPos != endPos && readSquare(state->board, curPos)->head->stone != FLAT) {
                 return INVALID_SLIDE;
             } 
-            else if (positionToIndex(curPos) == positionToIndex(endPos)) {
+            else if (curPos == endPos) {
                 if (mv->crush == CRUSH) {
                     if (readSquare(state->board, curPos)->numPieces < 2) return INVALID_CRUSH;
                     if (readSquare(state->board, curPos)->head->stone != CAP) return INVALID_CRUSH;
@@ -200,7 +199,6 @@ MoveResult undoMoveChecks(GameState* state, const Move* move) {
             i++;
             curPos = nextPosition(curPos, mv->direction);
         }
-
         undoMoveNoChecks(state, move, true);
     } 
     else {
@@ -235,7 +233,7 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move, bool doHistory) 
         Piece* accTail = NULL;
 
         u8 curIndex = slideLength - 1;
-        while (positionToIndex(curPos) != positionToIndex(mv->startPos)) {
+        while (curPos != mv->startPos) {
             u8 dropCount = (mv->drops >> (curIndex * 3)) & 0x7;
             Piece* temp = squareRemovePieces(state, readSquare(state->board, curPos), dropCount);
             if (accHead) {
@@ -259,7 +257,7 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move, bool doHistory) 
         if(mv->crush == CRUSH) {
             Square* sq = readSquare(state->board, endPos);
             sq->head->stone = STANDING;
-            state->standingStones |= 1ULL << positionToIndex(endPos);
+            state->standingStones |= 1ULL << endPos;
         }
     }
 
@@ -285,7 +283,7 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
         u8 totalMoves = 0;
         for (u8 j = 0; j < TOTAL_SQUARES; j++) {
             if (state->emptySquares & (1ULL << j)) {
-                moves[totalMoves++] = createPlaceMove(indexToPosition(j), oppositeColor(state->turn), FLAT);
+                moves[totalMoves++] = createPlaceMove(j, oppositeColor(state->turn), FLAT);
             }
         }
 
@@ -319,15 +317,14 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
         }
 
         if (state->emptySquares & (1ULL << j)) {
-            Position pos = indexToPosition(j);
             if (res->stones > 0) {
-                moves[totalMoves] = createPlaceMove(pos, turn, FLAT);
+                moves[totalMoves] = createPlaceMove(j, turn, FLAT);
                 totalMoves++;
-                moves[totalMoves] = createPlaceMove(pos, turn, STANDING);
+                moves[totalMoves] = createPlaceMove(j, turn, STANDING);
                 totalMoves++;
             }
             if (res->caps > 0) {
-                moves[totalMoves] = createPlaceMove(pos, turn, CAP);
+                moves[totalMoves] = createPlaceMove(j, turn, CAP);
                 totalMoves++;
             }
         }
@@ -338,22 +335,22 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
     for (u8 chunk = 0; chunk < num_controlled; chunk += CHUNK_SIZE) {
         #pragma unroll
         for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < num_controlled; i++) {
-            Position pos = indexToPosition(controlled_positions[i]);
+            Position pos = controlled_positions[i];
             generateSlidesInDir(state, pos, LEFT, moves, &totalMoves);
         }
         #pragma unroll
         for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < num_controlled; i++) {
-            Position pos = indexToPosition(controlled_positions[i]);
+            Position pos = controlled_positions[i];
             generateSlidesInDir(state, pos, RIGHT, moves, &totalMoves);
         }
         #pragma unroll
         for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < num_controlled; i++) {
-            Position pos = indexToPosition(controlled_positions[i]);
+            Position pos = controlled_positions[i];
             generateSlidesInDir(state, pos, UP, moves, &totalMoves);
         }
         #pragma unroll
         for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < num_controlled; i++) {
-            Position pos = indexToPosition(controlled_positions[i]);
+            Position pos = controlled_positions[i];
             generateSlidesInDir(state, pos, DOWN, moves, &totalMoves);
         }
     }
@@ -393,11 +390,11 @@ void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Mo
 
     // Determine if we have a crush situation
     Position crushPos = slidePosition(pos, dir, steps + 1);
-    if (!isValidPosition(crushPos)) return;
+    if (!VALID_POSITION(crushPos)) return;
     Square* crushSq = readSquare(board, crushPos);
     Crush canCrush = 
         (sq->head->stone == CAP) && 
-        (isValidPosition(crushPos)) && (steps + 1 <= maxCount) &&
+        (VALID_POSITION(crushPos)) && (steps + 1 <= maxCount) &&
         (crushSq->head != NULL) && 
         (crushSq->head->stone == STANDING) 
         ? CRUSH : NO_CRUSH;
@@ -449,10 +446,10 @@ u8 countValidSequences(u8 count, u8 spaces) {
 u8 numSteps(const GameState* state, Position pos, Direction dir) {
     u8 steps = 0;
     pos = nextPosition(pos, dir);
-    Bitboard posBit = 1ULL << positionToIndex(pos);
+    Bitboard posBit = 1ULL << pos;
 
     for (u8 i = 0; i < MAX_DROPS; i++) {
-        if (!isValidPosition(pos)) return steps;
+        if (!VALID_POSITION(pos)) return steps;
         if ((state->standingStones | state->capstones) & posBit) {
             return steps;
         }

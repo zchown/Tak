@@ -77,19 +77,19 @@ PTNParseError parseMove(const char* moveStr, Color color, Move* move) {
     if (crush) moveStrCopy[strlen(moveStrCopy) - 1] = '\0';
 
     if (strlen(moveStrCopy) == 2 && isalpha(moveStrCopy[0]) && isdigit(moveStrCopy[1])) {
-        Position pos = {moveStrCopy[0] - 'a', moveStrCopy[1] - '1'};
+        Position pos = SET_POS(moveStrCopy[0] - 'a', moveStrCopy[1] - '1');
         *move = createPlaceMove(pos, color, FLAT);
         free(moveStrCopy);
         return PTN_PARSE_OK;
     } else if (moveStrCopy[0] == 'S' && strlen(moveStrCopy) == 3 
             && isalpha(moveStrCopy[1]) && isdigit(moveStrCopy[2])) {
-        Position pos = {moveStrCopy[1] - 'a', moveStrCopy[2] - '1'};
+        Position pos = SET_POS(moveStrCopy[1] - 'a', moveStrCopy[2] - '1');
         *move = createPlaceMove(pos, color, STANDING);
         free(moveStrCopy);
         return PTN_PARSE_OK;
     } else if (moveStrCopy[0] == 'C' && strlen(moveStrCopy) == 3 
             && isalpha(moveStrCopy[1]) && isdigit(moveStrCopy[2])) {
-        Position pos = {moveStrCopy[1] - 'a', moveStrCopy[2] - '1'};
+        Position pos = SET_POS(moveStrCopy[1] - 'a', moveStrCopy[2] - '1');
         *move = createPlaceMove(pos, color, CAP);
         free(moveStrCopy);
         return PTN_PARSE_OK;
@@ -110,7 +110,7 @@ PTNParseError parseSlideMove(const char* str, Color color, bool crush, Move* mov
     }
 
     if (strlen(ptr) < 2) return PTN_POSITION_ERROR;
-    Position pos = { ptr[0] - 'a', ptr[1] - '1' };
+    Position pos = SET_POS( ptr[0] - 'a', ptr[1] - '1' );
     ptr += 2;
 
     if (strlen(ptr) < 1) return PTN_DIRECTION_ERROR;

@@ -27,7 +27,8 @@ void test_parseTPS_invalid() {
 void test_parseTPS_with_pieces() {
     GameState* state = parseTPS("[TPS x3,1,2,2C/x6/x6/x6/x6/x6 1 10]");
     if (state) {
-        Square* sq = readSquare(state->board, (Position){3, 5});
+        /* Square* sq = readSquare(state->board, (Position){3, 5}); */
+        Square* sq = readSquare(state->board, SET_POS(3, 5));
         CU_ASSERT_PTR_NOT_NULL(sq);
         CU_ASSERT_PTR_NOT_NULL(sq->head);
         CU_ASSERT_EQUAL(sq->head->color, WHITE);
@@ -85,7 +86,8 @@ void test_gameStateToTPS() {
 
 void test_boardToTPS() {
     Board* board = createEmptyBoard();
-    Position pos = {0, 0};
+    /* Position pos = {0, 0}; */
+    Position pos = SET_POS(0, 0);
     Piece* piece = createPiece(FLAT, WHITE);
     Square* sq = readSquare(board, pos);
     squareInsertPiece(NULL, sq, piece);

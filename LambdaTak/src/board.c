@@ -47,6 +47,8 @@ GameState* copyGameState(const GameState* state) {
     newState->whiteControlled = state->whiteControlled;
     newState->blackControlled = state->blackControlled;
     newState->emptySquares = state->emptySquares;
+    newState->standingStones = state->standingStones;
+    newState->capstones = state->capstones;
 
     return newState;
 }
@@ -142,12 +144,11 @@ Square* readSquare(const Board* board, Position pos) {
         printf("readSquare: Board is NULL\n");
         return NULL;
     }
-    if (!isValidPosition(pos)) {
+    if (!VALID_POSITION(pos)) {
         printf("readSquare: Invalid position\n");
         return NULL;
     }
-    u32 index = positionToIndex(pos);
-    return (Square*)&board->squares[index];
+    return (Square*)&board->squares[pos];
 }
 
 Square createSquare(void) {
@@ -232,7 +233,7 @@ Piece* squareInsertPiece(GameState* state, Square* square, Piece* piece) {
     square->head = piece;
     square->numPieces++;
     if (state) {
-        Position pos = indexToPosition(square - state->board->squares);
+        Position pos = (square - state->board->squares);
         Bitboard posBit = positionToBit(pos);
         if (piece->color == WHITE) {
             state->whiteControlled |= posBit;
@@ -278,7 +279,7 @@ Piece* squareInsertPieces(GameState* state, Square* square, Piece* piece, u8 num
     square->head = top;
     square->numPieces += numPieces;
     if (state) {
-        Position pos = indexToPosition(square - state->board->squares);
+        Position pos = (square - state->board->squares);
         Bitboard posBit = positionToBit(pos);
         if (top->color == WHITE) {
             state->whiteControlled |= posBit;
@@ -317,7 +318,7 @@ Piece* squareRemovePiece(GameState* state, Square* square) {
     square->numPieces--;
     removed->next = NULL;
     if (state) {
-        Position pos = indexToPosition(square - state->board->squares);
+        Position pos = (square - state->board->squares);
         Bitboard posBit = positionToBit(pos);
         if (square->head) {
             if (square->head->color == WHITE) {
@@ -364,7 +365,7 @@ Piece* squareRemovePieces(GameState* state, Square* square, u8 numPieces) {
     square->head = top;
     square->numPieces -= numPieces;
     if (state) {
-        Position pos = indexToPosition(square - state->board->squares);
+        Position pos = (square - state->board->squares);
         Bitboard posBit = positionToBit(pos);
         if (square->head) {
             if (square->head->color == WHITE) {
@@ -456,13 +457,13 @@ char* moveToString(const Move* move) {
             moveStr[size++] = 'S';
         else if (move->move.place.stone == CAP)
             moveStr[size++] = 'C';
-        moveStr[size++] = 'a' + move->move.place.pos.x;
-        moveStr[size++] = '1' + move->move.place.pos.y;
+        moveStr[size++] = 'a' + GET_X(move->move.place.pos);
+        moveStr[size++] = '1' + GET_Y(move->move.place.pos);
     } else {
         if (move->move.slide.count > 1)
             moveStr[size++] = '0' + move->move.slide.count;
-        moveStr[size++] = 'a' + move->move.slide.startPos.x;
-        moveStr[size++] = '1' + move->move.slide.startPos.y;
+        moveStr[size++] = 'a' + GET_X(move->move.slide.startPos);
+        moveStr[size++] = '1' + GET_Y(move->move.slide.startPos);
         switch (move->move.slide.direction) {
             case LEFT:  moveStr[size++] = '<'; break;
             case RIGHT: moveStr[size++] = '>'; break;
@@ -486,7 +487,7 @@ char* moveToString(const Move* move) {
 
 #pragma inline
 Bitboard positionToBit(Position pos) {
-    return 1ULL << positionToIndex(pos);
+    return 1ULL << pos;
 }
 
 #pragma inline
@@ -497,7 +498,7 @@ Position bitToPosition(Bitboard bit) {
         bit >>= 1;
         index++;
     }
-    return indexToPosition(index);
+    return index;
 }
 
 void updateBitboards(GameState* state) {
@@ -516,7 +517,7 @@ void updateBitboards(GameState* state) {
     // Populate bitboards based on current board state
     for (int i = 0; i < TOTAL_SQUARES; i++) {
         Square* sq = &state->board->squares[i];
-        Position pos = indexToPosition(i);
+        Position pos = i;
         Bitboard posBit = positionToBit(pos);
 
         if (sq->numPieces == 0) {
@@ -545,9 +546,9 @@ bool checkReservesEmpty(const GameState* state) {
             (state->player2.stones == 0 && state->player2.caps == 0));
 }
 
-static inline bool hasRoad(Bitboard player_controlled, Bitboard start_mask, Bitboard end_mask) {
-    Bitboard reachable = player_controlled & start_mask;
-    Bitboard endReachable = player_controlled & end_mask;
+static inline bool hasRoad(Bitboard playerControlled, Bitboard startMask, Bitboard endMask) {
+    Bitboard reachable = playerControlled & startMask;
+    Bitboard endReachable = playerControlled & endMask;
     if (reachable == 0 || endReachable == 0) {
         return false;
     }
@@ -556,13 +557,13 @@ static inline bool hasRoad(Bitboard player_controlled, Bitboard start_mask, Bitb
     do {
         previous = reachable;
 
-        Bitboard shifted_left = ((reachable & ~RIGHT_EDGE) << 1) & player_controlled;
-        Bitboard shifted_right = ((reachable & ~LEFT_EDGE) >> 1) & player_controlled;
-        Bitboard shifted_up = ((reachable & ~BOTTOM_EDGE) << BOARD_SIZE) & player_controlled;
-        Bitboard shifted_down = ((reachable & ~TOP_EDGE) >> BOARD_SIZE) & player_controlled;
-        reachable |= shifted_left | shifted_right | shifted_up | shifted_down;
-        
-        if (reachable & end_mask) {
+        Bitboard shiftedLeft = ((reachable & ~RIGHT_EDGE) << 1) & playerControlled;
+        Bitboard shiftedRight = ((reachable & ~LEFT_EDGE) >> 1) & playerControlled;
+        Bitboard shiftedUp = ((reachable & ~BOTTOM_EDGE) << BOARD_SIZE) & playerControlled;
+        Bitboard shiftedDown = ((reachable & ~TOP_EDGE) >> BOARD_SIZE) & playerControlled;
+        reachable |= shiftedLeft | shiftedRight | shiftedUp | shiftedDown;
+
+        if (reachable & endMask) {
             return true;
         }
     } while (reachable != previous);
@@ -573,24 +574,22 @@ static inline bool hasRoad(Bitboard player_controlled, Bitboard start_mask, Bitb
 Result checkRoadWin(const GameState* state) {
     Color current = state->turn;
     Color opponent = oppositeColor(current);
-    Bitboard current_controlled = (current == WHITE) 
+    Bitboard currentControlled = (current == WHITE) 
         ? (state->whiteControlled & ~state->standingStones)
         : (state->blackControlled & ~state->standingStones);
-    Bitboard opponent_controlled = (opponent == WHITE)
+    Bitboard opponentControlled = (opponent == WHITE)
         ? (state->whiteControlled & ~state->standingStones)
         : (state->blackControlled & ~state->standingStones);
 
     // Check current player's roads
-    bool current_vertical = hasRoad(current_controlled, TOP_EDGE, BOTTOM_EDGE);
-    bool current_horizontal = hasRoad(current_controlled, LEFT_EDGE, RIGHT_EDGE);
-    if (current_vertical || current_horizontal) {
+    if (hasRoad(currentControlled, TOP_EDGE, BOTTOM_EDGE) 
+            || hasRoad(currentControlled, LEFT_EDGE, RIGHT_EDGE)) {
         return (current == WHITE) ? ROAD_WHITE : ROAD_BLACK;
     }
 
     // Check opponent's roads
-    bool opponent_vertical = hasRoad(opponent_controlled, TOP_EDGE, BOTTOM_EDGE);
-    bool opponent_horizontal = hasRoad(opponent_controlled, LEFT_EDGE, RIGHT_EDGE);
-    if (opponent_vertical || opponent_horizontal) {
+    if (hasRoad(opponentControlled, TOP_EDGE, BOTTOM_EDGE) 
+            || hasRoad(opponentControlled, LEFT_EDGE, RIGHT_EDGE)) {
         return (opponent == WHITE) ? ROAD_WHITE : ROAD_BLACK;
     }
 
@@ -625,21 +624,6 @@ Result checkGameResult(const GameState* state) {
 }
 
 #pragma inline
-u32 positionToIndex(Position pos) {
-    return pos.y * BOARD_SIZE + pos.x;
-}
-
-#pragma inline
-Position indexToPosition(u32 index) {
-    return (Position){ index % BOARD_SIZE, index / BOARD_SIZE };
-}
-
-#pragma inline
-bool isValidPosition(Position pos) {
-    return pos.x >= 0 && pos.x < BOARD_SIZE && pos.y >= 0 && pos.y < BOARD_SIZE;
-}
-
-#pragma inline
 Color oppositeColor(Color color) {
     return (color == WHITE) ? BLACK : WHITE;
 }
@@ -655,13 +639,13 @@ Direction oppositeDirection(Direction dir) {
 Position nextPosition(Position pos, Direction dir) {
     switch (dir) {
         case LEFT:
-            return (Position){pos.x - 1, pos.y};
+            return LEFT_POSITION(pos);
         case RIGHT:
-            return (Position){pos.x + 1, pos.y};
+            return RIGHT_POSITION(pos);
         case UP:
-            return (Position){pos.x, pos.y + 1};
+            return UP_POSITION(pos);
         case DOWN:
-            return (Position){pos.x, pos.y - 1};
+            return DOWN_POSITION(pos);
     }
     return pos;
 }
@@ -670,39 +654,15 @@ Position nextPosition(Position pos, Direction dir) {
 Position slidePosition(Position pos, Direction dir, u8 count) {
     switch (dir) {
         case LEFT:
-            return (Position){pos.x - count, pos.y};
+            return LEFT_SLIDE_POSITION(pos, count);
         case RIGHT:
-            return (Position){pos.x + count, pos.y};
+            return RIGHT_SLIDE_POSITION(pos, count);
         case UP:
-            return (Position){pos.x, pos.y + count};
+            return UP_SLIDE_POSITION(pos, count);
         case DOWN:
-            return (Position){pos.x, pos.y - count};
+            return DOWN_SLIDE_POSITION(pos, count);
     }
     return pos;
-}
-
-Position* getNeighbors(Position pos) {
-    u8 numNeighbors = 4;
-    if ((pos.x == 0 || pos.x == BOARD_SIZE - 1) && (pos.y == 0 || pos.y == BOARD_SIZE - 1)) {
-        numNeighbors = 2;
-    } else if (pos.x == 0 || pos.x == BOARD_SIZE - 1 || pos.y == 0 || pos.y == BOARD_SIZE - 1) {
-        numNeighbors = 3;
-    }
-    Position* neighbors = malloc(numNeighbors * sizeof(Position));
-    if (!neighbors) {
-        printf("getNeighbors: Failed to allocate memory for neighbors\n");
-        return NULL;
-    }
-    u8 index = 0;
-    if (pos.x > 0)
-        neighbors[index++] = (Position){pos.x - 1, pos.y};
-    if (pos.x < BOARD_SIZE - 1)
-        neighbors[index++] = (Position){pos.x + 1, pos.y};
-    if (pos.y < BOARD_SIZE - 1)
-        neighbors[index++] = (Position){pos.x, pos.y + 1};
-    if (pos.y > 0)
-        neighbors[index++] = (Position){pos.x, pos.y - 1};
-    return neighbors;
 }
 
 void updateReserves(GameState* state) {
@@ -734,46 +694,6 @@ void updateReserves(GameState* state) {
     state->player2.caps = numBlackCaps;
 }
 
-/* int* controlledSquares(const GameState* state, Color color) { */
-/*     int* squares = malloc(TOTAL_SQUARES * sizeof(int)); */
-/*     if (!squares) { */
-/*         printf("controlledSquares: Failed to allocate memory for squares\n"); */
-/*         return NULL; */
-/*     } */
-/*  */
-/*     int j = 0; */
-/*     for (int i = 0; i < TOTAL_SQUARES; i++) { */
-/*         Square* sq = (Square*)&state->board->squares[i]; */
-/*         if (sq->numPieces > 0 && sq->head->color == color) { */
-/*             squares[j++] = i; */
-/*         } */
-/*     } */
-/*     for (;j < TOTAL_SQUARES; j++) { */
-/*         squares[j] = -1; */
-/*     } */
-/*     return squares; */
-/* } */
-/*  */
-/* int* emptySquares(const GameState* state) { */
-/*     int* squares = malloc(TOTAL_SQUARES * sizeof(int)); */
-/*     if (!squares) { */
-/*         printf("emptySquares: Failed to allocate memory for squares\n"); */
-/*         return NULL; */
-/*     } */
-/*     int j = 0; */
-/*     for (int i = 0; i < TOTAL_SQUARES; i++) { */
-/*         Square* sq = (Square*)&state->board->squares[i]; */
-/*          squares[j++] = (sq->numPieces == 0) ? i : -1; */ 
-/*         if (sq->numPieces == 0) { */
-/*             squares[j++] = i; */
-/*         } */
-/*     } */
-/*     for (;j < TOTAL_SQUARES; j++) { */
-/*         squares[j] = -1; */
-/*     } */
-/*     return squares; */
-/* } */
-
 void printMove(const Move* move) {
     if (!move) {
         printf("printMove: Move is NULL\n");
@@ -781,15 +701,15 @@ void printMove(const Move* move) {
     }
     if (move->type == PLACE) {
         printf("Place: %c%d  Player: %c  Stone: %c\n",
-                'a' + move->move.place.pos.x,
-                move->move.place.pos.y + 1,
+                'a' + GET_X(move->move.place.pos),
+                GET_Y(move->move.place.pos) + 1,
                 (move->move.place.color == WHITE) ? '1' : '2',
                 (move->move.place.stone == FLAT) ? 'F' :
                 (move->move.place.stone == STANDING) ? 'S' : 'C');
     } else {
         printf("Slide: %c%d  Dir: %c  Crush: %c  Count: %d",
-                'a' + move->move.slide.startPos.x,
-                move->move.slide.startPos.y + 1,
+                'a' + GET_X(move->move.slide.startPos),
+                GET_Y(move->move.slide.startPos) + 1,
                 (move->move.slide.direction == LEFT)  ? '<' :
                 (move->move.slide.direction == RIGHT) ? '>' :
                 (move->move.slide.direction == UP)    ? '+' : '-',
@@ -857,7 +777,7 @@ void printBoard(const Board* board) {
     for (int y = BOARD_SIZE - 1; y >= 0; y--) {
         printf("%d |", y + 1);
         for (int x = 0; x < BOARD_SIZE; x++) {
-            Position pos = { x, y };
+            Position pos = SET_POS(x, y);
             Square* sq = readSquare(board, pos);
             printf(" ");
             printSquare(sq);
@@ -901,7 +821,7 @@ void printBitboard(Bitboard board) {
     for (int y = BOARD_SIZE - 1; y >= 0; y--) {
         printf("%d |", y + 1);
         for (int x = 0; x < BOARD_SIZE; x++) {
-            Position pos = {x, y};
+            Position pos = SET_POS(x, y);
             Bitboard bit = positionToBit(pos);
             printf(" %c |", (board & bit) ? '1' : '0');
         }

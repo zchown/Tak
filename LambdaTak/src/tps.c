@@ -64,8 +64,8 @@ GameState* parseTPS(const char* tps) {
             }
             else {
                 /* printf("Token: %s\n", curToken); */
-                Position pos = { colNumber, (BOARD_SIZE - 1) - rowNum};
-                Square* sq = &state->board->squares[positionToIndex(pos)];
+                Position pos = SET_POS(colNumber, (BOARD_SIZE - 1) - rowNum);
+                Square* sq = &state->board->squares[pos];
                 Piece* lastPiece = sq->head;
                 int len = strlen(curToken);
                 // j gets incremented in the loop
@@ -134,7 +134,7 @@ char* boardToTPS(Board* board) {
         u8 xs = 0;
         for (int col = BOARD_SIZE - 1; col >= 0; col--) {
             /* printf("Row: %d, Col: %d\n", row, col); */
-            Square* sq = &board->squares[positionToIndex((Position){col, row})];
+            Square* sq = &board->squares[SET_POS(col, row)];
 
             if(sq->numPieces == 0) {
                 xs++;
