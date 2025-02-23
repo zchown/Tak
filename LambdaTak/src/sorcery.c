@@ -6,6 +6,9 @@
 typedef uint16_t u16;
 typedef uint8_t u8;
 typedef size_t usize;
+typedef uint64_t Bitboard;
+
+#define BOARD_SIZE 6
 
 typedef struct {
     u16 *data;
@@ -125,6 +128,38 @@ void printDistribution(u16 packed, u8 urns) {
         printf("%d%s", val, (i == urns - 1) ? "" : ", ");
     }
     printf("]");
+}
+
+void generateBitBoards(void) {
+    Bitboard rowMasks[BOARD_SIZE];
+    Bitboard colMasks[BOARD_SIZE];
+
+    for (unsigned row = 0; row < BOARD_SIZE; row++) {
+        Bitboard mask = 0;
+        for (unsigned col = 0; col < BOARD_SIZE; col++) {
+            // Set the bit corresponding to (row, col)
+            mask |= (1ULL << (row * BOARD_SIZE + col));
+        }
+        rowMasks[row] = mask;
+    }
+
+    for (unsigned col = 0; col < BOARD_SIZE; col++) {
+        Bitboard mask = 0;
+        for (unsigned row = 0; row < BOARD_SIZE; row++) {
+            mask |= (1ULL << (row * BOARD_SIZE + col));
+        }
+        colMasks[col] = mask;
+    }
+
+    printf("Row masks:\n");
+    for (unsigned row = 0; row < BOARD_SIZE; row++) {
+        printf("Row %u: 0x%016llX\n", row, rowMasks[row]);
+    }
+
+    printf("Column masks:\n");
+    for (unsigned col = 0; col < BOARD_SIZE; col++) {
+        printf("Col %u: 0x%016llX\n", col, colMasks[col]);
+    }
 }
 
 int main() {

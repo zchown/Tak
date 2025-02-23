@@ -21,11 +21,20 @@
 #define STONES_PER_PLAYER 30
 #define CAPS_PER_PLAYER 1
 
-// precomputed bitboards for edges
-#define RIGHT_EDGE 34905131040UL
-#define LEFT_EDGE 1090785345UL
-#define TOP_EDGE 63UL
-#define BOTTOM_EDGE 67645734912UL
+// precomputed bitboards from sorcery
+#define ROW1 0x000000000000003F // top edge
+#define ROW2 0x0000000000000FC0
+#define ROW3 0x000000000003F000
+#define ROW4 0x0000000000FC0000
+#define ROW5 0x000000003F000000
+#define ROW6 0x0000000FC0000000 // bottom edge
+
+#define COLA  0x0000000041041041 // left edge
+#define COLB  0x0000000082082082
+#define COLC  0x0000000104104104
+#define COLD  0x0000000208208208
+#define COLE  0x0000000410410410
+#define COLF  0x0000000820820820 // right edge
 
 typedef enum {FLAT, STANDING, CAP} Stone;
 typedef enum {WHITE, BLACK} Color;

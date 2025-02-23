@@ -540,21 +540,33 @@ bool checkReservesEmpty(const GameState* state) {
             (state->player2.stones == 0 && state->player2.caps == 0));
 }
 
-static inline bool hasRoad(Bitboard playerControlled, Bitboard startMask, Bitboard endMask) {
+static inline bool hasRoad(Bitboard playerControlled, SearchDirection dir) {
+    Bitboard startMask = (dir == VERTICAL) ? ROW6 : COLA;
+    Bitboard endMask = (dir == VERTICAL) ? ROW1 : COLF;
     Bitboard reachable = playerControlled & startMask;
-    Bitboard endReachable = playerControlled & endMask;
-    if (reachable == 0 || endReachable == 0) {
-        return false;
+
+    if (dir == VERTICAL) {
+        if (!(playerControlled & ROW6) || !(playerControlled & ROW5) 
+                || !(playerControlled & ROW4) || !(playerControlled & ROW3)
+                || !(playerControlled & ROW2) || !(playerControlled & ROW1)) {
+            return false;
+        }
+    }
+    else {
+        if (!(playerControlled & COLA) || !(playerControlled & COLB) 
+                || !(playerControlled & COLC) || !(playerControlled & COLD)
+                || !(playerControlled & COLE) || !(playerControlled & COLF)) {
+            return false;
+        }
     }
 
     Bitboard previous;
     do {
         previous = reachable;
-
-        Bitboard shiftedLeft = ((reachable & ~RIGHT_EDGE) << 1) & playerControlled;
-        Bitboard shiftedRight = ((reachable & ~LEFT_EDGE) >> 1) & playerControlled;
-        Bitboard shiftedUp = ((reachable & ~BOTTOM_EDGE) << BOARD_SIZE) & playerControlled;
-        Bitboard shiftedDown = ((reachable & ~TOP_EDGE) >> BOARD_SIZE) & playerControlled;
+        Bitboard shiftedLeft = ((reachable & ~COLF) << 1) & playerControlled;
+        Bitboard shiftedRight = ((reachable & ~COLA) >> 1) & playerControlled;
+        Bitboard shiftedUp = ((reachable & ~ROW6) << BOARD_SIZE) & playerControlled;
+        Bitboard shiftedDown = ((reachable & ~ROW1) >> BOARD_SIZE) & playerControlled;
         reachable |= shiftedLeft | shiftedRight | shiftedUp | shiftedDown;
 
         if (reachable & endMask) {
@@ -576,16 +588,15 @@ Result checkRoadWin(const GameState* state) {
         : (state->blackControlled & ~state->standingStones);
 
     // Check current player's roads
-    if (hasRoad(currentControlled, TOP_EDGE, BOTTOM_EDGE) 
-            || hasRoad(currentControlled, LEFT_EDGE, RIGHT_EDGE)) {
+    if (hasRoad(currentControlled, VERTICAL) || hasRoad(currentControlled, HORIZONTAL)) {
         return (current == WHITE) ? ROAD_WHITE : ROAD_BLACK;
     }
 
     // Check opponent's roads
-    if (hasRoad(opponentControlled, TOP_EDGE, BOTTOM_EDGE) 
-            || hasRoad(opponentControlled, LEFT_EDGE, RIGHT_EDGE)) {
+    if (hasRoad(opponentControlled, VERTICAL) || hasRoad(opponentControlled, HORIZONTAL)) {
         return (opponent == WHITE) ? ROAD_WHITE : ROAD_BLACK;
     }
+
 
     return CONTINUE;
 }
