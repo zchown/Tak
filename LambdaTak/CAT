@@ -1,0 +1,13 @@
+Depth 1: 140 nodes, 0.000021 seconds, 6.666667 Mnps
+Invalid move: 10
+Depth: 0
+movetype: 1
+Slide: c4  Dir: +  Crush: *  Count: 2
+Color: 1
+Drops:
+alt drops: 0
+tps: [TPS 2,2,21S,2,2,2/2,x,222221,2,2,x/1,1,2221C,x,111112C,2S/x,1,2S,x2,121211212/1,1,1212S,1S,2,1S/x2,2,1,21,1 1 42]
+color: 0
+bitboard white: 4363922168
+bitboard black: 63782929668
+reserves, stones: 9, caps: 0

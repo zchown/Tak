@@ -27,7 +27,7 @@ Suite: Move Tests
   Test: test_makeMove ...passed
   Test: test_undoMove ...passed
   Test: test_generateAllMoves ...Generated 18 moves
-Generated 140 moves
+Generated 139 moves
 Place: a1  Player: 1  Stone: F
 Place: a1  Player: 1  Stone: S
 Place: b1  Player: 1  Stone: F
@@ -244,18 +244,14 @@ Slide: c4  Dir: +  Crush: X  Count: 4
 Color: 1
 Drops: 4
 alt drops: 4
-Slide: c4  Dir: +  Crush: *  Count: 2
-Color: 1
-Drops:
-alt drops: 0
 Slide: c4  Dir: +  Crush: *  Count: 3
 Color: 1
-Drops:
-alt drops: 0
+Drops: 2 1
+alt drops: 10
 Slide: c4  Dir: +  Crush: *  Count: 4
 Color: 1
-Drops:
-alt drops: 0
+Drops: 3 1
+alt drops: 11
 Slide: c4  Dir: -  Crush: *  Count: 1
 Color: 1
 Drops: 1
@@ -540,11 +536,12 @@ Slide: c6  Dir: -  Crush: X  Count: 2
 Color: 1
 Drops: 2
 alt drops: 2
-passed
+FAILED
+    1. /Users/zanderchown/ComputerScience/Tak/LambdaTak/tests/testMove.c:173  - CU_ASSERT_EQUAL(moves->numMoves,140)
 
 Run Summary:    Type  Total    Ran Passed Failed Inactive
               suites      3      3    n/a      0        0
-               tests     20     20     20      0        0
-             asserts    109    109    109      0      n/a
+               tests     20     20     19      1        0
+             asserts    109    109    108      1      n/a
 
-Elapsed time =    0.005 seconds
+Elapsed time =    0.002 seconds

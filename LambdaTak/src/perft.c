@@ -1,18 +1,16 @@
 #include "perft.h"
 
 u64 perft(GameState* state, int depth, int currentDepth, u64 nodes) {
-    /* if (checkGameResult(state) != CONTINUE) { */
-    /*     return 1; */
-    /* } */
-
-    char* tps = gameStateToTPS(state);
-    printf("TPS: %s\n", tps);
-    GeneratedMoves* moves = generateAllMoves(state);
-    printf("Depth: %d, Nodes: %llu\n", currentDepth, nodes);
-    printf("Moves: %d\n", moves->numMoves);
-    for (int i = 0; i < moves->numMoves; i++) {
-        printMove(&moves->moves[i]);
+    if (checkGameResult(state) != CONTINUE) {
+        return 0;
     }
+
+    /* char* tps = gameStateToTPS(state); */
+    /* printf("TPS: %s\n", tps); */
+    /* printf("Last move: "); */
+    /* printMove(&state->history->move); */
+    GeneratedMoves* moves = generateAllMoves(state);
+    /* printf("Moves: %d\n", moves->numMoves); */
     if (currentDepth == depth) {
         u64 numMoves = moves->numMoves;
         freeGeneratedMoves(moves);
@@ -20,20 +18,22 @@ u64 perft(GameState* state, int depth, int currentDepth, u64 nodes) {
     }
 
     for (int i = 0; i < moves->numMoves; i++) {
-        /* int r = makeMoveChecks(state, &moves->moves[i]); */
-        /* if (r != SUCCESS) { */
-        /*     printf("Invalid move: %d\n", r); */
-        /*     printf("Depth: %d\n", currentDepth); */
-        /*     printf("movetype: %d\n", moves->moves[i].type); */
-        /*     printMove(&moves->moves[i]); */
-        /*     printf("tps: %s\n", gameStateToTPS(state)); */
-        /*     printf("color: %d\n", state->turn); */
-        /*     printf("bitboard white: %llu\n", state->whiteControlled); */
-        /*     printf("bitboard black: %llu\n", state->blackControlled); */
-        /*     Reserves res = (state->turn== WHITE) ? state->player1 : state->player2; */
-        /*     printf("reserves, stones: %d, caps: %d\n", res.stones, res.caps); */
-        /*     exit(1); */
-        /* } */
+    /*     int r = makeMoveChecks(state, &moves->moves[i]); */
+    /*     if (r != SUCCESS) { */
+    /*         printf("Invalid move: %d\n", r); */
+    /*         printf("Depth: %d\n", currentDepth); */
+    /*         printf("movetype: %d\n", moves->moves[i].type); */
+    /*         printMove(&moves->moves[i]); */
+    /*         printf("tps: %s\n", gameStateToTPS(state)); */
+    /*         printf("color: %d\n", state->turn); */
+    /*         printf("bitboard white: %llu\n", state->whiteControlled); */
+    /*         printf("bitboard black: %llu\n", state->blackControlled); */
+    /*         Reserves res = (state->turn== WHITE) ? state->player1 : state->player2; */
+    /*         printf("reserves, stones: %d, caps: %d\n", res.stones, res.caps); */
+    /*         exit(1); */
+    /*     } */
+        /* updateBitboards(state); */
+        /* printMove(&moves->moves[i]); */
         makeMoveNoChecks(state, &moves->moves[i], false);
         nodes += perft(state, depth, currentDepth + 1, 0);
         undoMoveNoChecks(state, &moves->moves[i], false);
@@ -44,6 +44,7 @@ u64 perft(GameState* state, int depth, int currentDepth, u64 nodes) {
         /*     printf("tps: %s\n", gameStateToTPS(state)); */
         /*     exit(1); */
         /* } */
+        /* updateBitboards(state); */
     }
     freeGeneratedMoves(moves);
     return nodes;

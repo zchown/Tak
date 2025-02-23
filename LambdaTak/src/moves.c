@@ -311,6 +311,8 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
         state->whiteControlled : 
         state->blackControlled;
 
+    /* printf("Reserves: %d %d\n", res->stones, res->caps); */
+
     for (u8 j = 0; j < TOTAL_SQUARES; j++) {
         if (control & (1ULL << j)) {
             controlled_positions[num_controlled++] = j;
@@ -329,30 +331,38 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
             }
         }
     }
+    /* printf("Created %d place moves\n", totalMoves); */
 
-    const u8 CHUNK_SIZE = 12;
+    const u8 CHUNK_SIZE = 1;
     #pragma unroll
     for (u8 chunk = 0; chunk < num_controlled; chunk += CHUNK_SIZE) {
+        /* printf("Chunk: %d\n", chunk); */
         #pragma unroll
         for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < num_controlled; i++) {
+            /* printf("Position: %d\n", controlled_positions[i]); */
             Position pos = controlled_positions[i];
             generateSlidesInDir(state, pos, LEFT, moves, &totalMoves);
         }
+        /* printf("Generated left slides\n"); */
         #pragma unroll
         for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < num_controlled; i++) {
             Position pos = controlled_positions[i];
             generateSlidesInDir(state, pos, RIGHT, moves, &totalMoves);
         }
+        /* printf("Generated right slides\n"); */
         #pragma unroll
         for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < num_controlled; i++) {
             Position pos = controlled_positions[i];
             generateSlidesInDir(state, pos, UP, moves, &totalMoves);
         }
+        /* printf("Generated up slides\n"); */
         #pragma unroll
         for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < num_controlled; i++) {
             Position pos = controlled_positions[i];
+            /* printf("Position: %d\n", pos); */
             generateSlidesInDir(state, pos, DOWN, moves, &totalMoves);
         }
+        /* printf("Generated down slides\n"); */
     }
 
     toReturn->moves = moves;
@@ -382,6 +392,11 @@ void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Mo
             /* printf("drop seq: %d, %d\n", curCount, steps); */
             u16* sequences = dropSequence(curCount, steps);
             for (u8 i = 0; i < numberOfSlides; i++) {
+                /* if (sequences[i] == 0) { */
+                /*     printf("Invalid sequence\n"); */
+                /*     printf("Count: %d\n", curCount); */
+                /*     printf("Steps: %d\n", steps); */
+                /* } */
                 moves[*totalMoves] = createSlideMove(turn, pos, dir, curCount, sequences[i], NO_CRUSH);
                 (*totalMoves)++;
             }
@@ -407,16 +422,13 @@ void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Mo
             (*totalMoves)++;
             return;
         }
-
         for (u8 curCount = steps + 1; curCount <= maxCount; curCount++) {
-            /* printf("Crush drop seq: %d, %d\n", curCount, steps); */
-            u32 numberOfSlides = binomialCoefficient(curCount - 1, steps - 1);
-            /* printf("Number of slides: %d\n", numberOfSlides); */
             u16* sequences = dropSequencesForCrush(curCount, steps);
-            /* printf("Got sequences\n"); */
-            for (u8 i = 0; i < numberOfSlides; i++) {
+            u8 i = 0;
+            while (sequences[i] != 0) {
                 moves[*totalMoves] = createSlideMove(turn, pos, dir, curCount, sequences[i], CRUSH);
                 (*totalMoves)++;
+                i++;
             }
         }
     }
@@ -424,12 +436,12 @@ void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Mo
 
 #pragma inline
 u16* dropSequence(u8 count, u8 spaces) {
-    return dseq[count * BOARD_SIZE + spaces - 1];
+    return dseq[(count - 1) * (6) + spaces - 1];
 }
 
 #pragma inline
 u16* dropSequencesForCrush(u8 count, u8 spaces) {
-    return dseqcrush[count * MAX_DROPS + spaces - 1];
+    return dseqcrush[(count - 1) * (6) + spaces];
 }
 
 #pragma inline
@@ -439,7 +451,7 @@ u8 binomialCoefficient(u8 n, u8 k) {
 
 #pragma inline
 u8 countValidSequences(u8 count, u8 spaces) {
-    return countValSeq[count * (BOARD_SIZE + 1)+ spaces];
+    return countValSeq[count * (BOARD_SIZE + 1) + spaces];
 }
 
 #pragma inline

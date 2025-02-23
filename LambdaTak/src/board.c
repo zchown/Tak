@@ -674,6 +674,7 @@ void updateReserves(GameState* state) {
         Square* sq = &state->board->squares[i];
         Piece* current = sq->head;
         while (current) {
+            /* printf("Color: %d, Stone: %d\n", current->color, current->stone); */
             if (current->color == WHITE) {
                 if (current->stone == FLAT)
                     numWhiteStones--;
@@ -692,6 +693,9 @@ void updateReserves(GameState* state) {
     state->player1.caps = numWhiteCaps;
     state->player2.stones = numBlackStones;
     state->player2.caps = numBlackCaps;
+    /* printf("White: Stones: %d, Caps: %d | Black: Stones: %d, Caps: %d\n", */
+    /*         state->player1.stones, state->player1.caps, */
+    /*         state->player2.stones, state->player2.caps); */
 }
 
 void printMove(const Move* move) {
