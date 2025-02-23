@@ -24,10 +24,6 @@ GeneratedMoves* generateAllMoves(const GameState* state);
 void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Move* moves, u32* totalMoves);
 
 // Utility functions
-u16* dropSequence(u8 count, u8 spaces);
-u8 binomialCoefficient(u8 n, u8 k);
-u8 countValidSequences(u8 count, u8 spaces);
-u16* dropSequencesForCrush(u8 count, u8 spaces);
 u8 numSteps(const GameState* state, Position pos, Direction dir);
 void freeGeneratedMoves(GeneratedMoves* moves);
 

@@ -43,14 +43,12 @@ GameState* parseTPS(const char* tps) {
 
     for (u32 rowNum = 0; rowNum < BOARD_SIZE; rowNum++) {
         curRow = rows[rowNum];
-        /* printf("Row: %s\n", curRow); */
 
         char* savePtr2;
         char* curToken = strtok_r(curRow, ",", &savePtr2);
         u8 colNumber = 0;
 
         while (curToken && colNumber < BOARD_SIZE) {
-            /* printf("TOP Token: %s\n", curToken); */
             if (curToken[0] == 'x') {
                 // Token denotes a run of empty squares.
                 u8 count = 1;
@@ -63,7 +61,6 @@ GameState* parseTPS(const char* tps) {
                 colNumber += count;
             }
             else {
-                /* printf("Token: %s\n", curToken); */
                 Position pos = SET_POS(colNumber, (BOARD_SIZE - 1) - rowNum);
                 Square* sq = &state->board->squares[pos];
                 Piece* lastPiece = sq->head;

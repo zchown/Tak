@@ -391,11 +391,6 @@ Piece* squareRemovePieces(GameState* state, Square* square, u8 numPieces) {
     return toReturn;
 }
 
-/* #pragma inline */
-/* bool squareIsEmpty(Square* square) { */
-/*     return (square ? (square->head == NULL) : true); */
-/* } */
-
 #pragma inline
 Move createPlaceMove(Position pos, Color color, Stone stone) {
     return (Move){PLACE, .move.place = {pos, color, stone}};
@@ -537,7 +532,6 @@ void updateBitboards(GameState* state) {
             }
         }
     }
-    /* printBitboard(state->whiteControlled); */
 }
 
 #pragma inline
@@ -674,7 +668,6 @@ void updateReserves(GameState* state) {
         Square* sq = &state->board->squares[i];
         Piece* current = sq->head;
         while (current) {
-            /* printf("Color: %d, Stone: %d\n", current->color, current->stone); */
             if (current->color == WHITE) {
                 if (current->stone == FLAT)
                     numWhiteStones--;
@@ -693,9 +686,6 @@ void updateReserves(GameState* state) {
     state->player1.caps = numWhiteCaps;
     state->player2.stones = numBlackStones;
     state->player2.caps = numBlackCaps;
-    /* printf("White: Stones: %d, Caps: %d | Black: Stones: %d, Caps: %d\n", */
-    /*         state->player1.stones, state->player1.caps, */
-    /*         state->player2.stones, state->player2.caps); */
 }
 
 void printMove(const Move* move) {
@@ -727,9 +717,6 @@ void printMove(const Move* move) {
             printf(" %d", drop);
         }
         printf("\nalt drops: %d", move->move.slide.drops);
-        /* for (int i = 0; move->move.slide.drops[i] != 0 && i < MAX_PICKUP; i++) { */
-        /*     printf(" %d", move->move.slide.drops[i]); */
-        /* } */
         printf("\n");
     }
 }

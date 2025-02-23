@@ -2,6 +2,12 @@
 #define MAGIC_H
 #include "board.h"
 
+#define DROP_SEQUENCE(count, spaces) dseq[((count)-1)*6+(spaces)-1]
+// doesn't need -1 because crush square isn't counted when called
+#define DROP_SEQUENCE_CRUSH(count, spaces) dseqcrush[((count)-1)*6+(spaces)]
+#define BIN_COEF(n, k) binCoe[(n)*MAX_DROPS+(k)]
+#define COUNT_VAL_SEQ(count, spaces) countValSeq[(count)*7+(spaces)]
+
 const u8 binCoe[] = {1,0,0,0,0,1,1,0,0,0,1,2,1,0,0,1,3,3,1,0,1,4,6,4,1};
 
 const u8 countValSeq[] = {0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,1,2,2,2,2,2,0,1,3,4,4,4,4,0,1,4,7,8,8,8,0,1,5,11,15,16,16,0,1,6,16,26,31,32};
