@@ -14,7 +14,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Add the main executable
-add_executable(lambdaTak src/main.c src/board.c src/tps.c src/moves.c src/perft.c src/ptn.c)
+add_executable(lambdaTak src/main.c src/board.c src/tps.c src/moves.c src/perft.c src/ptn.c src/eval.c src/searches.c)
 
 # Manually find CUnit on macOS (Homebrew)
 if(APPLE)

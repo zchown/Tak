@@ -328,7 +328,7 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
         }
     }
 
-    const u8 CHUNK_SIZE = 1;
+    const u8 CHUNK_SIZE = 18;
     #pragma unroll
     for (u8 chunk = 0; chunk < num_controlled; chunk += CHUNK_SIZE) {
         #pragma unroll
