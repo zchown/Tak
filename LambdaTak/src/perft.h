@@ -8,7 +8,3 @@ u64 perft(GameState* state, int depth, int currentDepth, u64 nodes);
 
 void runPerft(GameState* state, int maxDepth);
 
-u64 perftAlphaBeta(GameState* state, int depth);
-
-void runPerftAlphaBeta(GameState* state, int maxDepth);
-

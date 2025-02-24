@@ -7,7 +7,7 @@ static double getTimeMs() {
 }
 
 Move iterativeDeepeningSearch(GameState* state, u8 maxDepth, u64* nodes, int timeLimit) {
-    // update time limit to be in milliseconds
+    // convert time limit to ms
     timeLimit *= 1000;
 
     Move bestMove;
@@ -17,22 +17,24 @@ Move iterativeDeepeningSearch(GameState* state, u8 maxDepth, u64* nodes, int tim
     bool timeUp = false;
 
     for (u8 depth = 1; depth <= maxDepth && !timeUp; depth++) {
-        Move currentBestMove = negaMaxRootID(state, depth, nodes, &timeUp, startTime, timeLimit);
+        Move currentBestMove = negaMaxRoot(state, depth, nodes, &timeUp, startTime, timeLimit);
         if (!timeUp) {
             bestMove = currentBestMove;
             hasValidMove = true;
         }
-        if (timeLimit > 0 && (getTimeMs() - startTime) >= timeLimit) {
+        double elapsedTime = getTimeMs() - startTime;
+        double nps = (*nodes) / (elapsedTime / 1000.0);
+        if (timeLimit > 0 && elapsedTime >= timeLimit) {
             printf("Time limit reached\n");
             timeUp = true;
         }
-        printf("Depth %d: %llu nodes Time: %f ms\n", depth, *nodes, getTimeMs() - startTime);
+        printf("Depth %d: %llu nodes Time: %f ms (%.2f Mnps)\n", depth, *nodes, elapsedTime, nps / 1.0e6);
     }
 
     return hasValidMove ? bestMove : (Move){0};
 }
 
-Move negaMaxRootID(GameState* state, u8 depth, u64* nodes, bool* timeUp, double startTime, int timeLimit) {
+Move negaMaxRoot(GameState* state, u8 depth, u64* nodes, bool* timeUp, double startTime, int timeLimit) {
     int color = (state->turn == WHITE) ? 1 : -1;
     Move bestMove;
     int bestScore = BLACK_ROAD_WIN;
@@ -52,7 +54,7 @@ Move negaMaxRootID(GameState* state, u8 depth, u64* nodes, bool* timeUp, double 
         }
 
         makeMoveNoChecks(state, &moves[i], false);
-        int cur = -negaMaxID(state, depth - 1, BLACK_ROAD_WIN, WHITE_ROAD_WIN, -color, nodes, timeUp, startTime, timeLimit);
+        int cur = -negaMax(state, depth - 1, BLACK_ROAD_WIN, WHITE_ROAD_WIN, -color, nodes, timeUp, startTime, timeLimit);
         undoMoveNoChecks(state, &moves[i], false);
 
         if (cur > bestScore) {
@@ -65,7 +67,7 @@ Move negaMaxRootID(GameState* state, u8 depth, u64* nodes, bool* timeUp, double 
     return bestMove;
 }
 
-int negaMaxID(GameState* state, u8 depth, int alpha, int beta, int color, u64* nodes, bool* timeUp, double startTime, int timeLimit) {
+int negaMax(GameState* state, u8 depth, int alpha, int beta, int color, u64* nodes, bool* timeUp, double startTime, int timeLimit) {
     if (timeLimit > 0 && (getTimeMs() - startTime) >= timeLimit) {
         *timeUp = true;
         return alpha; 
@@ -100,7 +102,7 @@ int negaMaxID(GameState* state, u8 depth, int alpha, int beta, int color, u64* n
         }
 
         makeMoveNoChecks(state, &moves[i], false);
-        int cur = -negaMaxID(state, depth - 1, -beta, -alpha, -color, nodes, timeUp, startTime, timeLimit);
+        int cur = -negaMax(state, depth - 1, -beta, -alpha, -color, nodes, timeUp, startTime, timeLimit);
         undoMoveNoChecks(state, &moves[i], false);
 
         if (cur > alpha) {
@@ -115,75 +117,4 @@ int negaMaxID(GameState* state, u8 depth, int alpha, int beta, int color, u64* n
     freeGeneratedMoves(gm);
     return alpha;
 }
-
-
-// these searches aren't actually used
-Move negaMaxRoot(GameState* state, u8 depth, u64* nodes) {
-    int color = (state->turn == WHITE) ? 1 : -1;
-    Move bestMove;
-    int bestScore = BLACK_ROAD_WIN; 
-    GeneratedMoves* gm = generateAllMoves(state);
-    Move* moves = gm->moves;
-    u32 count = gm->numMoves;
-
-    if (count > 0) {
-        bestMove = moves[0];
-    }
-
-    for(u32 i = 0; i < count; i++) {
-        makeMoveNoChecks(state, &moves[i], false);
-        int cur = -negaMax(state, depth - 1, BLACK_ROAD_WIN, WHITE_ROAD_WIN, -color, nodes);
-        undoMoveNoChecks(state, &moves[i], false);
-
-        if (cur > bestScore) {
-            bestScore = cur;
-            bestMove = moves[i];
-        }
-    }
-
-    freeGeneratedMoves(gm);
-    return bestMove;
-}
-
-int negaMax(GameState* state, u8 depth, int alpha, int beta, int color, u64* nodes) {
-    Result result = checkGameResult(state);
-    if (result != CONTINUE) {
-        (*nodes)++;
-        switch (result) {
-            case ROAD_WHITE: return WHITE_ROAD_WIN;
-            case ROAD_BLACK: return BLACK_ROAD_WIN;
-            case FLAT_WHITE: return WHITE_FLAT_WIN;
-            case FLAT_BLACK: return BLACK_FLAT_WIN;
-            case DRAW:      return DRAW_SCORE;
-            default:        break;
-        }
-    }
-
-    if (depth == 0) {
-        (*nodes)++;
-        return color * evaluate(state);
-    }
-
-    GeneratedMoves* gm = generateAllMoves(state);
-    Move* moves = gm->moves;
-    u32 count = gm->numMoves;
-
-    for (u32 i = 0; i < count; i++) {
-        makeMoveNoChecks(state, &moves[i], false);
-        int cur = -negaMax(state, depth - 1, -beta, -alpha, -color, nodes);
-        undoMoveNoChecks(state, &moves[i], false);
-
-        if (cur > alpha) {
-            alpha = cur;
-        }
-
-        if (alpha >= beta) {
-            break;
-        }
-    }
-
-    freeGeneratedMoves(gm);
-    return alpha;
-}
-
 
