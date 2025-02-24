@@ -20,7 +20,7 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move, bool doHistory);
 MoveResult undoMoveChecks(GameState* state, const Move* move);
 GameState* undoMoveNoChecks(GameState* state, const Move* move, bool doHistory);
 
-GeneratedMoves* generateAllMoves(const GameState* state);
+GeneratedMoves* generateAllMoves(const GameState* state, u32 prevMoves);
 void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Move* moves, u32* totalMoves);
 
 // Utility functions

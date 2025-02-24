@@ -139,7 +139,7 @@ void test_undoMove() {
 
 void test_generateAllMoves() {
     GameState* state = parseTPS("[TPS x6/x6/x6/x6/x6/x6 1 1]");
-    GeneratedMoves* moves = generateAllMoves(state);
+    GeneratedMoves* moves = generateAllMoves(state, 512);
     CU_ASSERT_EQUAL(moves->numMoves, 36);
     /* printf("\n"); */
     /* for (u8 i = 0; i < moves->numMoves; i++) { */
@@ -149,13 +149,13 @@ void test_generateAllMoves() {
     freeGameState(state);
 
     state = parseTPS("[TPS x6/x6/x6/x6/x6/1,x5 1 2]");
-    moves = generateAllMoves(state);
+    moves = generateAllMoves(state, 512);
     CU_ASSERT_EQUAL(moves->numMoves, 35);
     freeGeneratedMoves(moves);
     freeGameState(state);
 
     state = parseTPS("[TPS 2S,2S,2S,2S,2S,2S/1S,1S,1S,1S,1S,1S/2S,2S,2S,2S,2S,2S/1S,1S,1S,1S,1S,1S/2S,2S,2S,2S,2S,2S/11,x5 1 3]");
-    moves = generateAllMoves(state);
+    moves = generateAllMoves(state, 512);
     printf("Generated %d moves\n", moves->numMoves);
     /* for (u8 i = 0; i < moves->numMoves; i++) { */
     /*     printMove(&moves->moves[i]); */
@@ -165,7 +165,7 @@ void test_generateAllMoves() {
     freeGameState(state);
     
     state = parseTPS("[TPS 2,2,21S,2,2,2/2,x,222221,2,2,x/1,1,2221C,x,111112C,2S/x,1,2S,x2,121211212/1,1,1212S,1S,2,1S/x2,2,1,21,1 1 42]");
-    moves = generateAllMoves(state);
+    moves = generateAllMoves(state, 512);
     printf("Generated %d moves\n", moves->numMoves);
     CU_ASSERT_EQUAL(moves->numMoves, 140);
     freeGeneratedMoves(moves);

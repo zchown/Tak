@@ -267,7 +267,7 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move, bool doHistory) 
     return state;
 }
 
-GeneratedMoves* generateAllMoves(const GameState* state) {
+GeneratedMoves* generateAllMoves(const GameState* state, u32 prevMoves) {
     if (state->result != CONTINUE) return NULL;
     GeneratedMoves* toReturn = malloc(sizeof(GeneratedMoves));
     if (state->turnNumber <= 2) {
@@ -291,8 +291,8 @@ GeneratedMoves* generateAllMoves(const GameState* state) {
     }
 
     // https://theses.liacs.nl/pdf/LaurensBeljaards2017Tak.pdf
-    // hope this is big enough (certainly for any reasonable position it is)
-    Move* moves = malloc(512 * sizeof(Move));
+    // assumption we wont ever add that many moves at one time to a position
+    Move* moves = malloc((prevMoves + 100)* sizeof(Move));
     if (!moves) {
         printf("Memory allocation failed for moves array\n");
         free(toReturn);
