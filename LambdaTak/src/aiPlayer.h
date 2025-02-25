@@ -28,7 +28,7 @@ static struct lws_protocols protocols[] = {
 void sendConnectionMessage(void);
 
 
-const char* generateMove(const char* gameStateJson);
+const char* generateMove(const char* gameStateJson, int time);
 
 void handleMessage(const char *message);
 

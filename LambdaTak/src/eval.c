@@ -49,5 +49,12 @@ int evaluate(GameState* state) {
         }
     }
 
+    // don't overestimate just because it's one extra move
+    if (state->turn == WHITE) {
+        score -= 500;
+    } else {
+        score += 500;
+    }
+
     return score;
 }

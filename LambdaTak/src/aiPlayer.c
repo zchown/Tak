@@ -8,7 +8,7 @@ void sendConnectionMessage(void) {
     lws_write(client_wsi, buf + LWS_PRE, strlen(msg), LWS_WRITE_TEXT);
 }
 
-const char* generateMove(const char* gameStateJson) {
+const char* generateMove(const char* gameStateJson, int time) {
     printf("Generating move\n");
     json_t* board = json_object_get(json_loads(gameStateJson, 0, NULL), "board");
     if (!board) {
@@ -22,7 +22,7 @@ const char* generateMove(const char* gameStateJson) {
         return NULL;
     }
     u64 nodes = 0;
-    Move move = iterativeDeepeningSearch(state, &nodes, 5);
+    Move move = iterativeDeepeningSearch(state, &nodes, time);
     char* moveStr = moveToString(&move);
     freeGameState(state);
     printf("Move: %s\n", moveStr);
@@ -42,12 +42,20 @@ void handleMessage(const char* msg) {
     if (curPlayer && json_is_string(curPlayer) && swap && json_is_boolean(swap)) {
         const char* player = json_string_value(curPlayer);
         int swapFlag = json_boolean_value(swap);
-        int ourTurn = 1;
-        if (swapFlag && strcmp(player, "White") == 0) ourTurn = 1;
-        else if (!swapFlag && strcmp(player, "Black") == 0) ourTurn = 0;
+        int ourTurn = 0;
+        int time = 10;
+        if (!swapFlag && strcmp(player, "Black") == 0) {
+            ourTurn = 1;
+            time = 1;
+        }
+        else {
+            ourTurn = 1;
+            time = 1;
+        }
+        printf("Player: %s, Our turn: %d\n", player, ourTurn);
 
         if (ourTurn) {
-            const char* move = generateMove(msg);
+            const char* move = generateMove(msg, time);
             char moveMsg[256];
             snprintf(moveMsg, sizeof(moveMsg), 
                 "{\"moveGameId\":\"%s\", \"moveNotation\":\"%s\", \"moveColor\":\"%s\"}", 

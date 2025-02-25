@@ -14,6 +14,7 @@ Move iterativeDeepeningSearch(GameState* state, u64* nodes, int timeLimit) {
     bool hasValidMove = false;
     *nodes = 0;
     double startTime = getTimeMs();
+    double prevTime = startTime;
     bool timeUp = false;
 
     for (u8 depth = 1; !timeUp; depth++) {
@@ -23,12 +24,14 @@ Move iterativeDeepeningSearch(GameState* state, u64* nodes, int timeLimit) {
             hasValidMove = true;
         }
         double elapsedTime = getTimeMs() - startTime;
-        double nps = (*nodes) / (elapsedTime / 1000.0);
+        double nps = (*nodes) / ((elapsedTime - prevTime)/ 1000.0);
         if (timeLimit > 0 && elapsedTime >= timeLimit) {
             printf("Time limit reached\n");
             timeUp = true;
         }
-        printf("Depth %d: %llu nodes Time: %f ms (%.2f Mnps)\n", depth, *nodes, elapsedTime, nps / 1.0e6);
+        printf("Depth %d: %llu nodes Time: %f ms (%.2f Mnps)\n", depth, *nodes, (elapsedTime - prevTime), nps / 1.0e6);
+        *nodes = 0;
+        prevTime = elapsedTime;
     }
 
     return hasValidMove ? bestMove : (Move){0};
@@ -58,25 +61,20 @@ Move negaMaxRoot(GameState* state, u8 depth, u64* nodes, bool* timeUp, double st
         undoMoveNoChecks(state, &moves[i], false);
 
         if (cur > bestScore && !(*timeUp)) {
-            if (cur == WHITE_ROAD_WIN) {
-                bestMove = moves[i];
-                freeGeneratedMoves(gm);
-                *timeUp = true;
-                return bestMove;
-            }
             bestScore = cur;
             bestMove = moves[i];
         }
     }
 
     freeGeneratedMoves(gm);
+    printf("Best move: %s, Score: %d\n", moveToString(&bestMove), bestScore);
     return bestMove;
 }
 
 int negaMax(GameState* state, u8 depth, int alpha, int beta, int color, u64* nodes, bool* timeUp, double startTime, int timeLimit, u32 prevMoves) {
     if (timeLimit > 0 && (getTimeMs() - startTime) >= timeLimit) {
         *timeUp = true;
-        return alpha; 
+        return 0;
     }
 
     Result result = checkGameResult(state);
@@ -113,9 +111,7 @@ int negaMax(GameState* state, u8 depth, int alpha, int beta, int color, u64* nod
 
         if (cur > alpha) {
             alpha = cur;
-        }
-
-        if (alpha >= beta) {
+        } else if (alpha >= beta) {
             break;
         }
     }

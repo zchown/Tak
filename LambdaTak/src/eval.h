@@ -8,18 +8,18 @@
 #define DRAW_SCORE 0
 
 static const int centrality[TOTAL_SQUARES] = {
-    1, 1, 1, 1, 1, 1,
-    1, 4, 4, 4, 4, 1,
-    1, 4, 5, 5, 4, 1,
-    1, 4, 5, 5, 4, 1,
-    1, 4, 4, 4, 4, 1,
-    1, 1, 1, 1, 1, 1
+    1, 2, 2, 2, 2, 1,
+    2, 4, 3, 3, 4, 2,
+    2, 3, 6, 6, 3, 2,
+    2, 3, 6, 6, 3, 2,
+    2, 4, 3, 3, 4, 2,
+    1, 2, 2, 2, 2, 1
 };
 
-#define ROW_COL_BONUS 200
-#define WALL_BONUS 400
-#define STACK_BONUS 10
-#define CENTRALITY_BONUS 20
+#define ROW_COL_BONUS 500
+#define WALL_BONUS 600
+#define STACK_BONUS 5
+#define CENTRALITY_BONUS 15
 #define FLAT_SCORE 1000
 
 

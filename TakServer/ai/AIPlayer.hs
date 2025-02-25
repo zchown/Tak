@@ -16,10 +16,10 @@ import qualified TPS
 import WebTypes
 
 whiteStrategy :: B.GameState -> IO Text
-whiteStrategy = MG.alphaBetaBest'
+whiteStrategy = MG.alphaBetaBest90'
 
 blackStrategy :: B.GameState -> IO Text
-blackStrategy = MG.alphaBetaBest'
+blackStrategy = MG.alphaBetaBest90'
 
 myGameId :: Text
 myGameId = "game6"
@@ -73,7 +73,13 @@ clientApp conn = do
 isOurTurn :: GameResponse -> Bool
 isOurTurn gr =
   case currentPlayer gr of
-    Just cp -> cp == "Black"
+    Just cp ->
+      case swap gr of
+        Just s ->
+          if s
+            then cp == "White"
+            else cp == "Black"
+        Nothing -> False
     Nothing -> False
 
 curTurn :: GameResponse -> Bool
