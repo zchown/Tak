@@ -17,6 +17,7 @@ const char* generateMove(const char* gameStateJson, int time) {
     }
     const char* boardStr = json_string_value(board);
     GameState* state = parseTPS(boardStr);
+
     if (!state) {
         fprintf(stderr, "Failed to parse TPS\n");
         return NULL;
@@ -42,13 +43,13 @@ void handleMessage(const char* msg) {
     if (curPlayer && json_is_string(curPlayer) && swap && json_is_boolean(swap)) {
         const char* player = json_string_value(curPlayer);
         int swapFlag = json_boolean_value(swap);
-        int ourTurn = 0;
+        int ourTurn = 1;
         int time = 10;
-        if (!swapFlag && strcmp(player, "Black") == 0) {
+        if (!swapFlag && strcmp(player, "White") == 0) {
             ourTurn = 1;
             time = 5;
         }
-        else {
+        else if (swapFlag && strcmp(player, "Black") == 0) {
             ourTurn = 1;
             time = 5;
         }

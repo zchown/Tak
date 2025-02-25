@@ -81,10 +81,10 @@ int negaMax(GameState* state, u8 depth, int alpha, int beta, int color, u64* nod
     if (result != CONTINUE) {
         (*nodes)++;
         switch (result) {
-            case ROAD_WHITE: return color * WHITE_ROAD_WIN;
-            case ROAD_BLACK: return color * BLACK_ROAD_WIN;
-            case FLAT_WHITE: return color * WHITE_FLAT_WIN;
-            case FLAT_BLACK: return color * BLACK_FLAT_WIN;
+            case ROAD_WHITE: return color * WHITE_ROAD_WIN + depth;
+            case ROAD_BLACK: return color * BLACK_ROAD_WIN - depth;
+            case FLAT_WHITE: return color * WHITE_FLAT_WIN - depth;
+            case FLAT_BLACK: return color * BLACK_FLAT_WIN + depth;
             case DRAW:       return DRAW_SCORE;
             default:         break;
         }

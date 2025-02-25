@@ -9,18 +9,18 @@
 
 static const int centrality[TOTAL_SQUARES] = {
     0, 1, 2, 2, 1, 0,
-    1, 6, 4, 4, 6, 1,
-    2, 4, 8, 8, 4, 2,
-    2, 4, 8, 8, 4, 2,
-    1, 6, 4, 3, 6, 1,
+    1, 10, 8, 8, 10, 1,
+    2, 8, 15, 15, 8, 2,
+    2, 8, 15, 15, 8, 2,
+    1, 10, 8, 8, 10, 1,
     0, 1, 2, 2, 1, 0
 };
 
-#define ROW_COL_BONUS 750
+#define ROW_COL_BONUS 325
 #define WALL_BONUS 600
-#define PRISONER_BONUS 2
-#define RESERVE_BONUS 20
-#define CENTRALITY_BONUS 15
+#define PRISONER_BONUS 1
+#define RESERVE_BONUS 15
+#define CENTRALITY_BONUS 23
 #define FLAT_SCORE 1000
 #define CONTROL_BONUS 10
 
@@ -29,7 +29,5 @@ static const int centrality[TOTAL_SQUARES] = {
 #define BLACK_FLATS(state) (state->blackControlled & ~state->standingStones)
 
 #define FLAT_DIFF(state) (__builtin_popcountll(WHITE_FLATS(state)) - __builtin_popcountll(BLACK_FLATS(state)))
-
-
 
 int evaluate(GameState* state);

@@ -12,7 +12,18 @@ int evaluate(GameState* state) {
         }
     }
 
-    int score = FLAT_DIFF(state) * FLAT_SCORE;
+    int score = 0;
+    if (state->player1.stones < 20 || state->player2.stones < 20) {
+        score += FLAT_DIFF(state) * FLAT_SCORE * 3;
+    } else if (state->player1.stones < 15 || state->player2.stones < 15) {
+        score += FLAT_DIFF(state) * FLAT_SCORE * 5;
+    } else if (state->player1.stones < 10 || state->player2.stones < 10) {
+        score += FLAT_DIFF(state) * FLAT_SCORE * 8;
+    } else if (state->player1.stones < 5 || state->player2.stones < 5) {
+        score += FLAT_DIFF(state) * FLAT_SCORE * 10;
+    } else {
+        score += FLAT_DIFF(state) * FLAT_SCORE;
+    }
 
     u64 rowMasks[] = {ROW1, ROW2, ROW3, ROW4, ROW5, ROW6};
     u64 colMasks[] = {COLA, COLB, COLC, COLD, COLE, COLF};
@@ -20,12 +31,20 @@ int evaluate(GameState* state) {
         u64 whiteRow = WHITE_FLATS(state) & rowMasks[i];
         u64 blackRow = BLACK_FLATS(state) & rowMasks[i];
         int diff = __builtin_popcountll(whiteRow) - __builtin_popcountll(blackRow);
-        score += diff * ROW_COL_BONUS;
+        if (diff > 0) {
+            score += (diff * diff) * ROW_COL_BONUS;
+        } else {
+            score -= (diff * diff) * ROW_COL_BONUS;
+        }
 
         u64 whiteCol = WHITE_FLATS(state) & colMasks[i];
         u64 blackCol = BLACK_FLATS(state) & colMasks[i];
         diff = __builtin_popcountll(whiteCol) - __builtin_popcountll(blackCol);
-        score += diff * ROW_COL_BONUS;
+        if (diff > 0) {
+            score += (diff * diff) * ROW_COL_BONUS;
+        } else {
+            score -= (diff * diff) * ROW_COL_BONUS;
+        }
     }
 
     int wallDiff = (__builtin_popcountll(state->whiteControlled & state->standingStones) -
@@ -39,8 +58,8 @@ int evaluate(GameState* state) {
                 score += square->whiteStones * RESERVE_BONUS;
                 score += square->blackStones * PRISONER_BONUS;
             } else {
-                score += square->whiteStones * (RESERVE_BONUS + 2);
-                score += square->blackStones * (PRISONER_BONUS + 2);
+                score += square->whiteStones * (RESERVE_BONUS + 5);
+                score += square->blackStones * (PRISONER_BONUS + 5);
             }
             // check neighbours
             u8 neighbours = 0;
@@ -56,14 +75,14 @@ int evaluate(GameState* state) {
             if (VALID_POSITION(DOWN_POSITION(GET_Y(pos))) && state->whiteControlled & (1ULL << DOWN_POSITION(pos))) {
                 neighbours++;
             }
-            score += neighbours * 100;
+            score += neighbours * 50;
         } else if (state->blackControlled & (1ULL << pos)) {
             if (SQ_HEAD(square).stone == FLAT) {
                 score -= square->blackStones * RESERVE_BONUS;
                 score -= square->whiteStones * PRISONER_BONUS;
             } else {
-                score -= square->blackStones * (RESERVE_BONUS + 2);
-                score -= square->whiteStones * (PRISONER_BONUS + 2);
+                score -= square->blackStones * (RESERVE_BONUS + 5);
+                score -= square->whiteStones * (PRISONER_BONUS + 5);
             }
             // check neighbours
             u8 neighbours = 0;
@@ -79,20 +98,28 @@ int evaluate(GameState* state) {
             if (VALID_POSITION(DOWN_POSITION(GET_Y(pos))) && state->blackControlled & (1ULL << DOWN_POSITION(pos))) {
                 neighbours++;
             }
-            score -= neighbours * 100;
+            score -= neighbours * 50;
         }
     }
 
     for (int pos = 0; pos < TOTAL_SQUARES; pos++) {
         if (state->whiteControlled & (1ULL << pos)) {
-            score += centrality[pos] * CENTRALITY_BONUS;
+            if (state->capstones & (1ULL << pos)) {
+                score += (centrality[pos] - 3) * CENTRALITY_BONUS * 5;
+            } else {
+                score += centrality[pos] * CENTRALITY_BONUS;
+            }
         } else if (state->blackControlled & (1ULL << pos)) {
-            score -= centrality[pos] * CENTRALITY_BONUS;
+            if (state->capstones & (1ULL << pos)) {
+                score -= (centrality[pos] - 3) * CENTRALITY_BONUS * 5;
+            } else {
+                score -= centrality[pos] * CENTRALITY_BONUS;
+            }
         }
     }
 
-    score -= state->player1.stones * 50;
-    score += state->player2.stones * 50;
+    score -= state->player1.stones * 113;
+    score += state->player2.stones * 113;
 
     score += __builtin_popcountll(state->whiteControlled) * CONTROL_BONUS;
     score -= __builtin_popcountll(state->blackControlled) * CONTROL_BONUS;

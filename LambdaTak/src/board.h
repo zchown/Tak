@@ -39,6 +39,14 @@
 typedef enum {FLAT, STANDING, CAP} Stone;
 typedef enum {WHITE, BLACK} Color;
 
+typedef u64 ZobristKey;
+
+#define NUM_PIECE_TYPES 3  // FLAT, STANDING, CAP
+#define NUM_COLORS 2       // WHITE, BLACK
+#define ZOBRIST_STACK_DEPTH 7
+
+extern ZobristKey zobristTable[TOTAL_SQUARES][NUM_COLORS][NUM_PIECE_TYPES][ZOBRIST_STACK_DEPTH];
+
 typedef u8 Position;
 
 #define SET_POS(x, y) ((x) + (y) * BOARD_SIZE)
@@ -133,8 +141,13 @@ typedef struct {
     Bitboard emptySquares;
     Bitboard standingStones;
     Bitboard capstones;
+    ZobristKey hash;
 } GameState;
 
+void initZobristTable(void);
+ZobristKey computeBoardHash(const GameState* state);
+ZobristKey clearSlideHash(ZobristKey hash, const SlideMove* move, const GameState* state);
+ZobristKey incrementalUpdateHash(ZobristKey hash, const Move* move, const GameState* state);
 
 // Game state management
 GameState* createGameState(void);

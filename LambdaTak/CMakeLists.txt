@@ -44,7 +44,8 @@ add_executable(lambdaTak
     src/ptn.c 
     src/eval.c 
     src/searches.c
-    src/aiPlayer.c)
+    src/aiPlayer.c
+    src/zobrist.c)
 
 target_include_directories(lambdaTak PRIVATE
     ${WEBSOCKETS_INCLUDE_DIR}
@@ -77,7 +78,8 @@ if(CUNIT_LIBRARY AND CUNIT_INCLUDE_DIR)
         src/moves.c 
         src/perft.c 
         src/ptn.c 
-        tests/testGeneral.c)
+        tests/testGeneral.c
+        src/zobrist.c)
     target_include_directories(testSuite PRIVATE ${CUNIT_INCLUDE_DIR})
     target_link_libraries(testSuite PRIVATE ${CUNIT_LIBRARY})
     enable_testing()

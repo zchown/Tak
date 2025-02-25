@@ -128,6 +128,8 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move, bool doHistory) 
         }
     } 
     else if (move->type == SLIDE) {
+        state->hash = clearSlideHash(state->hash, &move->move.slide, state);
+
         const SlideMove* mv = &move->move.slide;
         Square* startSq = readSquare(state->board, mv->startPos);
         PieceStack stack = squareRemovePieces(state, startSq, mv->count);
@@ -164,6 +166,8 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move, bool doHistory) 
 
     state->turn = oppositeColor(state->turn);
     state->turnNumber++;
+    state->hash = incrementalUpdateHash(state->hash, move, state);
+    /* state->hash = computeBoardHash(state); */
     if (doHistory) {
         state->history = addHistory(state->history, *move);
     }
@@ -241,6 +245,7 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move, bool doHistory) 
         }
     } 
     else if (move->type == SLIDE) {
+        state->hash = clearSlideHash(state->hash, &move->move.slide, state);
         const SlideMove* mv = &move->move.slide;
         u8 slideLength = 0;
         while (slideLength < MAX_DROPS && ((mv->drops >> (slideLength * 3)) & 0x7)) {
@@ -275,6 +280,8 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move, bool doHistory) 
 
     state->turn = oppositeColor(state->turn);
     state->turnNumber--;
+    state->hash = incrementalUpdateHash(state->hash, move, state);
+    /* state->hash = computeBoardHash(state); */
     if (doHistory) {
         state->history = removeHead(state->history);
     }

@@ -17,6 +17,9 @@ GameState* createGameState(void) {
     state->whiteControlled = 0;
     state->blackControlled = 0;
     state->emptySquares = (1ULL << TOTAL_SQUARES) - 1;
+    state->standingStones = 0;
+    state->capstones = 0;
+    state->hash = 0;
     return state;
 }
 
@@ -49,6 +52,7 @@ GameState* copyGameState(const GameState* state) {
     newState->emptySquares = state->emptySquares;
     newState->standingStones = state->standingStones;
     newState->capstones = state->capstones;
+    newState->hash = state->hash;
 
     return newState;
 }
@@ -190,6 +194,13 @@ Piece* squareInsertPiece(GameState* state, Square* square, Piece piece) {
         printf("squareInsertPiece: Square is full\n");
         return NULL;
     }
+    if (square->numPieces >= 7) {
+        if (square->pieces[square->numPieces - 7].color == WHITE) {
+            square->whiteStones--;
+        } else {
+            square->blackStones--;
+        }
+    }
     square->pieces[square->numPieces++] = piece;
     if (piece.color == WHITE) {
         square->whiteStones++;
@@ -223,7 +234,6 @@ Piece* squareInsertPiece(GameState* state, Square* square, Piece piece) {
 #pragma inline
 Piece* squareInsertPieces(GameState* state, Square* square, PieceStack* stack) {
     if (!square || !stack || stack->numPieces == 0) {
-        printf("squareInsertPieces: Invalid arguments\n");
         return NULL;
     }
 
@@ -238,14 +248,7 @@ Piece* squareInsertPieces(GameState* state, Square* square, PieceStack* stack) {
             stack->numPieces * sizeof(Piece));
 
     square->numPieces += stack->numPieces;
-    for (int i = 0; i < stack->numPieces; i++) {
-        if (stack->pieces[i].color == WHITE) {
-            square->whiteStones++;
-        } else {
-            square->blackStones++;
-        }
-    }
-
+    
     if (state) {
         Position pos = square - state->board->squares;
         Bitboard posBit = positionToBit(pos);
@@ -266,6 +269,16 @@ Piece* squareInsertPieces(GameState* state, Square* square, PieceStack* stack) {
         } 
         state->emptySquares &= ~posBit;
     }
+    
+    square->whiteStones = 0;
+    square->blackStones = 0;
+    for (int i = 1; i < 7 && (square->numPieces - i) >= 0; i++) {
+        if (square->pieces[square->numPieces - i].color == WHITE) {
+            square->whiteStones++;
+        } else {
+            square->blackStones++;
+        }
+    }
 
     return &square->pieces[square->numPieces - 1];
 }
@@ -282,6 +295,13 @@ Piece* squareRemovePiece(GameState* state, Square* square) {
         square->whiteStones--;
     } else {
         square->blackStones--;
+    }
+    if (square->numPieces >= 7) {
+        if (square->pieces[square->numPieces - 7].color == WHITE) {
+            square->whiteStones++;
+        } else {
+            square->blackStones++;
+        }
     }
     if (state) {
         Position pos = square - state->board->squares;
@@ -317,13 +337,6 @@ PieceStack squareRemovePieces(GameState* state, Square* square, u8 numPieces) {
     memcpy(stack.pieces, &square->pieces[startIdx], numPieces * sizeof(Piece));
     stack.numPieces = numPieces;
     square->numPieces -= numPieces;
-    for (u8 i = 0; i < numPieces; i++) {
-        if (stack.pieces[i].color == WHITE) {
-            square->whiteStones--;
-        } else {
-            square->blackStones--;
-        }
-    }
     if (state && square->numPieces > 0) {
         Position pos = square - state->board->squares;
         Bitboard posBit = positionToBit(pos);
@@ -345,6 +358,16 @@ PieceStack squareRemovePieces(GameState* state, Square* square, u8 numPieces) {
         state->blackControlled &= ~posBit;
         state->standingStones &= ~posBit;
         state->capstones &= ~posBit;
+    }
+
+    square->whiteStones = 0;
+    square->blackStones = 0;
+    for (int i = 1; i < 7 && (square->numPieces - i) >= 0; i++) {
+        if (square->pieces[square->numPieces - i].color == WHITE) {
+            square->whiteStones++;
+        } else {
+            square->blackStones++;
+        }
     }
     return stack;
 }
