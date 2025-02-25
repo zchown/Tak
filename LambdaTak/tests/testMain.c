@@ -22,6 +22,8 @@ void test_undoMove();
 void test_generateAllMoves();
 
 int main() {
+    initZobristTable();
+
     CU_initialize_registry();
 
     // Add Board tests

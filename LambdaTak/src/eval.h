@@ -20,7 +20,7 @@ static const int centrality[TOTAL_SQUARES] = {
 #define WALL_BONUS 600
 #define PRISONER_BONUS 1
 #define RESERVE_BONUS 15
-#define CENTRALITY_BONUS 23
+#define CENTRALITY_BONUS 31
 #define FLAT_SCORE 1000
 #define CONTROL_BONUS 10
 

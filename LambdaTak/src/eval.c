@@ -118,8 +118,8 @@ int evaluate(GameState* state) {
         }
     }
 
-    score -= state->player1.stones * 113;
-    score += state->player2.stones * 113;
+    score -= state->player1.stones * 151;
+    score += state->player2.stones * 151;
 
     score += __builtin_popcountll(state->whiteControlled) * CONTROL_BONUS;
     score -= __builtin_popcountll(state->blackControlled) * CONTROL_BONUS;

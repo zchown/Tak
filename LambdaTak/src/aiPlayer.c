@@ -22,6 +22,7 @@ const char* generateMove(const char* gameStateJson, int time) {
         fprintf(stderr, "Failed to parse TPS\n");
         return NULL;
     }
+    printf("Parsed TPS\n");
     u64 nodes = 0;
     Move move = iterativeDeepeningSearch(state, &nodes, time);
     char* moveStr = moveToString(&move);
@@ -47,22 +48,22 @@ void handleMessage(const char* msg) {
         int time = 10;
         if (!swapFlag && strcmp(player, "White") == 0) {
             ourTurn = 1;
-            time = 5;
+            time = 2000;
         }
         else if (swapFlag && strcmp(player, "Black") == 0) {
             ourTurn = 1;
-            time = 5;
+            time = 250;
         }
         printf("Player: %s, Our turn: %d\n", player, ourTurn);
 
         if (ourTurn) {
-            const char* move = generateMove(msg, time);
+            char* move = generateMove(msg, time);
             char moveMsg[256];
             snprintf(moveMsg, sizeof(moveMsg), 
                 "{\"moveGameId\":\"%s\", \"moveNotation\":\"%s\", \"moveColor\":\"%s\"}", 
                 GAME_ID, move, player
             );
-
+            free(move);
             unsigned char buf[LWS_PRE + 256];
             memcpy(buf + LWS_PRE, moveMsg, strlen(moveMsg));
             lws_write(client_wsi, buf + LWS_PRE, strlen(moveMsg), LWS_WRITE_TEXT);

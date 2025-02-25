@@ -47,6 +47,8 @@ typedef u64 ZobristKey;
 
 extern ZobristKey zobristTable[TOTAL_SQUARES][NUM_COLORS][NUM_PIECE_TYPES][ZOBRIST_STACK_DEPTH];
 
+extern ZobristKey zobristTurn;
+
 typedef u8 Position;
 
 #define SET_POS(x, y) ((x) + (y) * BOARD_SIZE)

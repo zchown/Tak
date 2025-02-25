@@ -3,6 +3,7 @@
 #include <time.h>
 
 ZobristKey zobristTable[TOTAL_SQUARES][NUM_COLORS][NUM_PIECE_TYPES][ZOBRIST_STACK_DEPTH];
+ZobristKey zobristTurn;
 
 // Initialize the Zobrist table with random 64-bit values
 void initZobristTable(void) {
@@ -20,6 +21,7 @@ void initZobristTable(void) {
             }
         }
     }
+    zobristTurn = ((u64)rand() << 32) | ((u64)rand() & 0xFFFFFFFF);
 }
 
 // Compute a Zobrist hash for the entire board
@@ -36,23 +38,32 @@ ZobristKey computeBoardHash(const GameState* state) {
         const Square* square = &state->board->squares[pos];
 
         // Hash up to ZOBRIST_STACK_DEPTH pieces in each stack
-        for (int i = 0; i < square->numPieces && i < ZOBRIST_STACK_DEPTH; i++) {
-            int j = square->numPieces - i - 1;
-            const Piece* piece = &square->pieces[j];
-            hash ^= zobristTable[pos][piece->color][piece->stone][j];
+        int i = (square->numPieces - ZOBRIST_STACK_DEPTH) < 0 ? 0 : square->numPieces - ZOBRIST_STACK_DEPTH;
+        for (;i < square->numPieces; i++) {
+            const Piece* piece = &square->pieces[i];
+            hash ^= zobristTable[pos][piece->color][piece->stone][i];
         }
     }
 
     // Hash the current player to move
     if (state->turn == BLACK) {
-        hash ^= zobristTable[0][0][0][ZOBRIST_STACK_DEPTH - 1];
+        hash ^= zobristTurn;
     }
 
     return hash;
 }
 
 ZobristKey clearSlideHash(ZobristKey hash, const SlideMove* move, const GameState* state) {
+    /* return computeBoardHash(state); */
     Position pos = move->startPos;
+
+    Square* startSq = readSquare(state->board, pos);
+    int j = (startSq->numPieces - ZOBRIST_STACK_DEPTH) < 0 ? 0 : startSq->numPieces - ZOBRIST_STACK_DEPTH;
+    for (; j < startSq->numPieces; j++) {
+        const Piece* p = &startSq->pieces[j];
+        hash ^= zobristTable[pos][p->color][p->stone][j];
+    }
+
     u8 slideLength = 0;
     while (slideLength < MAX_DROPS && ((move->drops >> (slideLength * 3)) & 0x7)) {
         slideLength++;
@@ -65,20 +76,20 @@ ZobristKey clearSlideHash(ZobristKey hash, const SlideMove* move, const GameStat
         u8 nextCount = nextSq->numPieces;
 
         // Remove old contributions from the next square
-        for (u8 j = 0; j < nextCount && j < ZOBRIST_STACK_DEPTH; j++) {
-            int depth = nextCount - j - 1;
-            const Piece* p = &nextSq->pieces[depth];
-            hash ^= zobristTable[nextPos][p->color][p->stone][depth];
+        int j = (nextCount - ZOBRIST_STACK_DEPTH) < 0 ? 0 : nextCount - ZOBRIST_STACK_DEPTH;
+        for (; j < nextCount; j++) {
+            const Piece* p = &nextSq->pieces[j];
+            hash ^= zobristTable[nextPos][p->color][p->stone][j];
         }
-
         pos = nextPos;
     }
     return hash;
 }
 
 ZobristKey incrementalUpdateHash(ZobristKey hash, const Move* move, const GameState* state) {
+    /* return computeBoardHash(state); */
     // Toggle the turn first
-    hash ^= zobristTable[0][0][0][ZOBRIST_STACK_DEPTH - 1];
+    hash ^= zobristTurn;
 
     if (move->type == PLACE) {
         const PlaceMove* mv = &move->move.place;
@@ -87,6 +98,14 @@ ZobristKey incrementalUpdateHash(ZobristKey hash, const Move* move, const GameSt
     } else if (move->type == SLIDE) {
         const SlideMove* mv = &move->move.slide;
         Square* startSq = readSquare(state->board, mv->startPos);
+
+        int j = (startSq->numPieces - ZOBRIST_STACK_DEPTH) < 0 ? 0 : startSq->numPieces - ZOBRIST_STACK_DEPTH;
+        for (; j < startSq->numPieces; j++) {
+            const Piece* p = &startSq->pieces[j];
+            hash ^= zobristTable[mv->startPos][p->color][p->stone][j];
+        }
+
+
         u8 startCount = startSq->numPieces;
 
         // Add new contributions after removal
@@ -102,18 +121,11 @@ ZobristKey incrementalUpdateHash(ZobristKey hash, const Move* move, const GameSt
             Square* nextSq = readSquare(state->board, nextPos);
             u8 nextCount = nextSq->numPieces;
 
-            // Remove old contributions from the next square
-            for (u8 j = 0; j < nextCount && j < ZOBRIST_STACK_DEPTH; j++) {
-                int depth = nextCount - j - 1;
-                const Piece* p = &nextSq->pieces[depth];
-                hash ^= zobristTable[nextPos][p->color][p->stone][depth];
-            }
-
             // Add new contributions after removal
-            for (u8 j = 0; j < nextCount && j < ZOBRIST_STACK_DEPTH; j++) {
-                int depth = nextCount - j;
-                const Piece* p = &nextSq->pieces[depth];
-                hash ^= zobristTable[nextPos][p->color][p->stone][depth];
+            int j = (nextCount - ZOBRIST_STACK_DEPTH) < 0 ? 0 : nextCount - ZOBRIST_STACK_DEPTH;
+            for (; j < nextCount; j++) {
+                const Piece* p = &nextSq->pieces[j];
+                hash ^= zobristTable[nextPos][p->color][p->stone][j];
             }
 
             pos = nextPos;

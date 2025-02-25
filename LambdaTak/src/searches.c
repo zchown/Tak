@@ -7,8 +7,7 @@ static double getTimeMs() {
 }
 
 Move iterativeDeepeningSearch(GameState* state, u64* nodes, int timeLimit) {
-    // convert time limit to ms
-    timeLimit *= 1000;
+    printf("Starting search\n");
 
     Move bestMove;
     bool hasValidMove = false;
@@ -39,7 +38,7 @@ Move iterativeDeepeningSearch(GameState* state, u64* nodes, int timeLimit) {
 
 Move negaMaxRoot(GameState* state, u8 depth, u64* nodes, bool* timeUp, double startTime, int timeLimit) {
     int color = (state->turn == WHITE) ? 1 : -1;
-    Move bestMove;
+    Move bestMove = {0};
     int bestScore = BLACK_ROAD_WIN;
 
     GeneratedMoves* gm = generateAllMoves(state, 512);

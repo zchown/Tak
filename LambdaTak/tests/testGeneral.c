@@ -46,6 +46,14 @@ void validateMoves(GameState* board, Move* moves, int moveCount) {
 
         GameState* oldBoard = copyGameState(board);
         MoveResult result = makeMoveChecks(board, &moves[i]);
+        if (board->hash != computeBoardHash(board)) {
+            fprintf(stderr, "Hashes do not match after making move\n");
+            printf("Hashes: %lu %lu\n", board->hash, computeBoardHash(board));
+            exit(EXIT_FAILURE);
+        } else {
+            printf("Hashes match after making move\n");
+            printf("Hashes: %lu %lu\n", board->hash, computeBoardHash(board));
+        }
         tps = boardToTPS(board->board);
         printf("Board state after move: %s\n", tps);
 
@@ -53,13 +61,11 @@ void validateMoves(GameState* board, Move* moves, int moveCount) {
             fprintf(stderr, "Failed to make move: %d\n", result);
             exit(EXIT_FAILURE);
         } else {
-            /* GameState* newBoard = makeMoveNoChecks(board, &moves[i]); */
             GameState* newBoard = copyGameState(board);
-            /* printf("copied board\n"); */
+            printf("New board hash: %lu\n", newBoard->hash);
             printf("attempting undo\n");
             MoveResult undoResult = undoMoveChecks(newBoard, &moves[i]);
             tps = boardToTPS(newBoard->board);
-            printf("Board state after undoing move: %s\n", tps);
             free(tps);
 
             if (undoResult != SUCCESS) {
@@ -68,6 +74,11 @@ void validateMoves(GameState* board, Move* moves, int moveCount) {
                 exit(EXIT_FAILURE);
             } else {
                 if (areEqualBoards(oldBoard, newBoard)) {
+                    printf("Hashes: %lu %lu\n", oldBoard->hash, newBoard->hash);
+                    if (oldBoard->hash != newBoard->hash) {
+                        fprintf(stderr, "Hashes do not match after undoing move\n");
+                        exit(EXIT_FAILURE);
+                    }
                     /* printf("Board state matches after undoing move\n"); */
                     freeGameState(oldBoard);
                     freeGameState(newBoard);
@@ -77,6 +88,7 @@ void validateMoves(GameState* board, Move* moves, int moveCount) {
                     freeGameState(newBoard);
                     exit(EXIT_FAILURE);
                 }
+                
             }
         }
     }

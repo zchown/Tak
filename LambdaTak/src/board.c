@@ -19,7 +19,7 @@ GameState* createGameState(void) {
     state->emptySquares = (1ULL << TOTAL_SQUARES) - 1;
     state->standingStones = 0;
     state->capstones = 0;
-    state->hash = 0;
+    state->hash = computeBoardHash(state);
     return state;
 }
 
@@ -459,6 +459,10 @@ char* moveToString(const Move* move) {
             moveStr[size++] = '*';
     }
     moveStr = realloc(moveStr, size + 1);
+    if (!moveStr) {
+        printf("moveToString: Failed to reallocate memory for move string\n");
+        return NULL;
+    }
     moveStr[size] = '\0';
     return moveStr;
 }
