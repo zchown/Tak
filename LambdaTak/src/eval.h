@@ -8,19 +8,21 @@
 #define DRAW_SCORE 0
 
 static const int centrality[TOTAL_SQUARES] = {
-    1, 2, 2, 2, 2, 1,
-    2, 4, 3, 3, 4, 2,
-    2, 3, 6, 6, 3, 2,
-    2, 3, 6, 6, 3, 2,
-    2, 4, 3, 3, 4, 2,
-    1, 2, 2, 2, 2, 1
+    0, 1, 2, 2, 1, 0,
+    1, 6, 4, 4, 6, 1,
+    2, 4, 8, 8, 4, 2,
+    2, 4, 8, 8, 4, 2,
+    1, 6, 4, 3, 6, 1,
+    0, 1, 2, 2, 1, 0
 };
 
-#define ROW_COL_BONUS 500
+#define ROW_COL_BONUS 750
 #define WALL_BONUS 600
-#define STACK_BONUS 1
+#define PRISONER_BONUS 2
+#define RESERVE_BONUS 20
 #define CENTRALITY_BONUS 15
 #define FLAT_SCORE 1000
+#define CONTROL_BONUS 10
 
 
 #define WHITE_FLATS(state) (state->whiteControlled & ~state->standingStones)

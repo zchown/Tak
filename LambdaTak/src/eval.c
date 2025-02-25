@@ -35,9 +35,51 @@ int evaluate(GameState* state) {
     for (int pos = 0; pos < TOTAL_SQUARES; pos++) {
         Square* square = &state->board->squares[pos];
         if (state->whiteControlled & (1ULL << pos)) {
-            score += square->numPieces * STACK_BONUS;
+            if (SQ_HEAD(square).stone == FLAT) {
+                score += square->whiteStones * RESERVE_BONUS;
+                score += square->blackStones * PRISONER_BONUS;
+            } else {
+                score += square->whiteStones * (RESERVE_BONUS + 2);
+                score += square->blackStones * (PRISONER_BONUS + 2);
+            }
+            // check neighbours
+            u8 neighbours = 0;
+            if (VALID_POSITION(RIGHT_POSITION(GET_X(pos))) && state->whiteControlled & (1ULL << RIGHT_POSITION(pos))) {
+                neighbours++;
+            }
+            if (VALID_POSITION(LEFT_POSITION(GET_X(pos))) && state->whiteControlled & (1ULL << LEFT_POSITION(pos))) {
+                neighbours++;
+            }
+            if (VALID_POSITION(UP_POSITION(GET_Y(pos))) && state->whiteControlled & (1ULL << UP_POSITION(pos))) {
+                neighbours++;
+            }
+            if (VALID_POSITION(DOWN_POSITION(GET_Y(pos))) && state->whiteControlled & (1ULL << DOWN_POSITION(pos))) {
+                neighbours++;
+            }
+            score += neighbours * 100;
         } else if (state->blackControlled & (1ULL << pos)) {
-            score -= square->numPieces * STACK_BONUS;
+            if (SQ_HEAD(square).stone == FLAT) {
+                score -= square->blackStones * RESERVE_BONUS;
+                score -= square->whiteStones * PRISONER_BONUS;
+            } else {
+                score -= square->blackStones * (RESERVE_BONUS + 2);
+                score -= square->whiteStones * (PRISONER_BONUS + 2);
+            }
+            // check neighbours
+            u8 neighbours = 0;
+            if (VALID_POSITION(RIGHT_POSITION(GET_X(pos))) && state->blackControlled & (1ULL << RIGHT_POSITION(pos))) {
+                neighbours++;
+            }
+            if (VALID_POSITION(LEFT_POSITION(GET_X(pos))) && state->blackControlled & (1ULL << LEFT_POSITION(pos))) {
+                neighbours++;
+            }
+            if (VALID_POSITION(UP_POSITION(GET_Y(pos))) && state->blackControlled & (1ULL << UP_POSITION(pos))) {
+                neighbours++;
+            }
+            if (VALID_POSITION(DOWN_POSITION(GET_Y(pos))) && state->blackControlled & (1ULL << DOWN_POSITION(pos))) {
+                neighbours++;
+            }
+            score -= neighbours * 100;
         }
     }
 
@@ -49,11 +91,24 @@ int evaluate(GameState* state) {
         }
     }
 
-    // don't overestimate just because it's one extra move
+    score -= state->player1.stones * 50;
+    score += state->player2.stones * 50;
+
+    score += __builtin_popcountll(state->whiteControlled) * CONTROL_BONUS;
+    score -= __builtin_popcountll(state->blackControlled) * CONTROL_BONUS;
+
     if (state->turn == WHITE) {
-        score -= 500;
+        if (score > 0) {
+            score = score * 0.8;
+        } else {
+            score = score * 1.2;
+        }
     } else {
-        score += 500;
+        if (score > 0) {
+            score = score * 1.2;
+        } else {
+            score = score * 0.8;
+        }
     }
 
     return score;
