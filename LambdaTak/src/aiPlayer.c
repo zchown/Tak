@@ -46,11 +46,11 @@ void handleMessage(const char* msg) {
         int time = 10;
         if (!swapFlag && strcmp(player, "Black") == 0) {
             ourTurn = 1;
-            time = 1;
+            time = 5;
         }
         else {
             ourTurn = 1;
-            time = 1;
+            time = 5;
         }
         printf("Player: %s, Our turn: %d\n", player, ourTurn);
 

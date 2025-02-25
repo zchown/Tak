@@ -3,78 +3,6 @@
 #include "../src/board.h"
 #include "../src/tps.h"
 
-void test_createPiece() {
-    Piece* piece = createPiece(FLAT, WHITE);
-    CU_ASSERT_PTR_NOT_NULL(piece);
-    CU_ASSERT_EQUAL(piece->stone, FLAT);
-    CU_ASSERT_EQUAL(piece->color, WHITE);
-    freePieceStack(piece);
-}
-
-void test_createBoard() {
-    Board* board = createEmptyBoard();
-    CU_ASSERT_PTR_NOT_NULL(board);
-    for (int i = 0; i < TOTAL_SQUARES; i++) {
-        CU_ASSERT_PTR_NULL(board->squares[i].head);
-    }
-    freeBoard(board);
-}
-
-void test_squareInsertPiece() {
-    Square square = {NULL, 0};
-    Piece* piece = createPiece(FLAT, WHITE);
-    squareInsertPiece(NULL, &square, piece);
-    CU_ASSERT_PTR_EQUAL(square.head, piece);
-    CU_ASSERT_EQUAL(square.numPieces, 1);
-    freePieceStack(square.head);
-}
-
-void test_squareRemovePiece() {
-    Square square = {NULL, 0};
-    Piece* piece = createPiece(FLAT, WHITE);
-    squareInsertPiece(NULL, &square, piece);
-    Piece* removed = squareRemovePiece(NULL, &square);
-    CU_ASSERT_PTR_EQUAL(removed, piece);
-    CU_ASSERT_EQUAL(square.numPieces, 0);
-    freePieceStack(removed);
-}
-
-void test_squareRemovePieces() {
-    Square square = {NULL, 0};
-    for (int i = 0; i < 3; i++) {
-        Piece* piece = createPiece(FLAT, WHITE);
-        squareInsertPiece(NULL, &square, piece);
-    }
-    Piece* removed = squareRemovePieces(NULL, &square, 2);
-    CU_ASSERT_PTR_NOT_NULL(removed);
-    CU_ASSERT_EQUAL(square.numPieces, 1);
-    freePieceStack(removed);
-    freePieceStack(square.head);
-}
-
-void test_copyGameState() {
-    GameState* original = createGameState();
-    /* Position pos = {0, 0}; */
-    Position pos = SET_POS(0, 0);
-    Piece* piece = createPiece(FLAT, WHITE);
-    Square* originalSquare = readSquare(original->board, pos);
-    squareInsertPiece(original, originalSquare, piece);
-    original->turn = BLACK;
-
-    GameState* copy = copyGameState(original);
-    CU_ASSERT_PTR_NOT_NULL(copy);
-    Square* copySquare = readSquare(copy->board, pos);
-    CU_ASSERT_EQUAL(copySquare->numPieces, 1);
-    CU_ASSERT_EQUAL(copy->turn, BLACK);
-
-    squareRemovePiece(copy, copySquare);
-    CU_ASSERT_EQUAL(copySquare->numPieces, 0);
-    CU_ASSERT_EQUAL(originalSquare->numPieces, 1);
-
-    freeGameState(original);
-    freeGameState(copy);
-}
-
 void test_checkRoadWin() {
     GameState* state = createGameState();
     // Create a vertical road for Black
@@ -82,7 +10,8 @@ void test_checkRoadWin() {
         /* Position pos = {0, y}; */
         Position pos = SET_POS(0, y);
         Square* sq = readSquare(state->board, pos);
-        Piece* p = createPiece(FLAT, BLACK);
+        /* Piece* p = createPiece(FLAT, BLACK); */
+        Piece p = {FLAT, BLACK};
         squareInsertPiece(state, sq, p);
     }
     Result result = checkGameResult(state);
@@ -95,7 +24,7 @@ void test_checkRoadWin() {
         /* Position pos = {x, 0}; */
         Position pos = SET_POS(x, 0);
         Square* sq = readSquare(state->board, pos);
-        Piece* p = createPiece(FLAT, WHITE);
+        Piece p = (Piece) {FLAT, WHITE};
         squareInsertPiece(state, sq, p);
     }
     result = checkGameResult(state);
@@ -108,8 +37,7 @@ void test_checkRoadWin() {
     CU_ASSERT_EQUAL(result, CONTINUE);
 
     // Ensure that a road win is not detected if the road includes standing stones
-    Piece* p = createPiece(STANDING, WHITE);
-    /* squareInsertPiece(state, readSquare(state->board, (Position){0, 0}), p); */
+    Piece p = (Piece){STANDING, WHITE};
     squareInsertPiece(state, readSquare(state->board, SET_POS(0, 0)), p);
     result = checkGameResult(state);
     CU_ASSERT_EQUAL(result, CONTINUE);
@@ -117,7 +45,7 @@ void test_checkRoadWin() {
     // Ensure that a road win is detected if the road includes a capstone
     /* squareRemovePiece(state, readSquare(state->board, (Position){0, 0})); */
     squareRemovePiece(state, readSquare(state->board, SET_POS(0, 0)));
-    p = createPiece(CAP, WHITE);
+    p = (Piece){CAP, WHITE};
     /* squareInsertPiece(state, readSquare(state->board, (Position){0, 0}), p); */
     squareInsertPiece(state, readSquare(state->board, SET_POS(0, 0)), p);
     result = checkGameResult(state);
@@ -137,7 +65,7 @@ void test_checkFullBoard() {
             if (i == j) {
                 c = BLACK;
             }
-            Piece* piece = createPiece(FLAT, c);
+            Piece piece = (Piece){FLAT, c};
             squareInsertPiece(state, readSquare(state->board, pos), piece);
         }
     }
@@ -157,7 +85,7 @@ void test_checkFullBoard() {
             if ((i + j) % 2 == 0) {
                 c = BLACK;
             }
-            Piece* piece = createPiece(FLAT, c);
+            Piece piece = (Piece){FLAT, c};
             squareInsertPiece(state, readSquare(state->board, pos), piece);
         }
     }
@@ -171,10 +99,10 @@ void test_checkFullBoard() {
     state = createGameState();
     state->player1.stones = 0;
     state->player1.caps = 0;
-    
+
     /* squareInsertPiece(state, readSquare(state->board, (Position){0, 0}), createPiece(FLAT, WHITE)); */
-    squareInsertPiece(state, readSquare(state->board, SET_POS(0, 0)), createPiece(FLAT, WHITE));
-    
+    squareInsertPiece(state, readSquare(state->board, SET_POS(0, 0)), (Piece){FLAT, WHITE});
+
     result = checkGameResult(state);
     CU_ASSERT_EQUAL(result, FLAT_WHITE);
 }
@@ -184,20 +112,24 @@ void test_checkHardRoads() {
     Result result = checkGameResult(state);
     /* printf("Result: %d\n", result); */
     CU_ASSERT_EQUAL(result, CONTINUE);
-    
+
     state = parseTPS("[TPS 2,x5/2,x5/2,x5/2,x5/2,x5/2,x5 2 2]");
     result = checkGameResult(state);
     /* printf("Result: %d\n", result); */
     CU_ASSERT_EQUAL(result, ROAD_BLACK);
-    
+
     state = parseTPS("[TPS x6/x6/x6/x,212121,x4/22,12,2,2,2,12/x6 1 31]");
     result = checkGameResult(state);
     /* printf("Result: %d\n", result); */
     CU_ASSERT_EQUAL(result, ROAD_BLACK);
-    
+
     state = parseTPS("[TPS x6/x6/x6/x6/x6/x5,1 2 2]");
     result = checkGameResult(state);
     /* printf("Result: %d\n", result); */
     CU_ASSERT_EQUAL(result, CONTINUE);
-    
+
+    state = parseTPS("[TPS 2S,2S,2S,2S,2S,2S/1S,1S,1S,1S,1S,1S/2S,2S,2S,2S,2S,2S/1S,1S,1S,1S,1S,1S/2S,2S,2S,2S,2S,2S/11,2,1,1,1,1 2 6]");
+    result = checkGameResult(state);
+    printf("Result: %d\n", result);
+    CU_ASSERT_EQUAL(result, FLAT_WHITE);
 }

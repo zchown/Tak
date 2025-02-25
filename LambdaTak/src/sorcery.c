@@ -130,6 +130,7 @@ void printDistribution(u16 packed, u8 urns) {
     printf("]");
 }
 
+
 void generateBitBoards(void) {
     Bitboard rowMasks[BOARD_SIZE];
     Bitboard colMasks[BOARD_SIZE];

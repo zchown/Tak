@@ -39,12 +39,6 @@
 typedef enum {FLAT, STANDING, CAP} Stone;
 typedef enum {WHITE, BLACK} Color;
 
-typedef struct Piece {
-    Stone stone;
-    Color color;
-    struct Piece* next;
-} Piece;
-
 typedef u8 Position;
 
 #define SET_POS(x, y) ((x) + (y) * BOARD_SIZE)
@@ -60,10 +54,24 @@ typedef u8 Position;
 #define UP_SLIDE_POSITION(y, count) ((y) + count * BOARD_SIZE >= TOTAL_SQUARES ? 100 : (y) + count * BOARD_SIZE)
 #define DOWN_SLIDE_POSITION(y, count) ((y) - count * BOARD_SIZE < 0 ? 100 : (y) - count * BOARD_SIZE)
 
-typedef struct {
-    Piece* head;
+typedef struct Piece {
+    Stone stone;
+    Color color;
+} Piece;
+
+typedef struct PieceStack {
+    Piece pieces[MAX_PICKUP];
     u8 numPieces;
+} PieceStack;
+
+typedef struct {
+    Piece pieces[64];
+    u8 numPieces;
+    u8 whiteStones;
+    u8 blackStones;
 } Square;
+
+#define SQ_HEAD(square) ((square)->pieces[square->numPieces - 1])
 
 typedef struct {
     Square squares[TOTAL_SQUARES];
@@ -144,19 +152,16 @@ GameHistory* copyHistory(const GameHistory* history);
 GameHistory* removeHead(GameHistory* history);
 void freeHistory(GameHistory* history);
 
-// Piece management
-Piece* createPiece(Stone stone, Color color);
-void freePieceStack(Piece* piece);
-Piece* copyPieceStack(const Piece* top);
+// Piece operations
+PieceStack combineStacks(PieceStack* stack1, PieceStack* stack2);
 
 // Square operations
 Square createSquare(void);
-void freeSquare(Square* square);
 Square squareCopy(const Square* square);
-Piece* squareInsertPiece(GameState* state, Square* square, Piece* piece);
-Piece* squareInsertPieces(GameState* state, Square* square, Piece* piece, u8 numPieces);
+Piece* squareInsertPiece(GameState* state, Square* square, Piece piece);
+Piece* squareInsertPieces(GameState* state, Square* square, PieceStack* stack);
 Piece* squareRemovePiece(GameState* state, Square* square);
-Piece* squareRemovePieces(GameState* state, Square* square, u8 numPieces);
+PieceStack squareRemovePieces(GameState* state, Square* square, u8 numPieces);
 bool squareIsEmpty(Square* square);
 
 // Move operations

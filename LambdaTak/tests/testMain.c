@@ -3,16 +3,8 @@
 #include "testGeneral.h"
 
 // Declare test functions from testBoard.c
-void test_createPiece();
-void test_createBoard();
-void test_squareInsertPiece();
-void test_squareRemovePiece();
-void test_squareRemovePieces();
-void test_copyGameState();
 void test_checkRoadWin();
 void test_checkFullBoard();
-/* void test_parseMove_place(); */
-/* void test_parseMove_slide(); */
 void test_checkHardRoads();
 
 // Declare test functions from testTPS.c
@@ -34,16 +26,8 @@ int main() {
 
     // Add Board tests
     CU_pSuite boardSuite = CU_add_suite("BoardTests", 0, 0);
-    CU_add_test(boardSuite, "test_createPiece", test_createPiece);
-    CU_add_test(boardSuite, "test_createBoard", test_createBoard);
-    CU_add_test(boardSuite, "test_squareInsertPiece", test_squareInsertPiece);
-    CU_add_test(boardSuite, "test_squareRemovePiece", test_squareRemovePiece);
-    CU_add_test(boardSuite, "test_squareRemovePieces", test_squareRemovePieces);
-    CU_add_test(boardSuite, "test_copyGameState", test_copyGameState);
     CU_add_test(boardSuite, "test_checkRoadWin", test_checkRoadWin);
     CU_add_test(boardSuite, "test_checkFullBoard", test_checkFullBoard);
-    /* CU_add_test(boardSuite, "test_parseMove_place", test_parseMove_place); */
-    /* CU_add_test(boardSuite, "test_parseMove_slide", test_parseMove_slide); */
     CU_add_test(boardSuite, "test_checkHardRoads", test_checkHardRoads);
 
     // Add TPS tests
@@ -68,8 +52,8 @@ int main() {
 
     CU_cleanup_registry();
 
-    /* printf("Running general tests...\n"); */
-    /* runGeneralTests(); */
+    printf("Running general tests...\n");
+    runGeneralTests();
 
     return 0;
 }

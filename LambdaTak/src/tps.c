@@ -63,7 +63,6 @@ GameState* parseTPS(const char* tps) {
             else {
                 Position pos = SET_POS(colNumber, (BOARD_SIZE - 1) - rowNum);
                 Square* sq = &state->board->squares[pos];
-                Piece* lastPiece = sq->head;
                 int len = strlen(curToken);
                 // j gets incremented in the loop
                 for (int j = 0; j < len;) {
@@ -75,17 +74,8 @@ GameState* parseTPS(const char* tps) {
                             stone = (curToken[j] == 'S') ? STANDING : CAP;
                             j++;
                         }
-                        Piece* newPiece = createPiece(stone, color);
-                        if (newPiece == NULL) {
-                            printf("Failed to create piece\n");
-                            freeGameState(state);
-                            return NULL;
-                        }
-
-                        newPiece->next = lastPiece;
-                        lastPiece = newPiece;
-                        sq->numPieces++;
-                        sq->head = newPiece;
+                        Piece newPiece = (Piece) {stone, color};
+                        sq->pieces[sq->numPieces++] = newPiece;
                     }
                     else {
                         printf("Invalid TPS format: token does not begin with a valid piece indicator\n");
@@ -154,16 +144,15 @@ char* boardToTPS(Board* board) {
                 }
 
                 // handle all pieces in a position
-                Piece* cur = sq->head;
-                while(cur) {
-                    if (cur->stone == STANDING) {
+                for (int i = sq->numPieces - 1; i >= 0; i--) {
+                    Piece cur = sq->pieces[i];
+                    if (cur.stone == STANDING) {
                         boardStr[size++] = 'S';
                     }
-                    else if (cur->stone == CAP) {
+                    else if (cur.stone == CAP) {
                         boardStr[size++] = 'C';
                     }
-                    boardStr[size++] = (cur->color == WHITE) ? '1' : '2';
-                    cur = cur->next;
+                    boardStr[size++] = (cur.color == WHITE) ? '1' : '2';
                 }
             }
         }
