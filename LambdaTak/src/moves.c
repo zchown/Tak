@@ -292,7 +292,7 @@ GeneratedMoves* generateAllMoves(const GameState* state, u32 prevMoves) {
 
     // https://theses.liacs.nl/pdf/LaurensBeljaards2017Tak.pdf
     // assumption we wont ever add that many moves at one time to a position
-    Move* moves = malloc((prevMoves + 100)* sizeof(Move));
+    Move* moves = malloc((prevMoves << 8)* sizeof(Move));
     if (!moves) {
         printf("Memory allocation failed for moves array\n");
         free(toReturn);

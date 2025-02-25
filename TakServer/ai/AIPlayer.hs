@@ -16,10 +16,10 @@ import qualified TPS
 import WebTypes
 
 whiteStrategy :: B.GameState -> IO Text
-whiteStrategy = MG.alphaBetaBest90'
+whiteStrategy = MG.alphaBetaBest'
 
 blackStrategy :: B.GameState -> IO Text
-blackStrategy = MG.alphaBetaBestMut
+blackStrategy = MG.alphaBetaBest'
 
 myGameId :: Text
 myGameId = "game6"
@@ -71,7 +71,10 @@ clientApp conn = do
       Nothing -> putStrLn "Failed to decode server message."
 
 isOurTurn :: GameResponse -> Bool
-isOurTurn _ = True
+isOurTurn gr =
+  case currentPlayer gr of
+    Just cp -> cp == "Black"
+    Nothing -> False
 
 curTurn :: GameResponse -> Bool
 curTurn gr =

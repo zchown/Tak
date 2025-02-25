@@ -467,10 +467,12 @@ char* moveToString(const Move* move) {
             default: break;
         }
         u8 curDrop = 0;
-        for (int i = 0; i < MAX_DROPS; i++) {
-            u8 drop = (move->move.slide.drops >> (i * 3)) & 0x7;
-            if (drop == 0) break;
-            moveStr[size++] = '0' + drop;
+        if (move->move.slide.count > 1) {
+            for (int i = 0; i < MAX_DROPS; i++) {
+                u8 drop = (move->move.slide.drops >> (i * 3)) & 0x7;
+                if (drop == 0) break;
+                moveStr[size++] = '0' + drop;
+            }
         }
         if (move->move.slide.crush == CRUSH)
             moveStr[size++] = '*';

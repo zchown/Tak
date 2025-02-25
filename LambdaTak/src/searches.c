@@ -57,7 +57,13 @@ Move negaMaxRoot(GameState* state, u8 depth, u64* nodes, bool* timeUp, double st
         int cur = -negaMax(state, depth - 1, BLACK_ROAD_WIN, WHITE_ROAD_WIN, -color, nodes, timeUp, startTime, timeLimit, count);
         undoMoveNoChecks(state, &moves[i], false);
 
-        if (cur > bestScore) {
+        if (cur > bestScore && !(*timeUp)) {
+            if (cur == WHITE_ROAD_WIN) {
+                bestMove = moves[i];
+                freeGeneratedMoves(gm);
+                *timeUp = true;
+                return bestMove;
+            }
             bestScore = cur;
             bestMove = moves[i];
         }
@@ -77,12 +83,12 @@ int negaMax(GameState* state, u8 depth, int alpha, int beta, int color, u64* nod
     if (result != CONTINUE) {
         (*nodes)++;
         switch (result) {
-            case ROAD_WHITE: return WHITE_ROAD_WIN;
-            case ROAD_BLACK: return BLACK_ROAD_WIN;
-            case FLAT_WHITE: return WHITE_FLAT_WIN;
-            case FLAT_BLACK: return BLACK_FLAT_WIN;
-            case DRAW:      return DRAW_SCORE;
-            default:        break;
+            case ROAD_WHITE: return color * WHITE_ROAD_WIN;
+            case ROAD_BLACK: return color * BLACK_ROAD_WIN;
+            case FLAT_WHITE: return color * WHITE_FLAT_WIN;
+            case FLAT_BLACK: return color * BLACK_FLAT_WIN;
+            case DRAW:       return DRAW_SCORE;
+            default:         break;
         }
     }
 

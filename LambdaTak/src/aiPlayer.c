@@ -22,7 +22,7 @@ const char* generateMove(const char* gameStateJson) {
         return NULL;
     }
     u64 nodes = 0;
-    Move move = iterativeDeepeningSearch(state, &nodes, 3);
+    Move move = iterativeDeepeningSearch(state, &nodes, 5);
     char* moveStr = moveToString(&move);
     freeGameState(state);
     printf("Move: %s\n", moveStr);
@@ -43,8 +43,8 @@ void handleMessage(const char* msg) {
         const char* player = json_string_value(curPlayer);
         int swapFlag = json_boolean_value(swap);
         int ourTurn = 1;
-        /* if (swapFlag && strcmp(player, "Black") == 0) ourTurn = 1; */
-        /* else if (!swapFlag && strcmp(player, "White") == 0) ourTurn = 1; */
+        if (swapFlag && strcmp(player, "White") == 0) ourTurn = 1;
+        else if (!swapFlag && strcmp(player, "Black") == 0) ourTurn = 0;
 
         if (ourTurn) {
             const char* move = generateMove(msg);
