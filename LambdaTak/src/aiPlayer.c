@@ -23,8 +23,7 @@ const char* generateMove(const char* gameStateJson, int time) {
         return NULL;
     }
     printf("Parsed TPS\n");
-    u64 nodes = 0;
-    Move move = iterativeDeepeningSearch(state, &nodes, time);
+    Move move = iterativeDeepeningSearch(state, time);
     char* moveStr = moveToString(&move);
     freeGameState(state);
     printf("Move: %s\n", moveStr);
@@ -45,14 +44,14 @@ void handleMessage(const char* msg) {
         const char* player = json_string_value(curPlayer);
         int swapFlag = json_boolean_value(swap);
         int ourTurn = 0;
-        int time = 5000;
+        int time = 250;
         if (!swapFlag && strcmp(player, "White") == 0) {
             ourTurn = 1;
-            time = 10000;
+            time = 15000;
         }
         else if (swapFlag && strcmp(player, "Black") == 0) {
             ourTurn = 1;
-            time = 10000;
+            time = 15000;
         }
         printf("Player: %s, Our turn: %d\n", player, ourTurn);
 

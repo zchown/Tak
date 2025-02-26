@@ -146,7 +146,7 @@ typedef struct {
     ZobristKey hash;
 } GameState;
 
-static const u32 TRANSPOSITION_TABLE_SIZE = (1 << 26);
+static const u32 TRANSPOSITION_TABLE_SIZE = (1 << 27);
 
 typedef enum {UNDER, OVER, EXACT} EstimationType;
 

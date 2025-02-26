@@ -11,18 +11,37 @@
 extern Move killerMoves[MAX_DEPTH][KILLER_MOVES];
 extern int historyHeuristic[NUM_COLORS][TOTAL_SQUARES][TOTAL_SQUARES];
 
-u32 zobristToIndex(ZobristKey hash);
+typedef struct SearchStatistics {
+    int maxDepth;
+    int totalNodes;
+    u64 generatedNodes;
+    int timeLimit;
+    int transpositionHits;
+    int transpositionMisses;
+    int transpositionRewrites;
+    int transpositionCutOffs;
+    int alphaBetaCutoffs;
+} SearchStatistics;
+
+Move iterativeDeepeningSearch(GameState* state, int timeLimit);
+
+Move negaMaxRoot(GameState* state, int depth, bool* timeUp, double startTime, int timeLimit, SearchStatistics* stats);
+
+int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* timeUp, double startTime, int timeLimit, u32 prevMoves, SearchStatistics* stats);
+
 static double getTimeMs();
-void updateTranspositionTable(ZobristKey hash, int score, EstimationType type, Move move, int depth);
+
+u32 zobristToIndex(ZobristKey hash);
+void updateTranspositionTable(ZobristKey hash, int score, EstimationType type, Move move, int depth, SearchStatistics* stats);
+
 int scoreMove(const GameState* state, const Move* move, const Move* bestMove);
 int compareMoves(const GameState* state, const Move* a, const Move* b, const Move* bestMove);
+
 void sortMoves(GameState* state, Move* moves, int numMoves);
+void clearKillerMoves(void);
+void clearHistoryHeuristic(void);
+void clearTranspositionTable(void);
 
-Move iterativeDeepeningSearch(GameState* state, u64* nodes, int timeLimit);
-
-Move negaMaxRoot(GameState* state, int depth, u64* nodes, bool* timeUp, double startTime, int timeLimit);
-
-int negaMax(GameState* state, int depth, int alpha, int beta, int color, u64* nodes, bool* timeUp, double startTime, int timeLimit, u32 prevMoves);
-
+void printSearchStats(const SearchStatistics* stats);
 
 #endif // SEARCHES_H
