@@ -283,21 +283,35 @@ int scoreMove(const GameState* state, const Move* move, const Move* bestMove) {
         return 1000000;
     }
     
-    Bitboard currentControlled = state->turn == WHITE ? state->whiteControlled : state->blackControlled;
-    Bitboard ofInterest = (currentControlled >> 6) | (currentControlled << 6) | 
-        (currentControlled >> 1) | (currentControlled << 1);
-    ofInterest = ofInterest & state->emptySquares;
+    Bitboard whiteControlled = state->whiteControlled;
+    Bitboard blackControlled = state->blackControlled;
+    Bitboard whiteInterest = (whiteControlled >> 6) | (whiteControlled << 6) | 
+        (whiteControlled >> 1) | (whiteControlled << 1);
+    Bitboard blackInterest = (blackControlled >> 6) | (blackControlled << 6) |
+        (blackControlled >> 1) | (blackControlled << 1);
+    whiteInterest = whiteInterest & state->emptySquares;
+    blackInterest = blackInterest & state->emptySquares;
+
+    Bitboard ourInterest = (state->turn == WHITE) ? whiteInterest : blackInterest;
+    Bitboard theirInterest = (state->turn == WHITE) ? blackInterest : whiteInterest;
+    Bitboard ofInterest = blackInterest | whiteInterest;
 
     if (move->type == PLACE) {
-        if (ofInterest & (1ULL << move->move.place.pos)) {
-            score += 1000;
-        }
         if (move->move.place.stone == CAP) {
             score += 1000;  // Capstone placements are high priority
+            if (ourInterest & move->move.place.pos) {
+                score += 1000;
+            }
         } else if (move->move.place.stone == FLAT) {
             score += 600;
+            if (ourInterest & move->move.place.pos) {
+                score += 1000;
+            }
         } else {
             score += 500;
+            if (theirInterest & move->move.place.pos) {
+                score += 1000;
+            }
         }
 
         // Favor central placements
