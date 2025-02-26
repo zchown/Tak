@@ -9,9 +9,7 @@ Move iterativeDeepeningSearch(GameState* state, int timeLimit) {
     if (state->turnNumber < 3) {
         clearKillerMoves();
         clearHistoryHeuristic();
-        /* clearTranspositionTable(); */
     }
-
 
     Move bestMove;
     bool hasValidMove = false;
@@ -73,24 +71,32 @@ Move negaMaxRoot(GameState* state, int depth, bool* timeUp, double startTime, in
             break;
         }
 
-        if (i == 18) {
-            curDepth = depth - 1;
-        } else if ( i == 36) {
-            curDepth = depth - 2;
-        } else if (i == 72) {
-            curDepth = depth - 3;
-        } else if (i == 108) {
-            curDepth = depth - 4;
+        if (depth > 2) {
+            if (i == 18) {
+                curDepth = depth - 1;
+            } else if ( i == 36) {
+                curDepth = depth - 2;
+            } else if (i == 72) {
+                curDepth = depth - 3;
+            } else if (i == 108) {
+                curDepth = depth - 4;
+            }
         }
 
         makeMoveNoChecks(state, &moves[i], false);
-        int cur = -negaMax(state, curDepth - 1, BLACK_ROAD_WIN, WHITE_ROAD_WIN, -color, timeUp, startTime, timeLimit, count, stats);
-        undoMoveNoChecks(state, &moves[i], false);
+        int cur = -negaMax(state, curDepth - 1, bestScore, WHITE_ROAD_WIN, -color, timeUp, startTime, timeLimit, count, stats);
 
+        if (cur > bestScore && !(*timeUp) && i > 18) {
+            stats->failHighResearches++;
+            cur = -negaMax(state, depth - 1, bestScore, WHITE_ROAD_WIN, -color, timeUp, startTime, timeLimit, count, stats);
+        }
+        
         if (cur > bestScore && !(*timeUp)) {
             bestScore = cur;
             bestMove = moves[i];
         }
+        undoMoveNoChecks(state, &moves[i], false);
+
     }
 
     freeGeneratedMoves(gm);
@@ -191,12 +197,18 @@ int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* t
 
         makeMoveNoChecks(state, &moves[i], false);
         int cur = -negaMax(state, curDepth - 1, -beta, -alpha, -color, timeUp, startTime, timeLimit, count, stats);
-        undoMoveNoChecks(state, &moves[i], false);
+
+        if (i > 18 && cur > alpha) {
+            stats->failHighResearches++;
+            cur = -negaMax(state, depth - 1, -beta, -alpha, -color, timeUp, startTime, timeLimit, count, stats);
+        }
 
         if (cur > bestScore && !(*timeUp)) {
             bestScore = cur;
             bestMove = moves[i];
         }
+
+        undoMoveNoChecks(state, &moves[i], false);
 
         if (cur > alpha) {
             alpha = cur;
@@ -410,6 +422,7 @@ void printSearchStats(const SearchStatistics* stats) {
     printf("Transposition collisions %d\n", stats->transpositionCollisions);
     printf("Transposition cut-offs: %d\n", stats->transpositionCutOffs);
     printf("Alpha-beta cut-offs: %d\n", stats->alphaBetaCutoffs);
+    printf("Fail high researches: %d\n", stats->failHighResearches);
     printf("Moves Generated per second: %f\n", stats->generatedMoves / (stats->timeLimit / 1000.0));
     printf("Nodes per second: %f\n", stats->totalNodes / (stats->timeLimit / 1000.0));
 }
