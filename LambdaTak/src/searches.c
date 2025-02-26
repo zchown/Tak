@@ -138,16 +138,16 @@ int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* t
         switch (result) {
             case ROAD_WHITE: 
                 // turn number prevents bm
-                score = color * WHITE_ROAD_WIN - state->turnNumber;
+                score = color * (WHITE_ROAD_WIN - state->turnNumber);
                 break;
             case ROAD_BLACK: 
-                score = color * BLACK_ROAD_WIN + state->turnNumber;
+                score = color * (BLACK_ROAD_WIN + state->turnNumber);
                 break;
             case FLAT_WHITE: 
-                score = color * WHITE_FLAT_WIN - state->turnNumber;
+                score = color * (WHITE_FLAT_WIN - state->turnNumber);
                 break;
             case FLAT_BLACK: 
-                score = color * BLACK_FLAT_WIN + state->turnNumber;
+                score = color * (BLACK_FLAT_WIN + state->turnNumber);
                 break;
             case DRAW:
                 score = DRAW_SCORE;
@@ -282,8 +282,16 @@ int scoreMove(const GameState* state, const Move* move, const Move* bestMove) {
     if (bestMove && movesEqual(move, bestMove)) {
         return 1000000;
     }
+    
+    Bitboard currentControlled = state->turn == WHITE ? state->whiteControlled : state->blackControlled;
+    Bitboard ofInterest = (currentControlled >> 6) | (currentControlled << 6) | 
+        (currentControlled >> 1) | (currentControlled << 1);
+    ofInterest = ofInterest & state->emptySquares;
 
     if (move->type == PLACE) {
+        if (ofInterest & (1ULL << move->move.place.pos)) {
+            score += 1000;
+        }
         if (move->move.place.stone == CAP) {
             score += 1000;  // Capstone placements are high priority
         } else if (move->move.place.stone == FLAT) {
@@ -301,7 +309,14 @@ int scoreMove(const GameState* state, const Move* move, const Move* bestMove) {
     else if (move->type == SLIDE) {
         SlideMove mv = move->move.slide;
         score += 400;  // Sliding moves are generally lower priority than placements
-
+        
+        Bitboard mvBitboard = 0;
+        for (int i = 0; i < mv.count; i++) {
+            mvBitboard |= 1ULL << slidePosition(mv.startPos, mv.direction, i);
+        }
+        if (ofInterest & mvBitboard) {
+            score += 1000;
+        }
         // Prefer spreading more pieces
         score += mv.count * mv.count * 10;
 
