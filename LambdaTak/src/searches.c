@@ -73,14 +73,14 @@ Move negaMaxRoot(GameState* state, int depth, bool* timeUp, double startTime, in
             break;
         }
 
-        if (i > 12) {
+        if (i == 18) {
             curDepth = depth - 1;
-        } else if ( i > 36) {
+        } else if ( i == 36) {
             curDepth = depth - 2;
-        } else if (i > 72) {
+        } else if (i == 72) {
             curDepth = depth - 3;
-        } else {
-            curDepth = depth;
+        } else if (i == 108) {
+            curDepth = depth - 4;
         }
 
         makeMoveNoChecks(state, &moves[i], false);
@@ -183,15 +183,11 @@ int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* t
             break;
         }
 
-        if (i > 12) {
+        if (i == 18) {
             curDepth = depth - 1;
-        } else if (i > 36) {
+        } else if (i == 72) {
             curDepth = depth - 2;
-        } else if (i > 72) {
-            curDepth = depth - 3;
-        } else {
-            curDepth = depth;
-        }
+        } 
 
         makeMoveNoChecks(state, &moves[i], false);
         int cur = -negaMax(state, curDepth - 1, -beta, -alpha, -color, timeUp, startTime, timeLimit, count, stats);
@@ -350,8 +346,6 @@ int scoreMove(const GameState* state, const Move* move, const Move* bestMove) {
     if (state->turnNumber < 3) {
         score = 0 - score;
     }
-
-    score += rand() % 10;
 
     return score;
 }
