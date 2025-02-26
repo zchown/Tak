@@ -16,10 +16,10 @@ import qualified TPS
 import WebTypes
 
 whiteStrategy :: B.GameState -> IO Text
-whiteStrategy = MG.alphaBetaBestMut
+whiteStrategy = MG.alphaBetaBest'
 
 blackStrategy :: B.GameState -> IO Text
-blackStrategy = MG.alphaBetaBestMut
+blackStrategy = MG.alphaBetaBest'
 
 myGameId :: Text
 myGameId = "game6"

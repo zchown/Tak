@@ -137,17 +137,17 @@ int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* t
         int score = 0;
         switch (result) {
             case ROAD_WHITE: 
-                // depth is added to the score to prefer faster wins
-                score = color * WHITE_ROAD_WIN + depth;
+                // turn number prevents bm
+                score = color * WHITE_ROAD_WIN - state->turnNumber;
                 break;
             case ROAD_BLACK: 
-                score = color * BLACK_ROAD_WIN - depth;
+                score = color * BLACK_ROAD_WIN + state->turnNumber;
                 break;
             case FLAT_WHITE: 
-                score = color * WHITE_FLAT_WIN + depth;
+                score = color * WHITE_FLAT_WIN - state->turnNumber;
                 break;
             case FLAT_BLACK: 
-                score = color * BLACK_FLAT_WIN - depth;
+                score = color * BLACK_FLAT_WIN + state->turnNumber;
                 break;
             case DRAW:
                 score = DRAW_SCORE;
