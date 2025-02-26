@@ -14,11 +14,12 @@ extern int historyHeuristic[NUM_COLORS][TOTAL_SQUARES][TOTAL_SQUARES];
 typedef struct SearchStatistics {
     int maxDepth;
     int totalNodes;
-    u64 generatedNodes;
+    u64 generatedMoves;
     int timeLimit;
     int transpositionHits;
     int transpositionMisses;
-    int transpositionRewrites;
+    int transpositionDepthRewrites;
+    int transpositionCollisions;
     int transpositionCutOffs;
     int alphaBetaCutoffs;
 } SearchStatistics;

@@ -9,7 +9,7 @@ Move iterativeDeepeningSearch(GameState* state, int timeLimit) {
     if (state->turnNumber < 3) {
         clearKillerMoves();
         clearHistoryHeuristic();
-        clearTranspositionTable();
+        /* clearTranspositionTable(); */
     }
 
 
@@ -56,7 +56,7 @@ Move negaMaxRoot(GameState* state, int depth, bool* timeUp, double startTime, in
     GeneratedMoves* gm = generateAllMoves(state, 512);
     sortMoves(state, gm->moves, gm->numMoves);
 
-    stats->generatedNodes += gm->numMoves;
+    stats->generatedMoves += gm->numMoves;
 
     Move* moves = gm->moves;
     u32 count = gm->numMoves;
@@ -169,7 +169,7 @@ int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* t
     GeneratedMoves* gm = generateAllMoves(state, prevMoves);
     sortMoves(state, gm->moves, gm->numMoves);
 
-    stats->generatedNodes += gm->numMoves;
+    stats->generatedMoves += gm->numMoves;
 
     Move* moves = gm->moves;
     u32 count = gm->numMoves;
@@ -245,15 +245,28 @@ static double getTimeMs() {
 
 #pragma inline
 u32 zobristToIndex(ZobristKey hash) {
-    return (u32)(hash % TRANSPOSITION_TABLE_SIZE);
+    return (u32)(hash >> 34);
+    /* return (u32)(hash % TRANSPOSITION_TABLE_SIZE); */
 }
 
 #pragma inline
 void updateTranspositionTable(ZobristKey hash, int score, EstimationType type, Move move, int depth, SearchStatistics* stats) {
     u32 index = zobristToIndex(hash);
     TranspositionEntry* te = &transpositionTable[index];
-    if (te->depth <= depth || te->hash != hash) {
-        stats->transpositionRewrites++;
+    if (te->depth <= depth) {
+        stats->transpositionDepthRewrites++;
+        te->hash = hash;
+        te->score = score;
+        te->type = type;
+        te->move = move;
+        te->depth = depth;
+    } else if (te->hash != hash) {
+        if (te->hash != 0) {
+            stats->transpositionCollisions++;
+        }
+        if (abs(te->score) > abs(score)) {
+            return;
+        }
         te->hash = hash;
         te->score = score;
         te->type = type;
@@ -304,6 +317,12 @@ int scoreMove(const GameState* state, const Move* move, const Move* bestMove) {
     } else if (memcmp(move, &killerMoves[state->turnNumber][1], sizeof(Move)) == 0) {
         score += 1800;
     }
+
+    if (state->turnNumber < 3) {
+        score = 0 - score;
+    }
+
+    score += rand() % 10;
 
     return score;
 }
@@ -361,12 +380,13 @@ void clearTranspositionTable(void) {
 void printSearchStats(const SearchStatistics* stats) {
     printf("Max depth: %d\n", stats->maxDepth);
     printf("Total nodes: %d\n", stats->totalNodes);
-    printf("Generated nodes: %llu\n", stats->generatedNodes);
+    printf("Generated moves: %llu\n", stats->generatedMoves);
     printf("Transposition hits: %d\n", stats->transpositionHits);
     printf("Transposition misses: %d\n", stats->transpositionMisses);
-    printf("Transposition rewrites: %d\n", stats->transpositionRewrites);
+    printf("Transposition depth rewrites %d\n", stats->transpositionDepthRewrites);
+    printf("Transposition collisions %d\n", stats->transpositionCollisions);
     printf("Transposition cut-offs: %d\n", stats->transpositionCutOffs);
     printf("Alpha-beta cut-offs: %d\n", stats->alphaBetaCutoffs);
-    printf("Moves Generated per second: %f\n", stats->generatedNodes / (stats->timeLimit / 1000.0));
+    printf("Moves Generated per second: %f\n", stats->generatedMoves / (stats->timeLimit / 1000.0));
     printf("Nodes per second: %f\n", stats->totalNodes / (stats->timeLimit / 1000.0));
 }
