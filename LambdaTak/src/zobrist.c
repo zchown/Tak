@@ -5,6 +5,8 @@
 ZobristKey zobristTable[TOTAL_SQUARES][NUM_COLORS][NUM_PIECE_TYPES][ZOBRIST_STACK_DEPTH];
 ZobristKey zobristTurn;
 
+TranspositionEntry* transpositionTable;
+
 // Initialize the Zobrist table with random 64-bit values
 void initZobristTable(void) {
     printf("Initializing Zobrist table\n");
@@ -22,6 +24,8 @@ void initZobristTable(void) {
         }
     }
     zobristTurn = ((u64)rand() << 32) | ((u64)rand() & 0xFFFFFFFF);
+
+    transpositionTable = (TranspositionEntry*)malloc(sizeof(TranspositionEntry) * TRANSPOSITION_TABLE_SIZE);
 }
 
 // Compute a Zobrist hash for the entire board
@@ -54,7 +58,6 @@ ZobristKey computeBoardHash(const GameState* state) {
 }
 
 ZobristKey clearSlideHash(ZobristKey hash, const SlideMove* move, const GameState* state) {
-    /* return computeBoardHash(state); */
     Position pos = move->startPos;
 
     Square* startSq = readSquare(state->board, pos);
@@ -87,7 +90,6 @@ ZobristKey clearSlideHash(ZobristKey hash, const SlideMove* move, const GameStat
 }
 
 ZobristKey incrementalUpdateHash(ZobristKey hash, const Move* move, const GameState* state) {
-    /* return computeBoardHash(state); */
     // Toggle the turn first
     hash ^= zobristTurn;
 

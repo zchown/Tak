@@ -681,6 +681,25 @@ void updateReserves(GameState* state) {
     state->player2.caps = numBlackCaps;
 }
 
+#pragma inline
+bool movesEqual(const Move* a, const Move* b) {
+    if (a->type != b->type) {
+        return false;
+    }
+    if (a->type == PLACE) {
+        return a->move.place.pos == b->move.place.pos &&
+            a->move.place.color == b->move.place.color &&
+            a->move.place.stone == b->move.place.stone;
+    } else {
+        return a->move.slide.startPos == b->move.slide.startPos &&
+            a->move.slide.direction == b->move.slide.direction &&
+            a->move.slide.count == b->move.slide.count &&
+            a->move.slide.crush == b->move.slide.crush &&
+            a->move.slide.color == b->move.slide.color &&
+            a->move.slide.drops == b->move.slide.drops;
+    }
+}
+
 void printMove(const Move* move) {
     if (!move) {
         printf("printMove: Move is NULL\n");
