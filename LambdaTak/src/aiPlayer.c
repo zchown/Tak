@@ -44,14 +44,14 @@ void handleMessage(const char* msg) {
         const char* player = json_string_value(curPlayer);
         int swapFlag = json_boolean_value(swap);
         int ourTurn = 0;
-        int time = 250;
+        int time = 500;
         if (!swapFlag && strcmp(player, "White") == 0) {
             ourTurn = 1;
-            time = 3000;
+            time = 2000;
         }
         else if (swapFlag && strcmp(player, "Black") == 0) {
             ourTurn = 1;
-            time = 3000;
+            time = 2000;
         }
         printf("Player: %s, Our turn: %d\n", player, ourTurn);
 

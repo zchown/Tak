@@ -1,4 +1,5 @@
 #include "searches.h"
+#include "board.h"
 
 Move killerMoves[MAX_DEPTH][KILLER_MOVES];
 int historyHeuristic[NUM_COLORS][TOTAL_SQUARES][TOTAL_SQUARES];
@@ -72,13 +73,13 @@ Move negaMaxRoot(GameState* state, int depth, bool* timeUp, double startTime, in
         }
 
         if (depth > 2) {
-            if (i == 18) {
+            if (i == 36) {
                 curDepth = depth - 1;
-            } else if ( i == 36) {
+            } else if ( i == 54) {
                 curDepth = depth - 2;
             } else if (i == 72) {
                 curDepth = depth - 3;
-            } else if (i == 108) {
+            } else if (i == 100) {
                 curDepth = depth - 4;
             }
         }
@@ -86,11 +87,15 @@ Move negaMaxRoot(GameState* state, int depth, bool* timeUp, double startTime, in
         makeMoveNoChecks(state, &moves[i], false);
         int cur = -negaMax(state, curDepth - 1, bestScore, WHITE_ROAD_WIN, -color, timeUp, startTime, timeLimit, count, stats);
 
-        if (cur > bestScore && !(*timeUp) && i > 18) {
+        if (depth > 2 && i >= 36) {
+            stats->reducedDepthSearches++;
+        }
+
+        if (cur > bestScore && i >36 && depth > 2 && !(*timeUp)) {
             stats->failHighResearches++;
             cur = -negaMax(state, depth - 1, bestScore, WHITE_ROAD_WIN, -color, timeUp, startTime, timeLimit, count, stats);
         }
-        
+
         if (cur > bestScore && !(*timeUp)) {
             bestScore = cur;
             bestMove = moves[i];
@@ -107,11 +112,20 @@ Move negaMaxRoot(GameState* state, int depth, bool* timeUp, double startTime, in
 int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* timeUp, double startTime, int timeLimit, u32 prevMoves, SearchStatistics* stats) {
     if (timeLimit > 0 && (getTimeMs() - startTime) >= timeLimit) {
         *timeUp = true;
-        return alpha;
+        Result result = checkGameResult(state);
+        switch (result) {
+            case ROAD_WHITE: return WHITE_ROAD_WIN;
+            case ROAD_BLACK: return BLACK_ROAD_WIN;
+            case FLAT_WHITE: return WHITE_FLAT_WIN;
+            case FLAT_BLACK: return BLACK_FLAT_WIN;
+            case DRAW: return DRAW_SCORE;
+            default: return evaluate(state);
+        }
     }
 
     u32 index = zobristToIndex(state->hash);
     TranspositionEntry* te = &transpositionTable[index];
+    stats->transpositionLookups++;
     if (te->hash == state->hash) {
         stats->transpositionHits++;
         if (te->depth >= depth) {
@@ -189,16 +203,22 @@ int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* t
             break;
         }
 
-        if (i == 18) {
+        if (i == 36) {
             curDepth = depth - 1;
         } else if (i == 72) {
             curDepth = depth - 2;
-        } 
+        } else if (i == 100) {
+            curDepth = depth - 3;
+        }
+
+        if (i >= 36) {
+            stats->reducedDepthSearches++;
+        }
 
         makeMoveNoChecks(state, &moves[i], false);
         int cur = -negaMax(state, curDepth - 1, -beta, -alpha, -color, timeUp, startTime, timeLimit, count, stats);
 
-        if (i > 18 && cur > alpha) {
+        if (i >= 36 && cur > alpha) {
             stats->failHighResearches++;
             cur = -negaMax(state, depth - 1, -beta, -alpha, -color, timeUp, startTime, timeLimit, count, stats);
         }
@@ -260,6 +280,7 @@ u32 zobristToIndex(ZobristKey hash) {
 #pragma inline
 void updateTranspositionTable(ZobristKey hash, int score, EstimationType type, Move move, int depth, SearchStatistics* stats) {
     u32 index = zobristToIndex(hash);
+    stats->transpositionTableUpdates++;
     TranspositionEntry* te = &transpositionTable[index];
     if (te->depth <= depth) {
         stats->transpositionDepthRewrites++;
@@ -413,16 +434,19 @@ void clearTranspositionTable(void) {
 }
 
 void printSearchStats(const SearchStatistics* stats) {
+
     printf("Max depth: %d\n", stats->maxDepth);
     printf("Total nodes: %d\n", stats->totalNodes);
     printf("Generated moves: %llu\n", stats->generatedMoves);
-    printf("Transposition hits: %d\n", stats->transpositionHits);
-    printf("Transposition misses: %d\n", stats->transpositionMisses);
-    printf("Transposition depth rewrites %d\n", stats->transpositionDepthRewrites);
-    printf("Transposition collisions %d\n", stats->transpositionCollisions);
+    printf("Transposition hits percentage: %f\n", stats->transpositionHits / (double)stats->transpositionLookups * 100);
+    printf("Transposition miss percentage: %f\n", stats->transpositionMisses / (double)stats->transpositionLookups * 100);
+    printf("Transposition depth rewrite percentage: %f\n", stats->transpositionDepthRewrites / (double)stats->transpositionTableUpdates * 100);
+    printf("Transposition collision percentage: %f\n", stats->transpositionCollisions / (double)stats->transpositionTableUpdates * 100);
     printf("Transposition cut-offs: %d\n", stats->transpositionCutOffs);
+    printf("Transposition cut-offs percentage %f\n", stats->transpositionCutOffs / (double)stats->transpositionLookups * 100);
     printf("Alpha-beta cut-offs: %d\n", stats->alphaBetaCutoffs);
     printf("Fail high researches: %d\n", stats->failHighResearches);
+    printf("Fail high researches percentage: %f\n", stats->failHighResearches / (double)stats->totalNodes * 100);
     printf("Moves Generated per second: %f\n", stats->generatedMoves / (stats->timeLimit / 1000.0));
     printf("Nodes per second: %f\n", stats->totalNodes / (stats->timeLimit / 1000.0));
 }

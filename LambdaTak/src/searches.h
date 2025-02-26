@@ -23,6 +23,9 @@ typedef struct SearchStatistics {
     int transpositionCutOffs;
     int alphaBetaCutoffs;
     int failHighResearches;
+    int transpositionTableUpdates;
+    int transpositionLookups;
+    int reducedDepthSearches;
 } SearchStatistics;
 
 Move iterativeDeepeningSearch(GameState* state, int timeLimit);
