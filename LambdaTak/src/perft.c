@@ -8,9 +8,9 @@ u64 perft(GameState* state, int depth, int currentDepth, u64 nodes, u32 prevMove
         u64 numMoves = countAllMoves(state);
         return numMoves;
     } 
-    /* else if (checkGameResult(state) != CONTINUE) { */
-    /*     return 0; */
-    /* } */
+    else if (checkGameResult(state) != CONTINUE) {
+        return 0;
+    }
     moves = generateAllMoves(state, prevMoves);
 
     for (int i = 0; i < moves->numMoves; i++) {

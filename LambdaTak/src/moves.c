@@ -480,30 +480,25 @@ int countAllSlidesInDir(const GameState* state, Position pos, Direction dir) {
             u32 numberOfSlides = COUNT_VAL_SEQ(curCount, steps);
             toReturn += numberOfSlides;
         }
+    }
 
-        // Determine if we have a crush situation
-        Position crushPos = slidePosition(pos, dir, steps + 1);
-        if (!VALID_POSITION(crushPos)) return toReturn;
-        Square* crushSq = readSquare(board, crushPos);
-        Crush canCrush = 
-            (SQ_HEAD(sq).stone == CAP) && 
-            (VALID_POSITION(crushPos)) && (steps + 1 <= maxCount) &&
-            (crushSq->numPieces > 0) && 
-            (SQ_HEAD(crushSq).stone == STANDING) 
-            ? CRUSH : NO_CRUSH;
+    // Determine if we have a crush situation
+    Position crushPos = slidePosition(pos, dir, steps + 1);
+    if (!VALID_POSITION(crushPos)) return toReturn;
+    Square* crushSq = readSquare(board, crushPos);
+    Crush canCrush = 
+        (SQ_HEAD(sq).stone == CAP) && 
+        (VALID_POSITION(crushPos)) && (steps + 1 <= maxCount) &&
+        (crushSq->numPieces > 0) && 
+        (SQ_HEAD(crushSq).stone == STANDING) 
+        ? CRUSH : NO_CRUSH;
 
-        if (canCrush == CRUSH) {
-            if (steps == 0 || maxCount == 1) {
-                return toReturn + 1;
-            }
-            for (u8 curCount = steps + 1; curCount <= maxCount; curCount++) {
-                const u16* sequences = DROP_SEQUENCE_CRUSH(curCount, steps);
-                u8 i = 0;
-                while (sequences[i] != 0) {
-                    toReturn++;
-                    i++;
-                }
-            }
+    if (canCrush == CRUSH) {
+        if (steps == 0 || maxCount == 1) {
+            return toReturn + 1;
+        }
+        for (u8 curCount = steps + 1; curCount <= maxCount; curCount++) {
+            toReturn += binCoe[(curCount-1) * 6 + steps];
         }
     }
     return toReturn;
@@ -519,8 +514,6 @@ int countAllMoves(const GameState* state) {
     const Reserves* res = (state->turn == WHITE) ? &state->player1 : &state->player2;
     Color turn = state->turn;
 
-    u8 controlledPositions[TOTAL_SQUARES];
-    u8 numControlled = 0;
     Bitboard control = (state->turn == WHITE) ? 
         state->whiteControlled : 
         state->blackControlled;
@@ -534,6 +527,14 @@ int countAllMoves(const GameState* state) {
     }
     totalMoves += __builtin_popcountll(state->emptySquares) * sCount;
 
+    u8 controlledPositions[TOTAL_SQUARES];
+    u8 numControlled = 0;
+#pragma unroll
+    for (u8 j = 0; j < TOTAL_SQUARES; j++) {
+        if (control & (1ULL << j)) {
+            controlledPositions[numControlled++] = j;
+        }
+    }
     const u8 CHUNK_SIZE = 12;
 #pragma unroll
     for (u8 chunk = 0; chunk < numControlled; chunk += CHUNK_SIZE) {
