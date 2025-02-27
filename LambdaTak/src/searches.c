@@ -73,27 +73,25 @@ Move negaMaxRoot(GameState* state, int depth, bool* timeUp, double startTime, in
         }
 
         if (depth > 2) {
-            if (i == 36) {
+            if (i == 8) {
                 curDepth = depth - 1;
-            } else if ( i == 54) {
+            } else if (i == 64) {
                 curDepth = depth - 2;
-            } else if (i == 72) {
+            } else if (i == 128) {
                 curDepth = depth - 3;
-            } else if (i == 100) {
-                curDepth = depth - 4;
             }
         }
 
         makeMoveNoChecks(state, &moves[i], false);
-        int cur = -negaMax(state, curDepth - 1, bestScore, WHITE_ROAD_WIN, -color, timeUp, startTime, timeLimit, count, stats);
+        int cur = -negaMax(state, curDepth - 1, bestScore, WHITE_ROAD_WIN, -color, timeUp, startTime, timeLimit, count, (depth > 2), stats);
 
-        if (depth > 2 && i >= 36) {
+        if (depth > 2 && i >= 8) {
             stats->reducedDepthSearches++;
         }
 
-        if (cur > bestScore && i >36 && depth > 2 && !(*timeUp)) {
+        if (cur > bestScore && i >= 8 && depth > 2 && !(*timeUp)) {
             stats->failHighResearches++;
-            cur = -negaMax(state, depth - 1, bestScore, WHITE_ROAD_WIN, -color, timeUp, startTime, timeLimit, count, stats);
+            cur = -negaMax(state, depth - 1, bestScore, WHITE_ROAD_WIN, -color, timeUp, startTime, timeLimit, count, (depth > 2), stats);
         }
 
         if (cur > bestScore && !(*timeUp)) {
@@ -109,17 +107,17 @@ Move negaMaxRoot(GameState* state, int depth, bool* timeUp, double startTime, in
     return bestMove;
 }
 
-int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* timeUp, double startTime, int timeLimit, u32 prevMoves, SearchStatistics* stats) {
+int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* timeUp, double startTime, int timeLimit, u32 prevMoves, bool doReducedDepth, SearchStatistics* stats) {
     if (timeLimit > 0 && (getTimeMs() - startTime) >= timeLimit) {
         *timeUp = true;
         Result result = checkGameResult(state);
         switch (result) {
-            case ROAD_WHITE: return WHITE_ROAD_WIN;
-            case ROAD_BLACK: return BLACK_ROAD_WIN;
-            case FLAT_WHITE: return WHITE_FLAT_WIN;
-            case FLAT_BLACK: return BLACK_FLAT_WIN;
+            case ROAD_WHITE: return color * WHITE_ROAD_WIN;
+            case ROAD_BLACK: return color * BLACK_ROAD_WIN;
+            case FLAT_WHITE: return color * WHITE_FLAT_WIN;
+            case FLAT_BLACK: return color * BLACK_FLAT_WIN;
             case DRAW: return DRAW_SCORE;
-            default: return evaluate(state);
+            default: return color * evaluate(state);
         }
     }
 
@@ -203,24 +201,26 @@ int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* t
             break;
         }
 
-        if (i == 36) {
-            curDepth = depth - 1;
-        } else if (i == 72) {
-            curDepth = depth - 2;
-        } else if (i == 100) {
-            curDepth = depth - 3;
+        if (doReducedDepth) {
+            if (i == 16) {
+                curDepth = depth - 1;
+            } else if (i == 64) {
+                curDepth = depth - 2;
+            } else if (i == 128) {
+                curDepth = depth - 3;
+            }
         }
 
-        if (i >= 36) {
+        if (i >= 8 && doReducedDepth) {
             stats->reducedDepthSearches++;
         }
 
         makeMoveNoChecks(state, &moves[i], false);
-        int cur = -negaMax(state, curDepth - 1, -beta, -alpha, -color, timeUp, startTime, timeLimit, count, stats);
+        int cur = -negaMax(state, curDepth - 1, -beta, -alpha, -color, timeUp, startTime, timeLimit, count, doReducedDepth, stats);
 
-        if (i >= 36 && cur > alpha) {
+        if (i >= 8 && cur > alpha) {
             stats->failHighResearches++;
-            cur = -negaMax(state, depth - 1, -beta, -alpha, -color, timeUp, startTime, timeLimit, count, stats);
+            cur = -negaMax(state, depth - 1, -beta, -alpha, -color, timeUp, startTime, timeLimit, count, doReducedDepth, stats);
         }
 
         if (cur > bestScore && !(*timeUp)) {
@@ -343,6 +343,11 @@ int scoreMove(const GameState* state, const Move* move, const Move* bestMove) {
             }
         }
 
+        int minStonesRemaining = (state->player1.stones < state->player2.stones) ? state->player1.stones : state->player2.stones;
+        if (minStonesRemaining < 10) {
+            score += 500 * (11 - minStonesRemaining);
+        }
+
         // Favor central placements
         score += 75 - (GET_X(abs(move->move.place.pos) - BOARD_SIZE / 2) +
                          GET_Y(abs(move->move.place.pos) - BOARD_SIZE / 2));
@@ -351,8 +356,8 @@ int scoreMove(const GameState* state, const Move* move, const Move* bestMove) {
 
     else if (move->type == SLIDE) {
         SlideMove mv = move->move.slide;
-        score += 400;  // Sliding moves are generally lower priority than placements
-        
+        score += 400;
+
         Bitboard mvBitboard = 0;
         for (int i = 0; i < mv.count; i++) {
             mvBitboard |= 1ULL << slidePosition(mv.startPos, mv.direction, i);
@@ -360,20 +365,23 @@ int scoreMove(const GameState* state, const Move* move, const Move* bestMove) {
         if (ofInterest & mvBitboard) {
             score += 1000;
         }
-        // Prefer spreading more pieces
+
+        Bitboard enemyControlled = (state->turn == WHITE) ? blackControlled : whiteControlled;
+        if (enemyControlled & mvBitboard) {
+            score += 1000;
+        }
+
         score += mv.count * mv.count * 10;
 
         Position endPos = slidePosition(mv.startPos, mv.direction, mv.count);
 
-        // Use history heuristic
-        score += historyHeuristic[state->turn][mv.startPos][endPos];
+        score += 2 * historyHeuristic[state->turn][mv.startPos][endPos];
     }
 
-    // Killer move bonus
     if (memcmp(move, &killerMoves[state->turnNumber][0], sizeof(Move)) == 0) {
-        score += 2000;
+        score += 2500;
     } else if (memcmp(move, &killerMoves[state->turnNumber][1], sizeof(Move)) == 0) {
-        score += 1800;
+        score += 2200;
     }
 
     if (state->turnNumber < 3) {

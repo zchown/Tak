@@ -32,7 +32,7 @@ Move iterativeDeepeningSearch(GameState* state, int timeLimit);
 
 Move negaMaxRoot(GameState* state, int depth, bool* timeUp, double startTime, int timeLimit, SearchStatistics* stats);
 
-int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* timeUp, double startTime, int timeLimit, u32 prevMoves, SearchStatistics* stats);
+int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* timeUp, double startTime, int timeLimit, u32 prevMoves, bool doReducedDepth, SearchStatistics* stats);
 
 static double getTimeMs();
 

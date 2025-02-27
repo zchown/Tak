@@ -466,3 +466,98 @@ void freeGeneratedMoves(GeneratedMoves* moves) {
     free(moves->moves);
     free(moves);
 }
+
+int countAllSlidesInDir(const GameState* state, Position pos, Direction dir) {
+    int toReturn = 0;
+    Square* sq = readSquare(state->board, pos);
+    u8 maxCount = (sq->numPieces < MAX_PICKUP) ? sq->numPieces : MAX_PICKUP;
+    Color turn = state->turn;
+    Board* board = state->board;
+
+    u8 steps = numSteps(state, pos, dir);
+    if (steps != 0) {
+        for (u8 curCount = 1; curCount <= maxCount; curCount++) {
+            u32 numberOfSlides = COUNT_VAL_SEQ(curCount, steps);
+            toReturn += numberOfSlides;
+        }
+
+        // Determine if we have a crush situation
+        Position crushPos = slidePosition(pos, dir, steps + 1);
+        if (!VALID_POSITION(crushPos)) return toReturn;
+        Square* crushSq = readSquare(board, crushPos);
+        Crush canCrush = 
+            (SQ_HEAD(sq).stone == CAP) && 
+            (VALID_POSITION(crushPos)) && (steps + 1 <= maxCount) &&
+            (crushSq->numPieces > 0) && 
+            (SQ_HEAD(crushSq).stone == STANDING) 
+            ? CRUSH : NO_CRUSH;
+
+        if (canCrush == CRUSH) {
+            if (steps == 0 || maxCount == 1) {
+                return toReturn + 1;
+            }
+            for (u8 curCount = steps + 1; curCount <= maxCount; curCount++) {
+                const u16* sequences = DROP_SEQUENCE_CRUSH(curCount, steps);
+                u8 i = 0;
+                while (sequences[i] != 0) {
+                    toReturn++;
+                    i++;
+                }
+            }
+        }
+    }
+    return toReturn;
+}
+
+int countAllMoves(const GameState* state) {
+    if (state->result != CONTINUE) return NULL;
+    if (state->turnNumber <= 2) {
+        return 37 - state->turnNumber;
+    }
+
+    u32 totalMoves = 0;
+    const Reserves* res = (state->turn == WHITE) ? &state->player1 : &state->player2;
+    Color turn = state->turn;
+
+    u8 controlledPositions[TOTAL_SQUARES];
+    u8 numControlled = 0;
+    Bitboard control = (state->turn == WHITE) ? 
+        state->whiteControlled : 
+        state->blackControlled;
+
+    int sCount = 0;
+    if (res->stones > 0) {
+        sCount += 2;
+    }
+    if (res->caps > 0) {
+        sCount++;
+    }
+    totalMoves += __builtin_popcountll(state->emptySquares) * sCount;
+
+    const u8 CHUNK_SIZE = 12;
+#pragma unroll
+    for (u8 chunk = 0; chunk < numControlled; chunk += CHUNK_SIZE) {
+#pragma unroll
+        for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < numControlled; i++) {
+            Position pos = controlledPositions[i];
+            totalMoves += countAllSlidesInDir(state, pos, LEFT);
+        }
+#pragma unroll
+        for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < numControlled; i++) {
+            Position pos = controlledPositions[i];
+            totalMoves += countAllSlidesInDir(state, pos, RIGHT);
+        }
+#pragma unroll
+        for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < numControlled; i++) {
+            Position pos = controlledPositions[i];
+            totalMoves += countAllSlidesInDir(state, pos, UP);
+        }
+#pragma unroll
+        for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < numControlled; i++) {
+            Position pos = controlledPositions[i];
+            totalMoves += countAllSlidesInDir(state, pos, DOWN);
+        }
+    }
+
+    return totalMoves;
+}

@@ -23,6 +23,8 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move, bool doHistory);
 GeneratedMoves* generateAllMoves(const GameState* state, u32 prevMoves);
 void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Move* moves, u32* totalMoves);
 
+int countAllMoves(const GameState* state);
+
 // Utility functions
 u8 numSteps(const GameState* state, Position pos, Direction dir);
 void freeGeneratedMoves(GeneratedMoves* moves);
