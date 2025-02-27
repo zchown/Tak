@@ -1,34 +1,35 @@
 #include "board.h"
 #include "moves.h"
+#include <limits.h>
 
-#define WHITE_ROAD_WIN 10000000 // 100_000_000
-#define WHITE_FLAT_WIN 9000000 // 90_000_000
-#define BLACK_ROAD_WIN -100000000 //-100_000_000
-#define BLACK_FLAT_WIN -90000000 //-90_000_000
+#define WHITE_ROAD_WIN INT_MAX
+#define WHITE_FLAT_WIN INT_MAX - 100
+#define BLACK_ROAD_WIN -INT_MAX
+#define BLACK_FLAT_WIN -INT_MAX + 100
 #define DRAW_SCORE 0
 
 static const int centrality[TOTAL_SQUARES] = {
-    0, 3, 1, 1, 3, 0,
+    0, 3, 3, 3, 3, 0,
     3, 12, 8, 8, 12, 3,
-    1, 8, 18, 18, 8, 1,
-    1, 8, 18, 18, 8, 1,
+    3, 8, 18, 18, 8, 3,
+    3, 8, 18, 18, 8, 3,
     3, 12, 8, 8, 12, 3,
-    0, 3, 1, 1, 3, 0
+    0, 3, 3, 3, 3, 0
 };
 
-#define ROW_COL_BONUS 225
-#define WALL_BONUS 250
-#define PRISONER_BONUS 1
-#define RESERVE_BONUS 15
-#define CENTRALITY_BONUS 125
-#define FLAT_SCORE 2000
-#define CONTROL_BONUS 55
-#define STACK_AT_RISK 125
-#define BUDDY_BONUS 112
-#define THREAT_BONUS 30
-#define PROTECTION_BONUS 20
-#define SQUARE_AT_RISK 40
-#define IMMOBILITY_PENALTY 50
+#define ROW_COL_BONUS 5
+#define WALL_BONUS 1
+#define PRISONER_BONUS 2
+#define RESERVE_BONUS 1
+#define CENTRALITY_BONUS 15
+#define FLAT_SCORE 500
+#define CONTROL_BONUS 5
+#define STACK_AT_RISK 6
+#define BUDDY_BONUS 18
+#define THREAT_BONUS 5
+#define PROTECTION_BONUS 10
+#define SQUARE_AT_RISK 10
+#define IMMOBILITY_PENALTY 8
 
 
 #define WHITE_FLATS(state) (state->whiteControlled & ~state->standingStones)

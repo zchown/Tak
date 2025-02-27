@@ -21,6 +21,7 @@ typedef struct SearchStatistics {
     int transpositionDepthRewrites;
     int transpositionCollisions;
     int transpositionCutOffs;
+    int transpositionFill;
     int alphaBetaCutoffs;
     int failHighResearches;
     int transpositionTableUpdates;
@@ -37,6 +38,7 @@ int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* t
 static double getTimeMs();
 
 u32 zobristToIndex(ZobristKey hash);
+const TranspositionEntry* lookupTranspositionTable(ZobristKey hash, int depth, int alpha, int beta, SearchStatistics* stats);
 void updateTranspositionTable(ZobristKey hash, int score, EstimationType type, Move move, int depth, SearchStatistics* stats);
 
 int scoreMove(const GameState* state, const Move* move, const Move* bestMove);

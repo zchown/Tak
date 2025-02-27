@@ -7,25 +7,35 @@ ZobristKey zobristTurn;
 
 TranspositionEntry* transpositionTable;
 
-// Initialize the Zobrist table with random 64-bit values
+uint64_t splitmix64(uint64_t* seed) {
+    *seed += 0x9E3779B97F4A7C15;
+    uint64_t z = *seed;
+    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9;
+    z = (z ^ (z >> 27)) * 0x94D049BB133111EB;
+    return z ^ (z >> 31);
+}
+
 void initZobristTable(void) {
     printf("Initializing Zobrist table\n");
-    // Seed the random number generator
-    srand(time(NULL));
+
+    uint64_t seed = (uint64_t)time(NULL);  // Use time-based seed for randomness
 
     for (int pos = 0; pos < TOTAL_SQUARES; pos++) {
         for (int color = 0; color < NUM_COLORS; color++) {
             for (int type = 0; type < NUM_PIECE_TYPES; type++) {
                 for (int depth = 0; depth < ZOBRIST_STACK_DEPTH; depth++) {
-                    zobristTable[pos][color][type][depth] = 
-                        ((u64)rand() << 32) | ((u64)rand() & 0xFFFFFFFF);
+                    zobristTable[pos][color][type][depth] = splitmix64(&seed);
                 }
             }
         }
     }
-    zobristTurn = ((u64)rand() << 32) | ((u64)rand() & 0xFFFFFFFF);
+    zobristTurn = splitmix64(&seed);
 
     transpositionTable = (TranspositionEntry*)malloc(sizeof(TranspositionEntry) * TRANSPOSITION_TABLE_SIZE);
+    if (!transpositionTable) {
+        fprintf(stderr, "Failed to allocate transposition table!\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 // Compute a Zobrist hash for the entire board
