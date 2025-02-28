@@ -26,12 +26,12 @@ static const int centrality[TOTAL_SQUARES] = {
 #define CENTRALITY_BONUS 15
 #define FLAT_SCORE 1000
 #define CONTROL_BONUS 22
-#define STACK_AT_RISK 28
+#define STACK_AT_RISK 24
 #define BUDDY_BONUS 30
 #define THREAT_BONUS 16
 #define PROTECTION_BONUS 18
 #define SQUARE_AT_RISK 26
-#define IMMOBILITY_PENALTY 38
+#define IMMOBILITY_PENALTY 34
 
 
 #define WHITE_FLATS(state) (state->whiteControlled & ~state->standingStones)
