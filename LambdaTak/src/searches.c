@@ -7,6 +7,8 @@ static int transpositionFill = 0;
 
 Move iterativeDeepeningSearch(GameState* state, int timeLimit) {
     printf("Starting search\n");
+    int conIndex = connectivityIndex(state);
+    printf("Connectivity index: %d\n", conIndex);
 
     if (state->turnNumber < 3) {
         clearKillerMoves();
@@ -102,6 +104,10 @@ Move negaMaxRoot(GameState* state, int depth, bool* timeUp, double startTime, in
             bestMove = moves[i];
         }
         undoMoveNoChecks(state, &moves[i], false);
+
+        if (bestScore >= WHITE_FLAT_WIN) {
+            break;
+        }
 
     }
 
@@ -308,7 +314,6 @@ void updateTranspositionTable(ZobristKey hash, int score, EstimationType type, M
 
     stats->transpositionCollisions++;
 }
-
 
 #pragma inline
 int scoreMove(const GameState* state, const Move* move, const Move* bestMove) {

@@ -18,18 +18,19 @@ static const int centrality[TOTAL_SQUARES] = {
 };
 
 #define ROW_COL_BONUS 5
-#define WALL_BONUS 1
+#define PATH_BONUS 50
+#define WALL_BONUS 25
 #define PRISONER_BONUS 2
-#define RESERVE_BONUS 1
+#define RESERVE_BONUS 10
 #define CENTRALITY_BONUS 15
-#define FLAT_SCORE 500
-#define CONTROL_BONUS 5
-#define STACK_AT_RISK 6
-#define BUDDY_BONUS 18
-#define THREAT_BONUS 5
-#define PROTECTION_BONUS 10
-#define SQUARE_AT_RISK 10
-#define IMMOBILITY_PENALTY 8
+#define FLAT_SCORE 1000
+#define CONTROL_BONUS 22
+#define STACK_AT_RISK 10
+#define BUDDY_BONUS 30
+#define THREAT_BONUS 8
+#define PROTECTION_BONUS 12
+#define SQUARE_AT_RISK 15
+#define IMMOBILITY_PENALTY 9
 
 
 #define WHITE_FLATS(state) (state->whiteControlled & ~state->standingStones)
@@ -41,16 +42,6 @@ static const int centrality[TOTAL_SQUARES] = {
 
 #define CONTROL_CALCULATION(state) (__builtin_popcountll(state->whiteControlled) * CONTROL_BONUS - __builtin_popcountll(state->blackControlled) * CONTROL_BONUS)
 
-#define SCORE_STABILIZATION(score, turn) if (turn == WHITE) { \
-    if (score > 0) { \
-        score = score * 0.8; \
-    } \
-} else { \
-    if (score < 0) { \
-        score = score * 0.8; \
-    } \
-}
-
 #define GET_NEIGHBORS(pos) (1ULL << (pos - 1) | 1ULL << (pos + 1) | 1ULL << (pos - 6) | 1ULL << (pos + 6))
 
 int evaluate(GameState* state);
@@ -58,3 +49,6 @@ int evaluate(GameState* state);
 int calculateFlatDiff(GameState* state);
 int calculateLongRowCol(GameState* state);
 int squareLoop(GameState* state);
+int calculateLongestDFS(GameState* state, Color player, Bitboard visited, int pos, int depth);
+int calculatePathScore(GameState* state);
+int connectivityIndex(GameState* state);
