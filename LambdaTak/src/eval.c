@@ -165,6 +165,7 @@ int squareLoop(GameState* state) {
             score += (whiteNeighbours - blackNeighbours) * BUDDY_BONUS;
 
             if (square->numPieces > 0) {
+                score -= square->numPieces * (square->numPieces - square->whiteStones);
                 int prisoners = square->blackStones;
                 score += prisoners * PRISONER_BONUS;
 
@@ -173,11 +174,19 @@ int squareLoop(GameState* state) {
                     score += reserves * RESERVE_BONUS;
                 }
 
-                score -= IMMOBILITY_PENALTY * 
+                if (square->pieces[square->numPieces - 2].color == WHITE) {
+                    if ((state->standingStones | state->capstones) & (1ULL << pos)) {
+                        score += 5 * RESERVE_BONUS;
+                    } else {
+                        score += 2 * RESERVE_BONUS;
+                    }
+                }
+
+                score -= IMMOBILITY_PENALTY * square->numPieces *
                     (__builtin_popcountll(neighbours & wallCaps));
 
                 if (!(wallCaps & (1ULL << pos))) {
-                    score -= STACK_AT_RISK * 
+                    score -= STACK_AT_RISK * square->blackStones * square->whiteStones *
                         (__builtin_popcountll(neighbours & (state->blackControlled & wallCaps)));
                 }
 
@@ -201,6 +210,7 @@ int squareLoop(GameState* state) {
             score += (blackNeighbours - whiteNeighbours) * BUDDY_BONUS;
 
             if (square->numPieces > 0) {
+                score += square->numPieces * (square->numPieces - square->blackStones);
                 int prisoners = square->whiteStones;
                 score -= prisoners * PRISONER_BONUS;
 
@@ -209,11 +219,19 @@ int squareLoop(GameState* state) {
                     score -= reserves * RESERVE_BONUS;
                 }
 
-                score += IMMOBILITY_PENALTY * 
+                if (square->pieces[square->numPieces - 2].color == BLACK) {
+                    if ((state->standingStones | state->capstones) & (1ULL << pos)) {
+                        score -= 5 * RESERVE_BONUS;
+                    } else {
+                        score -= 2 * RESERVE_BONUS;
+                    }
+                }
+
+                score += IMMOBILITY_PENALTY * square->numPieces *
                     (__builtin_popcountll(neighbours & wallCaps));
 
                 if (!(wallCaps & (1ULL << pos))) {
-                    score += STACK_AT_RISK * 
+                    score += STACK_AT_RISK * square->blackStones * square->whiteStones *
                         (__builtin_popcountll(neighbours & (state->whiteControlled & wallCaps)));
                 }
 
@@ -227,212 +245,102 @@ int squareLoop(GameState* state) {
 
     return score;
 }
+// Define macros to reduce repetition
+#define PROCESS_INITIAL_POSITIONS(color, opponentColor, opponentCaps, boardArray, isHorizontal) \
+    for (int i = 0; i < 6; i++) { \
+        Position pos = isHorizontal ? SET_POS(0, i) : SET_POS(i, 0); \
+        if (state->color##Controlled & (1ULL << pos)) { \
+            boardArray[pos] = 1; \
+            /* Subtract 3 if opponent's capstone is in one of these squares */ \
+            if (opponentCaps & (1ULL << pos)) { \
+                boardArray[pos] -= 5; \
+            } \
+            /* Subtract 2 if there's a standing stone */ \
+            if (standing & (1ULL << pos) & state->opponentColor##Controlled) { \
+                boardArray[pos] -= 4; \
+            } \
+        } else { \
+            boardArray[pos] = 0; \
+        } \
+    }
 
-// yes this is questionable and mildly evil
-// I also made it up so idk if its helpful
+#define PROCESS_CONNECTIVITY(color, opponentCaps, opponentColor, boardArray, isHorizontal) \
+    for (int i = 1; i < 6; i++) { \
+        for (int j = 0; j < 6; j++) { \
+            Position pos = isHorizontal ? SET_POS(i, j) : SET_POS(j, i); \
+            Position primary = isHorizontal ? LEFT_POSITION(pos) : DOWN_POSITION(pos); \
+            Position secondary1, secondary2; \
+            \
+            if (isHorizontal) { \
+                secondary1 = UP_POSITION(primary); \
+                secondary2 = DOWN_POSITION(primary); \
+            } else { \
+                secondary1 = RIGHT_POSITION(primary); \
+                secondary2 = LEFT_POSITION(primary); \
+            } \
+            \
+            if (state->color##Controlled & (1ULL << pos)) { \
+                if ((isHorizontal && i == 0) || (!isHorizontal && j == 0)) { \
+                    boardArray[pos] = 3 * boardArray[primary] + boardArray[secondary2]; \
+                } else if ((isHorizontal && i == 5) || (!isHorizontal && j == 5)) { \
+                    boardArray[pos] = 3 * boardArray[primary] + boardArray[secondary1]; \
+                } else { \
+                    boardArray[pos] = 3 * boardArray[primary] + boardArray[secondary1] + boardArray[secondary2]; \
+                } \
+                /* Subtract 3 if opponent's capstone is in one of these squares */ \
+                if (opponentCaps & (1ULL << pos)) { \
+                    boardArray[pos] -= 3; \
+                } \
+                /* Subtract 2 if there's a standing stone */ \
+                if (standing & (1ULL << pos) & state->opponentColor##Controlled) { \
+                    boardArray[pos] -= 2; \
+                } \
+                \
+                if (boardArray[pos] > color##Max) { \
+                    color##Max = boardArray[pos]; \
+                } else if (boardArray[pos] == 0) { \
+                    boardArray[pos] = 1; \
+                } \
+            } else { \
+                boardArray[pos] = 0; \
+            } \
+        } \
+    }
+
 #pragma inline
 int connectivityIndex(GameState* state) {
-
     Bitboard whiteCaps = state->capstones & state->whiteControlled;
     Bitboard blackCaps = state->capstones & state->blackControlled;
     Bitboard standing = state->standingStones;
 
     int whiteBoard[TOTAL_SQUARES];
     int blackBoard[TOTAL_SQUARES];
+    int whiteBoard2[TOTAL_SQUARES];
+    int blackBoard2[TOTAL_SQUARES];
     int whiteMax = 0;
     int blackMax = 0;
 
-    // we are doing an iterative approach this would be the base case
-    // in a recursive approach
-#pragma unroll
-    for (int i = 0; i < 6; i++) {
-        if (state->whiteControlled & (1ULL << i)) {
-            whiteBoard[i] = 1;
-            // Subtract 3 if opponent's capstone is in one of these squares
-            if (blackCaps & (1ULL << i)) {
-                whiteBoard[i] -= 3;
-            }
-            // Subtract 2 if there's a standing stone
-            if (standing & (1ULL << i)) {
-                whiteBoard[i] -= 2;
-            }
-        } else {
-            whiteBoard[i] = 0;
-        }
-        if (state->blackControlled & (1ULL << i)) {
-            blackBoard[i] = 1;
-            // Subtract 3 if opponent's capstone is in one of these squares
-            if (whiteCaps & (1ULL << i)) {
-                blackBoard[i] -= 3;
-            }
-            // Subtract 2 if there's a standing stone
-            if (standing & (1ULL << i)) {
-                blackBoard[i] -= 2;
-            }
-        } else {
-            blackBoard[i] = 0;
-        }
-    }
+    // Process vertical connectivity (initial row + propagation)
+    #pragma unroll
+    PROCESS_INITIAL_POSITIONS(white, black, blackCaps, whiteBoard, 0)
+    #pragma unroll
+    PROCESS_INITIAL_POSITIONS(black, white, whiteCaps, blackBoard, 0)
+    
+    #pragma unroll
+    PROCESS_CONNECTIVITY(white, blackCaps, black, whiteBoard, 0)
+    #pragma unroll
+    PROCESS_CONNECTIVITY(black, whiteCaps, white, blackBoard, 0)
 
-#pragma unroll
-    for (int i = 1; i < 6; i++) {
-#pragma unroll
-        for (int j = 0; j < 6; j++) {
-            Position pos = SET_POS(j, i);
-            Position down = DOWN_POSITION(pos);
-            Position right = RIGHT_POSITION(down);
-            Position left = LEFT_POSITION(down);
-
-            if (state->whiteControlled & (1ULL << pos)) {
-                if (j == 0) {
-                    whiteBoard[pos] = 3 * whiteBoard[down] + whiteBoard[right];
-                } else if (j == 5) {
-                    whiteBoard[pos] = 3 * whiteBoard[down] + whiteBoard[left];
-                } else {
-                    whiteBoard[pos] = 3 * whiteBoard[down] + whiteBoard[right] + whiteBoard[left];
-                }
-                // Subtract 3 if opponent's capstone is in one of these squares
-                if (blackCaps & (1ULL << pos)) {
-                    whiteBoard[pos] -= 3;
-                }
-                // Subtract 2 if there's a standing stone
-                if (standing & (1ULL << pos)) {
-                    whiteBoard[pos] -= 2;
-                }
-
-                if (whiteBoard[pos] > whiteMax) {
-                    whiteMax = whiteBoard[pos];
-                } else if (whiteBoard[pos] == 0) {
-                    whiteBoard[pos] = 1;
-                }
-            } else {
-                whiteBoard[pos] = 0;
-            }
-
-            if (state->blackControlled & (1ULL << pos)) {
-                if (j == 0) {
-                    blackBoard[pos] = 3 * blackBoard[down] + blackBoard[right];
-                } else if (j == 5) {
-                    blackBoard[pos] = 3 * blackBoard[down] + blackBoard[left];
-                } else {
-                    blackBoard[pos] = 3 * blackBoard[down] + blackBoard[right] + blackBoard[left];
-                }
-                // Subtract 3 if opponent's capstone is in one of these squares
-                if (whiteCaps & (1ULL << pos)) {
-                    blackBoard[pos] -= 3;
-                }
-                // Subtract 2 if there's a standing stone
-                if (standing & (1ULL << pos)) {
-                    blackBoard[pos] -= 2;
-                }
-
-                if (blackBoard[pos] > blackMax) {
-                    blackMax = blackBoard[pos];
-                } else if (blackBoard[pos] == 0) {
-                    blackBoard[pos] = 1;
-                }
-            } else {
-                blackBoard[pos] = 0;
-            }
-        }
-    }
-
-    int whiteBoard2[TOTAL_SQUARES];
-    int blackBoard2[TOTAL_SQUARES];
-
-#pragma unroll
-    for (int i = 0; i < 6; i++) {
-        Position pos = SET_POS(0, i);
-        if (state->whiteControlled & (1ULL << pos)) {
-            whiteBoard2[pos] = 1;
-            // Subtract 3 if opponent's capstone is in one of these squares
-            if (blackCaps & (1ULL << pos)) {
-                whiteBoard2[pos] -= 3;
-            }
-            // Subtract 2 if there's a standing stone
-            if (standing & (1ULL << pos)) {
-                whiteBoard2[pos] -= 2;
-            }
-        } else {
-            whiteBoard2[pos] = 0;
-        }
-
-        if (state->blackControlled & (1ULL << pos)) {
-            blackBoard2[pos] = 1;
-            // Subtract 3 if opponent's capstone is in one of these squares
-            if (whiteCaps & (1ULL << pos)) {
-                blackBoard2[pos] -= 3;
-            }
-            // Subtract 2 if there's a standing stone
-            if (standing & (1ULL << pos)) {
-                blackBoard2[pos] -= 2;
-            }
-        } else {
-            blackBoard2[pos] = 0;
-        }
-    }
-
-#pragma unroll
-    for (int i = 1; i < 6; i++) {
-        for (int j = 0; j < 6; j++) {
-            Position pos = SET_POS(i, j);
-            Position right = RIGHT_POSITION(pos);
-            Position up = UP_POSITION(right);
-            Position down = DOWN_POSITION(right);
-
-            if (state->whiteControlled & (1ULL << pos)) {
-                if (i == 0) {
-                    whiteBoard2[pos] = 3 * whiteBoard2[right] + whiteBoard2[down];
-                } else if (i == 5) {
-                    whiteBoard2[pos] = 3 * whiteBoard2[right] + whiteBoard2[up];
-                } else {
-                    whiteBoard2[pos] = 3 * whiteBoard2[right] + whiteBoard2[up] + whiteBoard2[down];
-                }
-                // Subtract 3 if opponent's capstone is in one of these squares
-                if (blackCaps & (1ULL << pos)) {
-                    whiteBoard2[pos] -= 3;
-                }
-                // Subtract 2 if there's a standing stone
-                if (standing & (1ULL << pos)) {
-                    whiteBoard2[pos] -= 2;
-                }
-
-                if (whiteBoard2[pos] > whiteMax) {
-                    whiteMax = whiteBoard2[pos];
-                } else if (whiteBoard2[pos] == 0) {
-                    whiteBoard2[pos] = 1;
-                }
-            } else {
-                whiteBoard2[pos] = 0;
-            }
-
-            if (state->blackControlled & (1ULL << pos)) {
-                if (i == 0) {
-                    blackBoard2[pos] = 3 * blackBoard2[right] + blackBoard2[down];
-                } else if (i == 5) {
-                    blackBoard2[pos] = 3 * blackBoard2[right] + blackBoard2[up];
-                } else {
-                    blackBoard2[pos] = 3 * blackBoard2[right] + blackBoard2[up] + blackBoard2[down];
-                }
-                // Subtract 3 if opponent's capstone is in one of these squares
-                if (whiteCaps & (1ULL << pos)) {
-                    blackBoard2[pos] -= 3;
-                }
-                // Subtract 2 if there's a standing stone
-                if (standing & (1ULL << pos)) {
-                    blackBoard2[pos] -= 2;
-                }
-
-                if (blackBoard2[pos] > blackMax) {
-                    blackMax = blackBoard2[pos];
-                } else if (blackBoard2[pos] == 0) {
-                    blackBoard2[pos] = 1;
-                }
-            } else {
-                blackBoard2[pos] = 0;
-            }
-        }
-    }
+    // Process horizontal connectivity (initial column + propagation)
+    #pragma unroll
+    PROCESS_INITIAL_POSITIONS(white, black, blackCaps, whiteBoard2, 1)
+    #pragma unroll
+    PROCESS_INITIAL_POSITIONS(black, white, whiteCaps, blackBoard2, 1)
+    
+    #pragma unroll
+    PROCESS_CONNECTIVITY(white, blackCaps, black, whiteBoard2, 1)
+    #pragma unroll
+    PROCESS_CONNECTIVITY(black, whiteCaps, white, blackBoard2, 1)
 
     return whiteMax - blackMax;
 }
