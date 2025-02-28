@@ -11,6 +11,27 @@ int evaluate(GameState* state) {
 
     score += WALL_BONUS * (__builtin_popcountll(state->standingStones & state->whiteControlled) - __builtin_popcountll(state->standingStones & state->blackControlled));
 
+
+    int whiteEncoragement = state->player1.stones - 18;
+    if (whiteEncoragement > 0) {
+        score -= ENCOURAGE_PLACEMENT * whiteEncoragement * whiteEncoragement;
+    }
+
+    int blackEncoragement = state->player2.stones - 18;
+    if (blackEncoragement > 0) {
+        score += ENCOURAGE_PLACEMENT * blackEncoragement * blackEncoragement;
+    }
+
+    whiteEncoragement = __builtin_popcountll(state->whiteControlled) - 12;
+    if (whiteEncoragement < 0) {
+        score += CONTROL_BONUS * whiteEncoragement * whiteEncoragement;
+    }
+
+    blackEncoragement = __builtin_popcountll(state->blackControlled) - 12;
+    if (blackEncoragement < 0) {
+        score -= CONTROL_BONUS * blackEncoragement * blackEncoragement;
+    }
+
     if (state->turn == WHITE) {
         score += FLAT_SCORE;
     } else {
@@ -133,6 +154,10 @@ int squareLoop(GameState* state) {
 
             score += CENTRALITY_BONUS * centrality[pos];
 
+            if (state->capstones & (1ULL << pos)) {
+                score += 5 * CONTROL_BONUS * (centrality[pos] - 5);
+            }
+
             Bitboard neighbours = GET_NEIGHBORS(pos);
             int whiteNeighbours = __builtin_popcountll(neighbours & state->whiteControlled);
             int blackNeighbours = __builtin_popcountll(neighbours & state->blackControlled);
@@ -164,6 +189,10 @@ int squareLoop(GameState* state) {
 
         } else {
             score -= CENTRALITY_BONUS * centrality[pos];
+
+            if (state->capstones & (1ULL << pos)) {
+                score -= 5 * CENTRALITY_BONUS * (centrality[pos] - 5);
+            }
 
             Bitboard neighbours = GET_NEIGHBORS(pos);
             int blackNeighbours = __builtin_popcountll(neighbours & state->blackControlled);
