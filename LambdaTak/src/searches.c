@@ -549,7 +549,6 @@ static MCTSNode* expand(MCTSNode* node, GameState* state) {
     bool found = false;
 
     while (!found && gm->numMoves > 0) {
-        // Pick a random move
         u32 index = rand() % gm->numMoves;
         unexpandedMove = gm->moves[index];
 
@@ -589,14 +588,20 @@ static MCTSNode* expand(MCTSNode* node, GameState* state) {
 }
 
 static double simulate(GameState* state) {
-    GameState* stateCopy = copyGameState(state);
-    int maxTurns = 200;
+    int maxTurns = 100;
     int turn = 0;
 
+    Move moveStack[maxTurns];
+    int stackTop = -1;
+
     while (turn < maxTurns) {
-        Result result = checkGameResult(stateCopy);
+        Result result = checkGameResult(state);
 
         if (result != CONTINUE) {
+            while (stackTop >= 0) {
+                undoMoveNoChecks(state, &moveStack[stackTop], false);
+                stackTop--;
+            }
             switch (result) {
                 case ROAD_WHITE: return (state->turn == WHITE) ? 1.0 : 0.0;
                 case ROAD_BLACK: return (state->turn == BLACK) ? 1.0 : 0.0;
@@ -607,9 +612,13 @@ static double simulate(GameState* state) {
             }
         }
 
-        GeneratedMoves* gm = generateAllMoves(stateCopy, 512);
+        GeneratedMoves* gm = generateAllMoves(state, 512);
 
         if (gm->numMoves == 0) {
+            while (stackTop >= 0) {
+                undoMoveNoChecks(state, &moveStack[stackTop], false);
+                stackTop--;
+            }
             freeGeneratedMoves(gm);
             break;
         }
@@ -617,7 +626,7 @@ static double simulate(GameState* state) {
         int scores[gm->numMoves];
         int totalScore = 0;
         for (u32 i = 0; i < gm->numMoves; i++) {
-            scores[i] = scoreMove(stateCopy, &gm->moves[i], &(Move){0});
+            scores[i] = scoreMove(state, &gm->moves[i], &(Move){0});
             totalScore += scores[i];
         }
         int choice = rand() % totalScore;
@@ -630,13 +639,16 @@ static double simulate(GameState* state) {
             selected++;
         }
 
-        makeMoveNoChecks(stateCopy, &gm->moves[selected], false);
-
+        moveStack[++stackTop] = gm->moves[selected];
+        makeMoveNoChecks(state, &gm->moves[selected], false);
         freeGeneratedMoves(gm);
-        freeGameState(stateCopy);
         turn++;
     }
 
+    while (stackTop >= 0) {
+        undoMoveNoChecks(state, &moveStack[stackTop], false);
+        stackTop--;
+    }
     return 0.5;
 }
 
