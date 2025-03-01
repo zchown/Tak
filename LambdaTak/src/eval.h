@@ -3,9 +3,9 @@
 #include <limits.h>
 
 #define WHITE_ROAD_WIN INT_MAX
-#define WHITE_FLAT_WIN INT_MAX - 100
+#define WHITE_FLAT_WIN INT_MAX - 1000
 #define BLACK_ROAD_WIN -INT_MAX
-#define BLACK_FLAT_WIN -INT_MAX + 100
+#define BLACK_FLAT_WIN -INT_MAX + 1000
 #define DRAW_SCORE 0
 
 static const int centrality[TOTAL_SQUARES] = {
@@ -17,17 +17,18 @@ static const int centrality[TOTAL_SQUARES] = {
     0, 3, 3, 3, 3, 0
 };
 
-#define ROW_COL_BONUS 5
-#define ENCOURAGE_PLACEMENT 10
-#define PATH_BONUS 140
+#define ROW_COL_BONUS 3
+#define ENCOURAGE_PLACEMENT 75
+#define DISCOURAGE_BIG_STACK 22
+#define PATH_BONUS 215
 #define WALL_BONUS 900
-#define PRISONER_BONUS 0
+#define PRISONER_BONUS 1
 #define RESERVE_BONUS 20
 #define CENTRALITY_BONUS 10
 #define FLAT_SCORE 1000
 #define CONTROL_BONUS 245
 #define STACK_AT_RISK 200
-#define BUDDY_BONUS 30
+#define BUDDY_BONUS 42
 #define THREAT_BONUS 16
 #define PROTECTION_BONUS 18
 #define SQUARE_AT_RISK 26

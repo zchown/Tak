@@ -165,7 +165,7 @@ int squareLoop(GameState* state) {
             score += (whiteNeighbours - blackNeighbours) * BUDDY_BONUS;
 
             if (square->numPieces > 0) {
-                score -= square->numPieces * (square->numPieces - square->whiteStones);
+                score -= DISCOURAGE_BIG_STACK * square->numPieces * (square->numPieces - square->whiteStones);
                 int prisoners = square->blackStones;
                 score += prisoners * PRISONER_BONUS;
 
@@ -176,9 +176,9 @@ int squareLoop(GameState* state) {
 
                 if (square->pieces[square->numPieces - 2].color == WHITE) {
                     if ((state->standingStones | state->capstones) & (1ULL << pos)) {
-                        score += 5 * RESERVE_BONUS;
+                        score += 25 * RESERVE_BONUS;
                     } else {
-                        score += 2 * RESERVE_BONUS;
+                        score += 15 * RESERVE_BONUS;
                     }
                 }
 
@@ -210,7 +210,7 @@ int squareLoop(GameState* state) {
             score += (blackNeighbours - whiteNeighbours) * BUDDY_BONUS;
 
             if (square->numPieces > 0) {
-                score += square->numPieces * (square->numPieces - square->blackStones);
+                score += DISCOURAGE_BIG_STACK * square->numPieces * (square->numPieces - square->blackStones);
                 int prisoners = square->whiteStones;
                 score -= prisoners * PRISONER_BONUS;
 
@@ -221,9 +221,9 @@ int squareLoop(GameState* state) {
 
                 if (square->pieces[square->numPieces - 2].color == BLACK) {
                     if ((state->standingStones | state->capstones) & (1ULL << pos)) {
-                        score -= 5 * RESERVE_BONUS;
+                        score -= 25 * RESERVE_BONUS;
                     } else {
-                        score -= 2 * RESERVE_BONUS;
+                        score -= 15 * RESERVE_BONUS;
                     }
                 }
 
