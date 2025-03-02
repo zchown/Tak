@@ -1,3 +1,6 @@
+#ifndef EVAL_H
+#define EVAL_H
+
 #include "board.h"
 #include "moves.h"
 #include <limits.h>
@@ -54,3 +57,5 @@ int squareLoop(GameState* state);
 int calculateLongestDFS(GameState* state, Color player, Bitboard visited, int pos, int depth);
 int calculatePathScore(GameState* state);
 int connectivityIndex(GameState* state);
+
+#endif

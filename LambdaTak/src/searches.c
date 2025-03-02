@@ -409,7 +409,7 @@ static MCTSNode* createNode(GameState* state, Move move, MCTSNode* parent);
 static void freeNode(MCTSNode* node);
 static MCTSNode* select(MCTSNode* node, GameState* state, double uctConstant);
 static MCTSNode* expand(MCTSNode* node, GameState* state);
-static double simulate(GameState* state);
+static double simulate(GameState* state, Color player);
 static void backpropagate(MCTSNode* node, double result);
 static double getUCTValue(MCTSNode* node, double uctConstant, int parentVisits);
 static MCTSNode* getBestChildUCT(MCTSNode* node, double uctConstant);
@@ -418,15 +418,37 @@ static MCTSNode* getBestChildVisits(MCTSNode* node);
 Move monteCarloTreeSearch(GameState* state, int timeLimit) {
     printf("Starting Monte Carlo Tree Search\n");
 
-    MCTSNode* root = createNode(state, (Move){0}, NULL);
+    Color player = state->turn;
 
     double startTime = getTimeMs();
     int iterations = 0;
     bool timeUp = false;
 
+    // quick alpha beta search to check for any immediate wins
+    GeneratedMoves* gm = generateAllMoves(state, 512);
     SearchStatistics stats = {
         .timeLimit = timeLimit
     };
+
+    GameState* stateCopyA = copyGameState(state);
+
+    for (int i = 0; i < gm->numMoves; i++) {
+        makeMoveNoChecks(state, &gm->moves[i], false);
+        int quickCheck = -negaMax(stateCopyA, 2, BLACK_ROAD_WIN, WHITE_ROAD_WIN, 1, &timeUp, startTime, timeLimit, gm->numMoves, false, &stats);
+        undoMoveNoChecks(state, &gm->moves[i], false);
+        if (quickCheck >= WHITE_FLAT_WIN - 100) {
+            Move m = gm->moves[i];
+            freeGeneratedMoves(gm);
+            freeGameState(stateCopyA);
+            return m;
+        }
+
+    }
+
+    printf("No immediate wins found\n");
+
+    MCTSNode* root = createNode(state, (Move){0}, NULL);
+
 
     while (!timeUp && iterations < MAX_MCTS_ITERATIONS) {
         if (timeLimit > 0 && (getTimeMs() - startTime) >= timeLimit) {
@@ -448,7 +470,7 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit) {
             }
         }
 
-        double simulationResult = simulate(stateCopy);
+        double simulationResult = simulate(stateCopy, player);
 
         backpropagate(selectedNode, simulationResult);
 
@@ -468,6 +490,8 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit) {
             bestChild ? bestChild->score / bestChild->visits : 0);
 
     freeNode(root);
+    freeGameState(stateCopyA);
+    freeGeneratedMoves(gm);
 
     return bestMove;
 }
@@ -482,6 +506,7 @@ static MCTSNode* createNode(GameState* state, Move move, MCTSNode* parent) {
     node->children = NULL;
     node->parent = parent;
     node->fullyExpanded = false;
+    node->originalPlayer = parent ? parent->originalPlayer : state->turn;
 
     return node;
 }
@@ -508,12 +533,15 @@ static MCTSNode* select(MCTSNode* node, GameState* state, double uctConstant) {
 
     MCTSNode* selected = select(bestChild, state, uctConstant);
 
+    undoMoveNoChecks(state, &bestChild->move, false);
+
     return selected;
 }
 
+
 static MCTSNode* expand(MCTSNode* node, GameState* state) {
     GeneratedMoves* gm = generateAllMoves(state, 512);
-    sortMoves(state, gm->moves, gm->numMoves);
+    sortMoves(state, gm->moves, gm->numMoves); 
 
     if (gm->numMoves == 0 || checkGameResult(state) != CONTINUE) {
         node->fullyExpanded = true;
@@ -521,104 +549,83 @@ static MCTSNode* expand(MCTSNode* node, GameState* state) {
         return node;
     }
 
-    if (node->numChildren > 0) {
-        bool allMovesExpanded = true;
-        for (u32 i = 0; i < gm->numMoves; i++) {
-            bool moveFound = false;
-            for (int j = 0; j < node->numChildren; j++) {
-                if (movesEqual(&gm->moves[i], &node->children[j]->move)) {
-                    moveFound = true;
-                    break;
+    int numNewChildren = (gm->numMoves > 5) ? 5 : gm->numMoves;
+    node->children = (MCTSNode**)realloc(node->children, (node->numChildren + numNewChildren) * sizeof(MCTSNode*));
+
+    for (int i = 0; i < numNewChildren; i++) {
+        Move move = gm->moves[i];
+        bool alreadyExpanded = false;
+
+        for (int j = 0; j < node->numChildren; j++) {
+            if (movesEqual(&move, &node->children[j]->move)) {
+                alreadyExpanded = true;
+                break;
+            }
+        }
+
+        if (!alreadyExpanded) {
+            GameState* stateCopy = copyGameState(state);
+            makeMoveNoChecks(stateCopy, &move, false);
+            MCTSNode* newChild = createNode(state, move, node);
+
+            Result result = checkGameResult(stateCopy);
+            if (result != CONTINUE) {
+                newChild->fullyExpanded = true;
+                double simulationResult = 0.0;
+                switch (result) {
+                    case ROAD_WHITE: simulationResult = (node->originalPlayer == WHITE) ? 1.0 : 0.0; break;
+                    case ROAD_BLACK: simulationResult = (node->originalPlayer == BLACK) ? 1.0 : 0.0; break;
+                    case FLAT_WHITE: simulationResult = (node->originalPlayer == WHITE) ? 1.0 : 0.0; break;
+                    case FLAT_BLACK: simulationResult = (node->originalPlayer == BLACK) ? 1.0 : 0.0; break;
+                    case DRAW: simulationResult = 0.5; break;
+                    default: simulationResult = 0.5; break;
                 }
-            }
-            if (!moveFound) {
-                allMovesExpanded = false;
-                break;
-            }
-        }
 
-        node->fullyExpanded = allMovesExpanded;
+                newChild->visits = 1;
+                newChild->score = simulationResult;
+                backpropagate(newChild, simulationResult);
+            }
 
-        if (allMovesExpanded) {
-            freeGeneratedMoves(gm);
-            return node->children[rand() % node->numChildren];
+            node->children[node->numChildren++] = newChild;
+            freeGameState(stateCopy);
         }
     }
 
-    Move unexpandedMove;
-    bool found = false;
-
-    while (!found && gm->numMoves > 0) {
-        u32 index = rand() % gm->numMoves;
-        unexpandedMove = gm->moves[index];
-
-        found = true;
-
-        for (int i = 0; i < node->numChildren; i++) {
-            if (movesEqual(&unexpandedMove, &node->children[i]->move)) {
-                found = false;
-                break;
-            }
-        }
-
-        if (!found) {
-            gm->moves[index] = gm->moves[gm->numMoves - 1];
-            gm->numMoves--;
-        }
-    }
-
-    if (!found) {
-        freeGeneratedMoves(gm);
-        return node;
-    }
-
-    GameState* stateCopy = copyGameState(state);
-
-    makeMoveNoChecks(stateCopy, &unexpandedMove, false);
-
-    MCTSNode* newChild = createNode(stateCopy, unexpandedMove, node);
-
-    node->numChildren++;
-    node->children = (MCTSNode**)realloc(node->children, node->numChildren * sizeof(MCTSNode*));
-    node->children[node->numChildren - 1] = newChild;
+    node->fullyExpanded = (node->numChildren == gm->numMoves);
 
     freeGeneratedMoves(gm);
-    freeGameState(stateCopy);
-    return newChild;
+    return node->children[rand() % node->numChildren];
 }
 
-static double simulate(GameState* state) {
-    int maxTurns = 100;
-    int turn = 0;
 
+static double simulate(GameState* state, Color player) {
+    int maxTurns = 50;
+    char* originalTps = gameStateToTPS(state);
     Move moveStack[maxTurns];
     int stackTop = -1;
 
-    while (turn < maxTurns) {
-        Result result = checkGameResult(state);
+    GameState* simState = copyGameState(state);
 
+    for (int turn = 0; turn < maxTurns; turn++) {
+        Result result = checkGameResult(simState);
         if (result != CONTINUE) {
-            while (stackTop >= 0) {
-                undoMoveNoChecks(state, &moveStack[stackTop], false);
-                stackTop--;
-            }
+            double score = 0.5;
             switch (result) {
-                case ROAD_WHITE: return (state->turn == WHITE) ? 1.0 : 0.0;
-                case ROAD_BLACK: return (state->turn == BLACK) ? 1.0 : 0.0;
-                case FLAT_WHITE: return (state->turn == WHITE) ? 1.0 : 0.0;
-                case FLAT_BLACK: return (state->turn == BLACK) ? 1.0 : 0.0;
-                case DRAW: return 0.5;
-                default: return 0.5;
+                case ROAD_WHITE: score = (player == WHITE) ? 1.0 : 0.0; break;
+                case ROAD_BLACK: score = (player == BLACK) ? 1.0 : 0.0; break;
+                case FLAT_WHITE: score = (player == WHITE) ? 1.0 : 0.0; break;
+                case FLAT_BLACK: score = (player == BLACK) ? 1.0 : 0.0; break;
+                case DRAW: score = 0.5; break;
+                default: score = 0.5; // Should never happen
             }
+
+            freeGameState(simState);
+            free(originalTps);
+            return score;
         }
 
-        GeneratedMoves* gm = generateAllMoves(state, 512);
-
+        GeneratedMoves* gm = generateAllMoves(simState, 512);
         if (gm->numMoves == 0) {
-            while (stackTop >= 0) {
-                undoMoveNoChecks(state, &moveStack[stackTop], false);
-                stackTop--;
-            }
             freeGeneratedMoves(gm);
             break;
         }
@@ -626,30 +633,54 @@ static double simulate(GameState* state) {
         int scores[gm->numMoves];
         int totalScore = 0;
         for (u32 i = 0; i < gm->numMoves; i++) {
-            scores[i] = scoreMove(state, &gm->moves[i], &(Move){0});
+            scores[i] = scoreMove(simState, &gm->moves[i], &(Move){0});
+            if (scores[i] <= 0) scores[i] = 1;
             totalScore += scores[i];
         }
+
         int choice = rand() % totalScore;
         int selected = 0;
-        while (choice >= 0) {
-            choice -= scores[selected];
-            if (choice < 0) {
+        int runningTotal = 0;
+
+        for (selected = 0; selected < gm->numMoves; selected++) {
+            runningTotal += scores[selected];
+            if (runningTotal > choice) {
                 break;
             }
-            selected++;
         }
 
+        if (selected >= gm->numMoves) {
+            selected = gm->numMoves - 1;
+        }
+
+        makeMoveNoChecks(simState, &gm->moves[selected], false);
         moveStack[++stackTop] = gm->moves[selected];
-        makeMoveNoChecks(state, &gm->moves[selected], false);
+
         freeGeneratedMoves(gm);
-        turn++;
     }
 
-    while (stackTop >= 0) {
-        undoMoveNoChecks(state, &moveStack[stackTop], false);
-        stackTop--;
+    freeGameState(simState);
+
+    // Basic evaluation for non-terminal positions
+    int wf = WHITE_FLATS(state);
+    int bf = BLACK_FLATS(state);
+
+    if (wf == 0) wf = 1;
+    if (bf == 0) bf = 1;
+
+    int total = wf + bf;
+    double flatRatio = wf / (double)total;
+    int connected = connectivityIndex(state);
+
+    free(originalTps);
+
+    if (connected < 0) {
+        double toReturn = flatRatio - 0.15;
+        return (toReturn > 1.0) ? 1.0 : ((toReturn < 0.0) ? 0.0 : toReturn);
+    } else {
+        double toReturn = flatRatio + 0.15;
+        return (toReturn > 1.0) ? 1.0 : ((toReturn < 0.0) ? 0.0 : toReturn);
     }
-    return 0.5;
 }
 
 static void backpropagate(MCTSNode* node, double result) {
@@ -665,11 +696,11 @@ static void backpropagate(MCTSNode* node, double result) {
 
 static double getUCTValue(MCTSNode* node, double uctConstant, int parentVisits) {
     if (node->visits == 0) {
-        return INFINITY;
+        return 1000.0 + (rand() % 100) * 0.01;
     }
 
     double exploitation = node->score / node->visits;
-    double exploration = uctConstant * sqrt(log(parentVisits) / node->visits);
+    double exploration = uctConstant * sqrt(log(parentVisits + 1) / (node->visits + 1));
 
     return exploitation + exploration;
 }

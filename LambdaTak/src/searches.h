@@ -12,7 +12,7 @@
 
 #define DEFAULT_UCT_CONSTANT 1.41421356237  // sqrt(2)
 #define MAX_MCTS_ITERATIONS 1000000
-#define MIN_PLAYOUTS_PER_NODE 5
+#define MIN_PLAYOUTS_PER_NODE 10
 
 extern Move killerMoves[MAX_DEPTH][KILLER_MOVES];
 extern int historyHeuristic[NUM_COLORS][TOTAL_SQUARES][TOTAL_SQUARES];
@@ -44,6 +44,7 @@ typedef struct MCTSNode {
     struct MCTSNode** children;
     struct MCTSNode* parent;
     bool fullyExpanded;
+    Color originalPlayer;
 } MCTSNode;
 
 Move iterativeDeepeningSearch(GameState* state, int timeLimit);
