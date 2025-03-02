@@ -40,6 +40,16 @@ The frontend interface built with BabylonJS provides:
 
 An advanced AI implementation focused on competitive play:
 
+- **C-based Game Implementation**: Reimplements core game logic for significant performance improvements
+  - Makes use of bitboards for efficient move generation
+  - Utilizes precomputed tables for fast move validation
+    - Found in `/lib/sorcery.c` and `/lib/magic.h`
+  - Currently packs drops into a u16 for efficient storage and manipulation
+    - Future plans to pack the whole move into a u16 for further optimization
+  - Uses flood-fill algorithm for road detection
+  - Has a good test suite in CUnit
+  - Has a perft function for debugging and performance testing
+
 - **C-based Engine**: Reimplements core game logic for significant performance improvements
 - **Search Optimizations**:
   - Alpha-beta pruning within a negamax framework
@@ -53,6 +63,7 @@ An advanced AI implementation focused on competitive play:
   - Game phase adaptation
   - Threat assessment
   - Connectivity index (a novel algorithm for efficiently estimating road-building potential)
+    - This feature is useful as a dfs-based approach is computationally expensive
 
 - **Work in Progress**: Neural network and reinforcement learning approaches to overcome the limitations of traditional search techniques:
   - Monte Carlo Tree Search implementation (currently limited by lack of policy network)
