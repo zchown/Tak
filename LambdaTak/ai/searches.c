@@ -480,13 +480,20 @@ void printSearchStats(const SearchStatistics* stats) {
 
 Move monteCarloTreeSearch(GameState* state, int timeLimit) {
     printf("Starting MCTS\n");
+
+    if (!transpositionTable) {
+        transpositionTable = malloc(sizeof (TranspositionEntry) * TRANSPOSITION_TABLE_SIZE);
+    }
+
     double startTime = getTimeMs();
     double endTime = startTime + timeLimit;
 
     Color rootColor = state->turn;
     MCTSNode* root = createMCTSNode(rootColor, NULL, 1.0, (Move){0});
 
+    printf("Root created\n");
     expand(root, state, 1.0);
+    printf("Root expanded\n");
 
     int curIteration = 0;
     while (curIteration < MAX_MCTS_ITERATIONS && getTimeMs() < endTime) {
@@ -662,6 +669,8 @@ double simulate(GameState* state) {
             return value;
         }
 
+        // only generate placements
+        /* simState->turnNumber = 1; */
         GeneratedMoves* gm = generateAllMoves(simState, 16);
         if (gm->numMoves == 0) {
             freeGeneratedMoves(gm);

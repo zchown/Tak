@@ -1,4 +1,4 @@
-# TAK:
+# TAK
 
 ## Overview
 Tak is a two-player abstract strategy game inspired by Patrick Rothfuss's Kingkiller Chronicle series. This project offers a complete digital implementation of the game, including server architecture, graphical interface, and AI opponents.

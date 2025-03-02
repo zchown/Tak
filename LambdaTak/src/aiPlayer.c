@@ -23,8 +23,8 @@ const char* generateMove(const char* gameStateJson, int time) {
         return NULL;
     }
     printf("Parsed TPS\n");
-    Move move = iterativeDeepeningSearch(state, time);
-    /* Move move = monteCarloTreeSearch(state, time); */
+    /* Move move = iterativeDeepeningSearch(state, time); */
+    Move move = monteCarloTreeSearch(state, time);
     char* moveStr = moveToString(&move);
     freeGameState(state);
     printf("Move: %s\n", moveStr);
