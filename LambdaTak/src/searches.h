@@ -10,10 +10,6 @@
 #define KILLER_MOVES 2
 #include <math.h>
 
-#define DEFAULT_UCT_CONSTANT 1.41421356237  // sqrt(2)
-#define MAX_MCTS_ITERATIONS 1000000
-#define MIN_PLAYOUTS_PER_NODE 10
-
 extern Move killerMoves[MAX_DEPTH][KILLER_MOVES];
 extern int historyHeuristic[NUM_COLORS][TOTAL_SQUARES][TOTAL_SQUARES];
 
@@ -35,27 +31,11 @@ typedef struct SearchStatistics {
     int reducedDepthSearches;
 } SearchStatistics;
 
-typedef struct MCTSNode {
-    ZobristKey hash;
-    Move move;
-    int visits;
-    double score;
-    int numChildren;
-    struct MCTSNode** children;
-    struct MCTSNode* parent;
-    bool fullyExpanded;
-    Color originalPlayer;
-} MCTSNode;
-
 Move iterativeDeepeningSearch(GameState* state, int timeLimit);
 
 Move negaMaxRoot(GameState* state, int depth, bool* timeUp, double startTime, int timeLimit, SearchStatistics* stats);
 
 int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* timeUp, double startTime, int timeLimit, u32 prevMoves, bool doReducedDepth, SearchStatistics* stats);
-
-Move monteCarloTreeSearch(GameState* state, int timeLimit);
-
-static MCTSNode* getBestChildVisits(MCTSNode* node);
 
 static double getTimeMs();
 
@@ -72,5 +52,37 @@ void clearHistoryHeuristic(void);
 void clearTranspositionTable(void);
 
 void printSearchStats(const SearchStatistics* stats);
+
+typedef struct MCTSNode {
+    int numVisits;
+    Color toPlay;
+    Color originalToPlay;
+    double prior; // Prior probability of selecting this node
+    struct MCTSNode* parent;
+    struct MCTSNode** children;
+    u32 numChildren;
+    double valueSum;
+    Move move;
+} MCTSNode;
+
+#define DEFAULT_UCT_CONSTANT 1.41421356237  // sqrt(2)
+#define MAX_MCTS_ITERATIONS 10000
+#define MIN_PLAYOUTS_PER_NODE 10
+#define MAX_TURNS 64
+
+#define MCTSNODE_VALUE(node) ((node)->valueSum / (double)(node)->numVisits)
+#define MCTSNODE_EXPANDED(node) ((node)->numChildren > 0)
+
+Move monteCarloTreeSearch(GameState* state, int timeLimit);
+
+MCTSNode* selectNode(MCTSNode* node, GameState* state);
+MCTSNode* expand(MCTSNode* node, GameState* state, double prior);
+void backup(MCTSNode* node, double value, int toPlay);
+double simulate(GameState* state);
+
+double ucbScore(MCTSNode* parent, MCTSNode* child);
+
+MCTSNode* createMCTSNode(Color toPlay, MCTSNode* parent, double prior, Move move);
+void freeMCTSNode(MCTSNode* node);
 
 #endif // SEARCHES_H

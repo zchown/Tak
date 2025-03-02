@@ -331,6 +331,7 @@ PieceStack squareRemovePieces(GameState* state, Square* square, u8 numPieces) {
     PieceStack stack = {0};
     if (numPieces == 0 || numPieces > square->numPieces) {
         printf("squareRemovePieces: Invalid number of pieces\n");
+        exit(1);
         return stack;
     }
     u8 startIdx = square->numPieces - numPieces;
