@@ -39,7 +39,7 @@ void train(Trainer* trainer, int total_episodes) {
         // Save model periodically
         if (episode % trainer->saveInterval == 0) {
             char filename[50];
-            sprintf(filename, "tak_model_%d.weights", episode);
+            sprintf(filename, "models/tak_model_%d.weights", episode);
             saveWeights(trainer->agent, filename);
         }
     }
@@ -64,7 +64,7 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
         lastMove = move;
 
         GameState* nextState = copyGameState(state);
-        MoveResult moveResult = makeMoveChecks(nextState, &move);
+        makeMoveNoChecks(nextState, &move, false);
 
         Features nextStateFeatures = malloc(FEATURES_SIZE * sizeof(int));
         getFeatures(nextState, nextStateFeatures);
@@ -100,13 +100,19 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
 
     switch (gameResult) {
         case ROAD_WHITE:
+            finalReward = ROAD_WIN_REWARD;
+            toReturn = 1;
+            break;
         case FLAT_WHITE:
-            finalReward = WIN_REWARD;
+            finalReward = FLAT_WIN_REWARD;
             toReturn = 1;
             break;
         case ROAD_BLACK:
+            finalReward = ROAD_LOSS_REWARD;
+            toReturn = -1;
+            break;
         case FLAT_BLACK:
-            finalReward = LOSS_REWARD;
+            finalReward = FLAT_LOSS_REWARD;
             toReturn = -1;
             break;
         case DRAW:
@@ -114,6 +120,7 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
             toReturn = 0;
             break;
         default:
+            finalReward = DRAW_REWARD;
             break;
     }
 
@@ -162,17 +169,17 @@ void loadWeights(QLearningAgent* agent, const char* filename) {
     }
 }
 
-int trainAgainstAlphaBeta(Trainer* trainer, int total_episodes) {
+int trainAgainstAlphaBeta(Trainer* trainer, int total_episodes, int alphaBetaTime) {
     printf("Training against Alpha-Beta player...\n");
     int wins = 0, losses = 0, draws = 0;
 
     for (int episode = 0; episode < total_episodes; episode++) {
-        printf("Episode %d\n", episode);
+        printf("Episode %d, Wins: %d, Losses: %d, Draws: %d\n", episode, wins, losses, draws);
 
         // Alternate who goes first to learn both sides
         bool agentPlaysWhite = (episode % 2 == 0);
 
-        int result = trainEpisodeVsAlphaBeta(trainer, agentPlaysWhite);
+        int result = trainEpisodeVsAlphaBeta(trainer, agentPlaysWhite, alphaBetaTime);
 
         if (result == 0) {
             draws++;
@@ -188,7 +195,7 @@ int trainAgainstAlphaBeta(Trainer* trainer, int total_episodes) {
 
         if (episode % trainer->saveInterval == 0) {
             char filename[50];
-            sprintf(filename, "tak_model_vs_ab_%d.weights", episode);
+            sprintf(filename, "models/tak_model_vs_ab_%d.weights", episode);
             saveWeights(trainer->agent, filename);
         }
     }
@@ -197,12 +204,12 @@ int trainAgainstAlphaBeta(Trainer* trainer, int total_episodes) {
     return wins;
 }
 
-int trainEpisodeVsAlphaBeta(Trainer* trainer, bool agentPlaysWhite) {
+int trainEpisodeVsAlphaBeta(Trainer* trainer, bool agentPlaysWhite, int alphaBetaTime) {
     GameState* state = createGameState();
     Features stateFeatures = malloc(FEATURES_SIZE * sizeof(int));
     double* actionFeatures = malloc(ACTION_FEATURES_SIZE * sizeof(double));
 
-    while (state->result == CONTINUE) {
+    while (state->result == CONTINUE && state->turnNumber < 500) {
         bool agentTurn = (state->turn == WHITE) ? agentPlaysWhite : !agentPlaysWhite;
 
         if (agentTurn) {
@@ -211,7 +218,7 @@ int trainEpisodeVsAlphaBeta(Trainer* trainer, bool agentPlaysWhite) {
             Move move = selectAction(trainer->agent, state, moves, stateFeatures);
 
             GameState* nextState = copyGameState(state);
-            MoveResult result = makeMoveChecks(nextState, &move);
+            makeMoveNoChecks(nextState, &move, false);
 
             double reward = calculateReward(nextState, state);
 
@@ -239,12 +246,12 @@ int trainEpisodeVsAlphaBeta(Trainer* trainer, bool agentPlaysWhite) {
             freeGameState(state);
             state = nextState;
         } else {
-            Move move = iterativeDeepeningSearch(state, 100);
+            Move move = iterativeDeepeningSearch(state, alphaBetaTime);
 
             getFeatures(state, stateFeatures);
 
             GameState* nextState = copyGameState(state);
-            makeMoveChecks(nextState, &move);
+            makeMoveNoChecks(nextState, &move, false);
 
             nextState->result = checkGameResult(nextState);
 
@@ -258,8 +265,8 @@ int trainEpisodeVsAlphaBeta(Trainer* trainer, bool agentPlaysWhite) {
                 double obsReward = 0.1;
 
                 // Learning from opponent moves
-                updateQLearning(trainer->agent, stateFeatures, actionFeatures,
-                               obsReward, nextStateFeatures, nextMoves);
+                /* updateQLearning(trainer->agent, stateFeatures, actionFeatures, */
+                               /* obsReward, nextStateFeatures, nextMoves); */
 
                 freeGeneratedMoves(nextMoves);
                 free(nextStateFeatures);
@@ -276,20 +283,28 @@ int trainEpisodeVsAlphaBeta(Trainer* trainer, bool agentPlaysWhite) {
 
     switch (gameResult) {
         case ROAD_WHITE:
+            finalReward = agentPlaysWhite ? ROAD_WIN_REWARD : ROAD_LOSS_REWARD;
+            returnValue = 1;
+            break;
         case FLAT_WHITE:
-            finalReward = agentPlaysWhite ? WIN_REWARD : LOSS_REWARD;
-            returnValue = 1; // White wins
+            finalReward = agentPlaysWhite ? FLAT_WIN_REWARD : FLAT_LOSS_REWARD;
+            returnValue = 1;
             break;
         case ROAD_BLACK:
+            finalReward = agentPlaysWhite ? ROAD_LOSS_REWARD : ROAD_WIN_REWARD;
+            returnValue = -1;
+            break;
         case FLAT_BLACK:
-            finalReward = agentPlaysWhite ? LOSS_REWARD : WIN_REWARD;
-            returnValue = -1; // Black wins
+            finalReward = agentPlaysWhite ? FLAT_LOSS_REWARD : FLAT_WIN_REWARD;
+            returnValue = -1;
             break;
         case DRAW:
             finalReward = DRAW_REWARD;
             returnValue = 0;
             break;
         default:
+            finalReward = FLAT_LOSS_REWARD;
+            returnValue = -1;
             break;
     }
 
@@ -310,6 +325,10 @@ double evaluateAgent(QLearningAgent* agent, int numGames) {
     for (int i = 0; i < numGames; i++) {
         bool agentPlaysWhite = (i % 2 == 0);
         GameState* state = createGameState();
+        double winRate = (double)wins / i;
+
+        printf("Evaluation: %d games, Win rate: %.2f%%, Wins: %d, Losses: %d, Draws: %d\n", 
+                i, winRate * 100, wins, losses, draws);
 
         while (state->result == CONTINUE) {
             bool agentTurn = (state->turn == WHITE) ? agentPlaysWhite : !agentPlaysWhite;
@@ -324,14 +343,14 @@ double evaluateAgent(QLearningAgent* agent, int numGames) {
                 GeneratedMoves* moves = generateAllMoves(state, 512);
                 Move move = selectAction(agent, state, moves, stateFeatures);
 
-                makeMoveChecks(state, &move);
+                makeMoveNoChecks(state, &move, false);
 
                 freeGeneratedMoves(moves);
                 free(stateFeatures);
                 agent->epsilon = savedEpsilon;
             } else {
                 Move move = iterativeDeepeningSearch(state, 250);
-                makeMoveChecks(state, &move);
+                makeMoveNoChecks(state, &move, false);
             }
 
             state->result = checkGameResult(state);
@@ -356,3 +375,4 @@ double evaluateAgent(QLearningAgent* agent, int numGames) {
 
     return winRate;
 }
+

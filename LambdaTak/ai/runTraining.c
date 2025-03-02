@@ -1,31 +1,57 @@
 #include "trainer.h"
 #include "qlearner.h"
 #include "../lib/board.h"
-#include "utils.h"
 
 int main() {
     srand(time(NULL));
     initZobristTable();
 
-    QLearningAgent* agent = createQLearningAgent(0.1, 0.9, 0.1);
-    Trainer* trainer = createTrainer(agent, 0.999, 0.01, 1000);
+    double alphaLearningRate = 0.2;
+    double normalLearningRate = 0.05;
 
-    train(trainer, MAX_EPISODES);
+    for (int i = 0; i < 100; i++) {
+        printf("Iteration %d\n", i);
 
-    trainAgainstAlphaBeta(trainer, MAX_EPISODES);
+        alphaLearningRate = alphaLearningRate * (1.0 - (0.005 * i));
+        normalLearningRate = normalLearningRate * (1.0 - (0.005 * i));
 
-    evaluateAgent(agent, 1000);
+        QLearningAgent* agent = createQLearningAgent(0.1, 0.9, 0.2);
 
-    train(trainer, MAX_EPISODES);
+        loadWeights(agent, "model.weights");
 
-    trainAgainstAlphaBeta(trainer, MAX_EPISODES);
+        Trainer* trainer = createTrainer(agent, 0.999, 0.01, 1000);
 
-    train(trainer, MAX_EPISODES);
+        saveWeights(agent, "model.weights");
 
-    evaluateAgent(agent, 1000);
+        agent->alpha = alphaLearningRate;
 
-    freeTrainer(trainer);
-    freeQLearningAgent(agent);
+        trainAgainstAlphaBeta(trainer, MAX_EPISODES, 50);
+
+        saveWeights(agent, "model.weights");
+
+        agent->alpha = normalLearningRate;
+
+        train(trainer, MAX_EPISODES * 100);
+
+        saveWeights(agent, "model.weights");
+
+        agent->alpha = alphaLearningRate;
+
+        trainAgainstAlphaBeta(trainer, MAX_EPISODES, 100);
+
+        saveWeights(agent, "model.weights");
+
+        agent->alpha = normalLearningRate;
+
+        train(trainer, MAX_EPISODES * 100);
+
+        saveWeights(agent, "model.weights");
+
+        evaluateAgent(agent, 100);
+
+        freeTrainer(trainer);
+        freeQLearningAgent(agent);
+    }
 
     return 0;
 }

@@ -8,9 +8,11 @@
 #include <stdio.h>
 #include <time.h>
 
-#define MAX_EPISODES 10000
-#define WIN_REWARD 1.0
-#define LOSS_REWARD -1.0
+#define MAX_EPISODES 500
+#define ROAD_WIN_REWARD 1.0
+#define ROAD_LOSS_REWARD -1.0
+#define FLAT_WIN_REWARD 0.8
+#define FLAT_LOSS_REWARD -0.8
 #define DRAW_REWARD 0.5
 #define STEP_PENALTY -0.01
 
@@ -31,8 +33,8 @@ double calculateReward(const GameState* state, const GameState* prevState);
 void saveWeights(const QLearningAgent* agent, const char* filename);
 void loadWeights(QLearningAgent* agent, const char* filename);
 
-int trainAgainstAlphaBeta(Trainer* trainer, int totalEpisodes);
-int trainEpisodeVsAlphaBeta(Trainer* trainer, bool agentPlaysWhite);
+int trainAgainstAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime);
+int trainEpisodeVsAlphaBeta(Trainer* trainer, bool agentPlaysWhite, int alphaBetaTime);
 
 double evaluateAgent(QLearningAgent* agent, int totalGames);
 

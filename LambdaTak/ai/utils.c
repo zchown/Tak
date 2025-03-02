@@ -23,7 +23,7 @@ Features getFeatures(GameState* state, Features features) {
                 curPiece = 3;
             }
 
-            if (square.pieces[square.numPieces - 1].color != WHITE) {
+            if (square.pieces[square.numPieces - 1].color != state->turn) {
                 features[curFeature++] = curPiece;
             } else {
                 features[curFeature++] = -curPiece;
