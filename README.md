@@ -1,9 +1,7 @@
-I'll create an improved version of your README while maintaining the original structure and content. Here it is in markdown format:
-
-# TAK: A Digital Implementation
+# TAK:
 
 ## Overview
-Tak is a beautiful two-player abstract strategy game inspired by Patrick Rothfuss's Kingkiller Chronicle series. This project offers a complete digital implementation of the game, including server architecture, graphical interface, and AI opponents.
+Tak is a two-player abstract strategy game inspired by Patrick Rothfuss's Kingkiller Chronicle series. This project offers a complete digital implementation of the game, including server architecture, graphical interface, and AI opponents.
 
 For comprehensive rules and strategy guides, visit the official US Tak Association: [ustak.org](https://ustak.org/)
 
@@ -83,6 +81,7 @@ An advanced AI implementation focused on competitive play:
 2. Run `npm run dev`
 3. Access the game interface at http://localhost:5173/
 4. Note: This requires the game server to be running
+5. Also ensure that your browser supports WebGL
 
 ### LambdaTak
 Uses CMake build system with the following dependencies:
