@@ -56,6 +56,21 @@ target_link_libraries(lambdaTak
     ${JANSSON_LIBRARY}
 )
 
+# training executable
+add_executable(trainTak
+    ai/runTraining.c
+    lib/board.c 
+    lib/tps.c 
+    lib/moves.c 
+    lib/perft.c 
+    lib/ptn.c 
+    ai/eval.c 
+    ai/searches.c
+    lib/zobrist.c
+    ai/qlearner.c
+    ai/utils.c
+    ai/trainer.c)
+
 # Test suite configuration
 # Manually find CUnit on macOS (Homebrew)
 if(APPLE)
