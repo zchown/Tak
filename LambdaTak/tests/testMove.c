@@ -1,8 +1,8 @@
 #include <CUnit/CUnit.h>
 #include <CUnit/Basic.h>
-#include "../src/board.h"
-#include "../src/tps.h"
-#include "../src/moves.h"
+#include "../lib/board.h"
+#include "../lib/tps.h"
+#include "../lib/moves.h"
 
 void test_checkPlaceMove() {
     GameState* state = parseTPS("[TPS x6/x6/x6/x6/x6/x6 1 10]");

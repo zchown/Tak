@@ -1,8 +1,8 @@
 #ifndef EVAL_H
 #define EVAL_H
 
-#include "board.h"
-#include "moves.h"
+#include "../lib/board.h"
+#include "../lib/moves.h"
 #include <limits.h>
 
 #define WHITE_ROAD_WIN INT_MAX

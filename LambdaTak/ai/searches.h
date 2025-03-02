@@ -1,7 +1,7 @@
 # ifndef SEARCHES_H
 # define SEARCHES_H
-#include "board.h"
-#include "moves.h"
+#include "../lib/board.h"
+#include "../lib/moves.h"
 #include "eval.h"
 #include <time.h>
 #include <math.h>
@@ -12,6 +12,19 @@
 
 extern Move killerMoves[MAX_DEPTH][KILLER_MOVES];
 extern int historyHeuristic[NUM_COLORS][TOTAL_SQUARES][TOTAL_SQUARES];
+static const u32 TRANSPOSITION_TABLE_SIZE = (1 << 29);
+
+typedef enum {UNDER, OVER, EXACT} EstimationType;
+
+typedef struct {
+    Move move;
+    int score;
+    int depth;
+    EstimationType type;
+    ZobristKey hash;
+} TranspositionEntry;
+
+extern TranspositionEntry* transpositionTable;
 
 typedef struct SearchStatistics {
     int maxDepth;

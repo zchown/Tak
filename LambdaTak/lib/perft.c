@@ -14,30 +14,9 @@ u64 perft(GameState* state, int depth, int currentDepth, u64 nodes, u32 prevMove
     moves = generateAllMoves(state, prevMoves);
 
     for (int i = 0; i < moves->numMoves; i++) {
-        /* int result = makeMoveChecks(state, &moves->moves[i]); */
-        /* if (result != SUCCESS) { */
-        /*     printf("Result: %d\n", result); */
-        /*     printf("Invalid move: "); */
-        /*     printMove(&moves->moves[i]); */
-        /*     printf("\n"); */
-        /*     char* tps = gameStateToTPS(state); */
-        /*     printf("TPS: %s\n", tps); */
-        /*     freeGeneratedMoves(moves); */
-        /*     exit(1); */
-        /* } */
         makeMoveNoChecks(state, &moves->moves[i], false);
         nodes += perft(state, depth, currentDepth + 1, 0, moves->numMoves);
         undoMoveNoChecks(state, &moves->moves[i], false);
-        /* result = undoMoveChecks(state, &moves->moves[i]); */
-        /* if (result != SUCCESS) { */
-        /*     printf("Result: %d\n", result); */
-        /*     printf("Invalid undo: "); */
-        /*     printMove(&moves->moves[i]); */
-        /*     printf("\n"); */
-        /*     freeGeneratedMoves(moves); */
-        /*     exit(1); */
-        /* } */
-
     }
     freeGeneratedMoves(moves);
     return nodes;

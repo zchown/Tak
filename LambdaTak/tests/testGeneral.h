@@ -3,10 +3,10 @@
 #include <stdbool.h>
 #include <dirent.h>
 #include <string.h>
-#include "../src/board.h"
-#include "../src/moves.h"
-#include "../src/ptn.h"
-#include "../src/tps.h"
+#include "../lib/board.h"
+#include "../lib/moves.h"
+#include "../lib/ptn.h"
+#include "../lib/tps.h"
 
 bool areEqualBoards(const GameState* b1, const GameState* b2);
 

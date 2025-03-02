@@ -1,5 +1,4 @@
 #include "eval.h"
-#include "board.h"
 
 int evaluate(GameState* state) {
     int score = calculateFlatDiff(state);

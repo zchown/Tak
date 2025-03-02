@@ -5,7 +5,6 @@
 ZobristKey zobristTable[TOTAL_SQUARES][NUM_COLORS][NUM_PIECE_TYPES][ZOBRIST_STACK_DEPTH];
 ZobristKey zobristTurn;
 
-TranspositionEntry* transpositionTable;
 
 uint64_t splitmix64(uint64_t* seed) {
     *seed += 0x9E3779B97F4A7C15;
@@ -31,11 +30,6 @@ void initZobristTable(void) {
     }
     zobristTurn = splitmix64(&seed);
 
-    transpositionTable = (TranspositionEntry*)malloc(sizeof(TranspositionEntry) * TRANSPOSITION_TABLE_SIZE);
-    if (!transpositionTable) {
-        fprintf(stderr, "Failed to allocate transposition table!\n");
-        exit(EXIT_FAILURE);
-    }
 }
 
 // Compute a Zobrist hash for the entire board

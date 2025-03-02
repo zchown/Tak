@@ -1,6 +1,5 @@
 #include "aiPlayer.h"
-#include "perft.h"
-#include "tps.h"
+#include "../lib/perft.h"
 
 int main() {
     initZobristTable();

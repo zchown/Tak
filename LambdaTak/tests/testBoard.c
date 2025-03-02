@@ -1,7 +1,7 @@
 #include <CUnit/CUnit.h>
 #include <CUnit/Basic.h>
-#include "../src/board.h"
-#include "../src/tps.h"
+#include "../lib/board.h"
+#include "../lib/tps.h"
 
 void test_checkRoadWin() {
     GameState* state = createGameState();

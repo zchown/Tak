@@ -6,9 +6,9 @@
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
-#include "board.h"
-#include "tps.h"
-#include "searches.h"
+#include "../lib/board.h"
+#include "../lib/tps.h"
+#include "../ai/searches.h"
 
 #define SERVER_IP "127.0.0.1"
 #define PORT 9160

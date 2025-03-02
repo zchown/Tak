@@ -1,7 +1,7 @@
 #include <CUnit/CUnit.h>
 #include <CUnit/Basic.h>
-#include "../src/board.h"
-#include "../src/tps.h"
+#include "../lib/board.h"
+#include "../lib/tps.h"
 
 void test_parseTPS_valid() {
     GameState* state = parseTPS("[TPS x6/x6/x6/x6/x6/x6 1 10]");

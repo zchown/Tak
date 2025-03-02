@@ -1,12 +1,16 @@
 #include "searches.h"
-#include "board.h"
 
 Move killerMoves[MAX_DEPTH][KILLER_MOVES];
 int historyHeuristic[NUM_COLORS][TOTAL_SQUARES][TOTAL_SQUARES];
 static int transpositionFill = 0;
+TranspositionEntry* transpositionTable = NULL;
 
 Move iterativeDeepeningSearch(GameState* state, int timeLimit) {
     printf("Starting search\n");
+    if (!transpositionTable) {
+        transpositionTable = malloc(sizeof(TranspositionEntry) * TRANSPOSITION_TABLE_SIZE);
+    }
+
     int conIndex = connectivityIndex(state);
     printf("Connectivity index: %d\n", conIndex);
 

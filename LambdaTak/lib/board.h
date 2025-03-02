@@ -146,20 +146,6 @@ typedef struct {
     ZobristKey hash;
 } GameState;
 
-static const u32 TRANSPOSITION_TABLE_SIZE = (1 << 29);
-
-typedef enum {UNDER, OVER, EXACT} EstimationType;
-
-typedef struct {
-    Move move;
-    int score;
-    int depth;
-    EstimationType type;
-    ZobristKey hash;
-} TranspositionEntry;
-
-extern TranspositionEntry* transpositionTable;
-
 void initZobristTable(void);
 ZobristKey computeBoardHash(const GameState* state);
 ZobristKey clearSlideHash(ZobristKey hash, const SlideMove* move, const GameState* state);
