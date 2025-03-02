@@ -501,13 +501,11 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit) {
                     break;
                 case ROAD_BLACK:
                 case FLAT_BLACK:
-                    value = 0.0;
+                    value = -1.0;
                     break;
                 case DRAW:
-                    value = 0.5;
-                    break;
                 default:
-                    value = 0.5;
+                    value = 0;
                     break;
             }
         } else {
@@ -524,7 +522,7 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit) {
 
                     value = simulate(simState);
                 } else {
-                    value = 0.5;
+                    value = 0.0;
                 }
             } else {
                 continue;
@@ -601,9 +599,16 @@ MCTSNode* expand(MCTSNode* node, GameState* state, double prior) {
 
     Color nextColor = (state->turn == WHITE) ? BLACK : WHITE;
 
+    int totalScore = 0;
+    for (u32 i = 0; i < gm->numMoves; i++) {
+        totalScore += scoreMove(state, &gm->moves[i], NULL);
+    }
+
     for (u32 i = 0; i < gm->numMoves; i++) {
         Move move = gm->moves[i];
-        node->children[i] = createMCTSNode(nextColor, node, prior / gm->numMoves, move);
+        int moveScore = scoreMove(state, &move, NULL);
+        double normalizedPrior = (totalScore == 0) ? 1.0/gm->numMoves : (double)moveScore / totalScore;
+        node->children[i] = createMCTSNode(nextColor, node, normalizedPrior, move);
     }
 
     freeGeneratedMoves(gm);
@@ -618,7 +623,7 @@ void backup(MCTSNode* node, double value, int toPlay) {
         if (cur->toPlay == toPlay) {
             cur->valueSum += value;
         } else {
-            cur->valueSum += (1.0 - value); 
+            cur->valueSum += -1.0 * value;
         }
 
         cur = cur->parent; 
@@ -641,10 +646,10 @@ double simulate(GameState* state) {
                     break;
                 case ROAD_BLACK:
                 case FLAT_BLACK:
-                    value = 0.0;
+                    value = -1.0;
                     break;
                 case DRAW:
-                    value = 0.5;
+                    value = 0.0;
                     break;
                 default:
                     break;
@@ -660,15 +665,26 @@ double simulate(GameState* state) {
             return 0.0;
         }
 
-        int randomIndex = rand() % gm->numMoves;
-        makeMoveNoChecks(simState, &gm->moves[randomIndex], false);
+        int totalScore = 0;
+        for (u32 i = 0; i < gm->numMoves; i++) {
+            totalScore += scoreMove(simState, &gm->moves[i], NULL);
+        }
+
+        int randomScore = rand() % totalScore;
+        int index = 0;
+        while (randomScore > 0 && index < gm->numMoves - 1) {
+            randomScore -= scoreMove(simState, &gm->moves[0], NULL);
+            index++;
+        }
+        makeMoveNoChecks(simState, &gm->moves[index], false);
 
         freeGeneratedMoves(gm);
         movesMade++;
     }
 
-    double eval = evaluate(simState);
-    double normalizedEval = eval / 50000.0; // very rough normalization
+    int whitePop = __builtin_popcountll(simState->whiteControlled);
+    int blackPop = __builtin_popcountll(simState->blackControlled);
+    double normalizedEval = (whitePop - blackPop) / (double)(whitePop + blackPop);
     freeGameState(simState);
 
     return normalizedEval;
