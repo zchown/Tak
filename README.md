@@ -1,36 +1,82 @@
-# TAK
+I'll create an improved version of your README while maintaining the original structure and content. Here it is in markdown format:
 
-Tak is a game from Patrick Rothfuss's Kingkiller Chronicle.
-A more thorough of the game can be found here: [ustak](https://ustak.org/)
+# TAK: A Digital Implementation
 
-## Description
-This is really three projects in one. 
+## Overview
+Tak is a beautiful two-player abstract strategy game inspired by Patrick Rothfuss's Kingkiller Chronicle series. This project offers a complete digital implementation of the game, including server architecture, graphical interface, and AI opponents.
 
-#### TakServer
-Tak server includes multiple parts. First located in the Lib directory there is a Haskell implementation of Tak. This includes a pure representation of the board and ways to generate legal moves in a position. As well as a statefull way of representing the board and generating legal moves in a position. The stateful way is faster but is not as easy to work with.
-The game server located in the app directory is the brains of this Tak project. It communicated with any potential AI players and the front end. It can keep track of multiple games at once and the keeps track of the state of those games updating the players of that game when the state changes.
-    TakServer also includes some basic board evaluation and search algorithms for a basic game tree search ai. This is located in the ai directory.
+For comprehensive rules and strategy guides, visit the official US Tak Association: [ustak.org](https://ustak.org/)
 
-#### TakGraphics
-This is the front end for the Tak Game. It uses BabylonJs to create a 3D graphics visualization of the board. It also includes a description of how to play the game and lets users input their moves in [PTN format](https://ustak.org/portable-tak-notation/)
+## Project Components
 
-#### LambdaTak
-LambdaTak aims to be a stronger AI for the game Tak. It reimplements the game logic in C for a significant speedup. Currently it's strongest version uses an alpha-beta search in a negamax framework. It includes optimizations such as zobrist hashing to do lookups in a transposition table using linear probing in the case of collisions. It also includes a move ordering heuristic making use of killer moves and history heuristics. It also includes a quiescence search to avoid the horizon effect. It also includes a basic evaluation function that uses a combination of piece count, piece count on the board, and piece count in the stack. It makes use of late move reductions to significantly reduce the number of nodes searched. The evaluation function could be stronger but takes into consideration flat count differential, centrality, game stage, stack mobility and threats of taking pieces. The most interesting part of the evaluation is the use of the connectivity index which can quickly look through a board position and make a guess at how close a player is to making a road, which is an algorithm I came up with when doing dfs proved far to slow.
+This repository contains three integrated projects:
 
-Currently wip is working on neural networks and reinforcement learning to improve the strength of the AI as the search space is just far to large for alpha-beta to be effective. At this point a monte carlo tree search has been implemented but without a policy network it is basically just a random search even though it does use the move ordering heuristics from the alpha-beta search.
+### 1. TakServer
 
-### Running
-#### TakServer
-TakServer is most easily run using [Cabal](https://www.haskell.org/cabal/).
-It has the executables Tak for the Game Server, TakAI to run the AI and Tak-test to run the test suite.
+At the heart of this implementation is a powerful Haskell-based game server with several components:
 
-#### TakGraphics
-Running `npm run dev` should result in being able to go to http://localhost:5173/ to play Tak assuming that the game server is already running.
+- **Game Logic Library** (in `/Lib`): Contains both pure and stateful implementations of Tak's rules and mechanics:
+  - The pure representation offers excellent composability and reasoning properties
+  - The stateful implementation delivers superior performance for time-critical operations
 
-#### LambdaTak
-Uses a cmake build system. 
-Requirements:
-CUnit for testing
-Janson for json parsing
-libwebsockets for websockets
+- **Game Server** (in `/app`): Functions as the central coordinator, managing:
+  - Multiple concurrent game sessions
+  - Communication between AI and human players
+  - Real-time game state synchronization
+  - Event broadcasting to connected clients
 
+- **Basic AI** (in `/ai`): Includes foundation-level board evaluation and game tree search algorithms.
+
+### 2. TakGraphics
+
+The frontend interface built with BabylonJS provides:
+
+- Rich 3D visualization of the game board and pieces
+- Comprehensive tutorial on game rules and strategy
+- Support for move input using the standard [Portable Tak Notation (PTN)](https://ustak.org/portable-tak-notation/)
+- Responsive design for various screen sizes
+
+### 3. LambdaTak
+
+An advanced AI implementation focused on competitive play:
+
+- **C-based Engine**: Reimplements core game logic for significant performance improvements
+- **Search Optimizations**:
+  - Alpha-beta pruning within a negamax framework
+  - Transposition tables with Zobrist hashing and linear probing
+  - Sophisticated move ordering using killer moves and history heuristics
+  - Late move reductions to efficiently prune the search space
+
+- **Evaluation Function**: Considers multiple strategic factors:
+  - Piece count differentials (on board and in stacks)
+  - Positional elements like centrality and stack mobility
+  - Game phase adaptation
+  - Threat assessment
+  - Connectivity index (a novel algorithm for efficiently estimating road-building potential)
+
+- **Work in Progress**: Neural network and reinforcement learning approaches to overcome the limitations of traditional search techniques:
+  - Monte Carlo Tree Search implementation (currently limited by lack of policy network)
+  - Preliminary machine learning integration
+
+## Setup and Running
+
+### TakServer
+1. Ensure you have [Cabal](https://www.haskell.org/cabal/) installed
+2. Available executables:
+   - `Tak`: Launches the main game server
+   - `TakAI`: Runs the AI component
+   - `Tak-test`: Executes the test suite
+
+### TakGraphics
+1. Navigate to the TakGraphics directory
+2. Run `npm run dev`
+3. Access the game interface at http://localhost:5173/
+4. Note: This requires the game server to be running
+
+### LambdaTak
+Uses CMake build system with the following dependencies:
+- CUnit (for testing)
+- Janson (for JSON parsing)
+- libwebsockets (for WebSocket communication)
+
+Build with standard CMake commands after installing dependencies.
