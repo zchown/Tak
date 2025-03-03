@@ -3,6 +3,7 @@
 
 #include "../lib/board.h"
 #include <math.h>
+#include "eval.h"
 
 #define FEATURES_SIZE ((TOTAL_SQUARES * 4) + 5)
 

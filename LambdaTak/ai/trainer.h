@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#define MAX_EPISODES 500
+#define MAX_EPISODES 1000
 #define ROAD_WIN_REWARD 1.0
 #define ROAD_LOSS_REWARD -1.0
 #define FLAT_WIN_REWARD 0.8

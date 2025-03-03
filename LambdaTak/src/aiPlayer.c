@@ -24,9 +24,12 @@ const char* generateMove(const char* gameStateJson, int time) {
     }
     printf("Parsed TPS\n");
     /* Move move = iterativeDeepeningSearch(state, time); */
-    Move move = monteCarloTreeSearch(state, time);
+    QLearningAgent* agent = createQLearningAgent(0.1, 0.8, 0.1);
+    loadWeights(agent, "model.weights");
+    Move move = monteCarloTreeSearch(state, time, agent);
     char* moveStr = moveToString(&move);
     freeGameState(state);
+    freeQLearningAgent(agent);
     printf("Move: %s\n", moveStr);
     return moveStr;
 }

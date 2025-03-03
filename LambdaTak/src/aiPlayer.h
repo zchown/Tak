@@ -9,6 +9,9 @@
 #include "../lib/board.h"
 #include "../lib/tps.h"
 #include "../ai/searches.h"
+#include "../ai/monteCarlo.h"
+#include "../ai/qlearner.h"
+#include "../ai/trainer.h"
 
 #define SERVER_IP "127.0.0.1"
 #define PORT 9160

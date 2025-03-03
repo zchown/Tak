@@ -265,8 +265,8 @@ int trainEpisodeVsAlphaBeta(Trainer* trainer, bool agentPlaysWhite, int alphaBet
                 double obsReward = 0.1;
 
                 // Learning from opponent moves
-                /* updateQLearning(trainer->agent, stateFeatures, actionFeatures, */
-                               /* obsReward, nextStateFeatures, nextMoves); */
+                updateQLearning(trainer->agent, stateFeatures, actionFeatures,
+                               obsReward, nextStateFeatures, nextMoves);
 
                 freeGeneratedMoves(nextMoves);
                 free(nextStateFeatures);
@@ -283,11 +283,11 @@ int trainEpisodeVsAlphaBeta(Trainer* trainer, bool agentPlaysWhite, int alphaBet
 
     switch (gameResult) {
         case ROAD_WHITE:
-            finalReward = agentPlaysWhite ? ROAD_WIN_REWARD : ROAD_LOSS_REWARD;
+            finalReward = agentPlaysWhite ? ROAD_WIN_REWARD : (0.8 * ROAD_LOSS_REWARD);
             returnValue = 1;
             break;
         case FLAT_WHITE:
-            finalReward = agentPlaysWhite ? FLAT_WIN_REWARD : FLAT_LOSS_REWARD;
+            finalReward = agentPlaysWhite ? FLAT_WIN_REWARD : (0.5 * FLAT_LOSS_REWARD);
             returnValue = 1;
             break;
         case ROAD_BLACK:

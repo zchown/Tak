@@ -15,7 +15,7 @@ int main() {
         alphaLearningRate = alphaLearningRate * (1.0 - (0.005 * i));
         normalLearningRate = normalLearningRate * (1.0 - (0.005 * i));
 
-        QLearningAgent* agent = createQLearningAgent(0.1, 0.9, 0.2);
+        QLearningAgent* agent = createQLearningAgent(0.1, 0.8, 0.2);
 
         loadWeights(agent, "model.weights");
 
@@ -47,7 +47,9 @@ int main() {
 
         saveWeights(agent, "model.weights");
 
-        evaluateAgent(agent, 100);
+        if (i % 10 == 0 && i > 1) {
+            evaluateAgent(agent, 50);
+        }
 
         freeTrainer(trainer);
         freeQLearningAgent(agent);

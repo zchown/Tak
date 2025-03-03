@@ -45,7 +45,12 @@ add_executable(lambdaTak
     ai/eval.c 
     ai/searches.c
     src/aiPlayer.c
-    lib/zobrist.c)
+    lib/zobrist.c
+    ai/monteCarlo.c
+    ai/qlearner.c
+    ai/utils.c
+    ai/trainer.c
+)
 
 target_include_directories(lambdaTak PRIVATE
     ${WEBSOCKETS_INCLUDE_DIR}
@@ -69,7 +74,9 @@ add_executable(trainTak
     lib/zobrist.c
     ai/qlearner.c
     ai/utils.c
-    ai/trainer.c)
+    ai/trainer.c
+    ai/monteCarlo.c
+)
 
 # Test suite configuration
 # Manually find CUnit on macOS (Homebrew)

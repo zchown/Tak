@@ -6,6 +6,7 @@ cabal-dev/
 frontEnd/node_modules
 LambdaTak/build-debug/*
 LambdaTak/build-release/*
+*.weights
 test1.ptn
 .hpc/
 *.hi
