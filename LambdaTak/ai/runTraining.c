@@ -6,10 +6,10 @@ int main() {
     srand(time(NULL));
     initZobristTable();
 
-    double alphaLearningRate = 0.2;
+    double alphaLearningRate = 0.1;
     double normalLearningRate = 0.05;
 
-    for (int i = 0; i < 100; i++) {
+    for (int i = 1; i <= 100; i++) {
         printf("Iteration %d\n", i);
 
         alphaLearningRate = alphaLearningRate * (1.0 - (0.005 * i));
@@ -47,7 +47,7 @@ int main() {
 
         saveWeights(agent, "model.weights");
 
-        if (i % 10 == 0 && i > 1) {
+        if (i % 100 == 0) {
             evaluateAgent(agent, 50);
         }
 

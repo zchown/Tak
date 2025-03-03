@@ -20,7 +20,8 @@ void train(Trainer* trainer, int total_episodes) {
     int whiteWins = 0, blackWins = 0, draws = 0;
 
     for (int episode = 0; episode < total_episodes; episode++) {
-        printf("Episode %d\n", episode);
+        printf("\rEpisode %d", episode);
+        fflush(stdout);
         int result = trainEpisode(trainer, episode);
 
         if (result == 0) {
@@ -174,7 +175,8 @@ int trainAgainstAlphaBeta(Trainer* trainer, int total_episodes, int alphaBetaTim
     int wins = 0, losses = 0, draws = 0;
 
     for (int episode = 0; episode < total_episodes; episode++) {
-        printf("Episode %d, Wins: %d, Losses: %d, Draws: %d\n", episode, wins, losses, draws);
+        printf("\rEpisode %d, Wins: %d, Losses: %d, Draws: %d", episode, wins, losses, draws);
+        fflush(stdout);
 
         // Alternate who goes first to learn both sides
         bool agentPlaysWhite = (episode % 2 == 0);
@@ -265,8 +267,8 @@ int trainEpisodeVsAlphaBeta(Trainer* trainer, bool agentPlaysWhite, int alphaBet
                 double obsReward = 0.1;
 
                 // Learning from opponent moves
-                updateQLearning(trainer->agent, stateFeatures, actionFeatures,
-                               obsReward, nextStateFeatures, nextMoves);
+                /* updateQLearning(trainer->agent, stateFeatures, actionFeatures, */
+                               /* obsReward, nextStateFeatures, nextMoves); */
 
                 freeGeneratedMoves(nextMoves);
                 free(nextStateFeatures);

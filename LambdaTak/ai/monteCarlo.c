@@ -14,6 +14,7 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit, QLearningAgent* agent
     expand(root, state, 1.0, agent);
 
     int curIteration = 0;
+    Move bestMove = {0};
     while (curIteration < MAX_MCTS_ITERATIONS && getTimeMs() < endTime) {
         agent->epsilon = 0.0;
 
@@ -32,7 +33,7 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit, QLearningAgent* agent
         freeGameState(simState);
         curIteration++;
     }
-
+    
     MCTSNode* bestChild = NULL;
     int maxVisits = -1;
     for (u32 i = 0; i < root->numChildren; i++) {
@@ -48,7 +49,7 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit, QLearningAgent* agent
         }
     }
 
-    Move bestMove = bestChild ? bestChild->move : (Move){0};
+    bestMove = bestChild ? bestChild->move : (Move){0};
 
     printf("Best move: %s\n", moveToString(&bestMove));
     printf("MCTS iterations: %d\n", curIteration);
@@ -61,7 +62,7 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit, QLearningAgent* agent
 MCTSNode* selectNode(MCTSNode* node, GameState* state, QLearningAgent* agent) {
     MCTSNode* cur = node;
 
-    while (cur && cur->numChildren > 0 && cur->numVisits > MIN_PLAYOUTS_PER_NODE) {
+    while (cur && cur->numChildren > 0) {
         double maxScore = -INFINITY;
         MCTSNode* bestChild = NULL;
 
@@ -175,7 +176,7 @@ void backup(MCTSNode* node, double value) {
 }
 
 double ucbScore(MCTSNode* parent, MCTSNode* child) {
-    if (child->numVisits == 0) {
+    if (child->numVisits < MIN_PLAYOUTS_PER_NODE) {
         return INFINITY;
     }
 
