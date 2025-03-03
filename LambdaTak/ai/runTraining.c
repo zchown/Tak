@@ -6,16 +6,16 @@ int main() {
     srand(time(NULL));
     initZobristTable();
 
-    double alphaLearningRate = 0.1;
-    double normalLearningRate = 0.05;
+    double alphaLearningRate = 0.01;
+    double normalLearningRate = 0.0005;
 
-    for (int i = 1; i <= 100; i++) {
+    for (int i = 1; i <= 1000; i++) {
         printf("Iteration %d\n", i);
 
         alphaLearningRate = alphaLearningRate * (1.0 - (0.005 * i));
         normalLearningRate = normalLearningRate * (1.0 - (0.005 * i));
 
-        QLearningAgent* agent = createQLearningAgent(0.1, 0.8, 0.2);
+        QLearningAgent* agent = createQLearningAgent(0.0001, 0.8, 0.2);
 
         loadWeights(agent, "model.weights");
 
@@ -47,7 +47,7 @@ int main() {
 
         saveWeights(agent, "model.weights");
 
-        if (i % 100 == 0) {
+        if (i % 20 == 0) {
             evaluateAgent(agent, 50);
         }
 

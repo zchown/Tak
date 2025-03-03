@@ -18,9 +18,10 @@ typedef struct MCTSNode {
     Move move;
 } MCTSNode;
 
-#define DEFAULT_UCT_CONSTANT 1.41421356237  // sqrt(2)
+/* #define DEFAULT_UCT_CONSTANT 1.41421356237  // sqrt(2) */
+#define DEFAULT_UCT_CONSTANT 5.0
 #define MAX_MCTS_ITERATIONS 5000
-#define MIN_PLAYOUTS_PER_NODE 10
+#define MIN_PLAYOUTS_PER_NODE 5
 #define MAX_TURNS 100
 
 #define MCTSNODE_VALUE(node) ((node)->valueSum / (double)(node)->numVisits)

@@ -1,6 +1,4 @@
 # include "monteCarlo.h"
-# include "monteCarlo.h"
-# include "qlearner.h"
 
 Move monteCarloTreeSearch(GameState* state, int timeLimit, QLearningAgent* agent) {
     printf("Starting MCTS with Q-learning\n");
@@ -10,6 +8,28 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit, QLearningAgent* agent
 
     Color rootColor = state->turn;
     MCTSNode* root = createMCTSNode(rootColor, NULL, 1.0, (Move){0});
+
+    GeneratedMoves* gm = generateAllMoves(state, 512);
+    Move winningMove = {0};
+    bool foundWinningMove = false;
+    for (u32 i = 0; i < gm->numMoves && !foundWinningMove; i++) {
+        makeMoveNoChecks(state, &gm->moves[i], false);
+        Result result = checkGameResult(state);
+        if (rootColor == WHITE && (result == ROAD_WHITE || result == FLAT_WHITE)) {
+            winningMove = gm->moves[i];
+            foundWinningMove = true;
+        } else if (rootColor == BLACK && (result == ROAD_BLACK || result == FLAT_BLACK)) {
+            winningMove = gm->moves[i];
+            foundWinningMove = true;
+        }
+        undoMoveNoChecks(state, &gm->moves[i], false);
+    }
+    if (foundWinningMove) {
+        freeGeneratedMoves(gm);
+        printf("Found winning move: %s\n", moveToString(&winningMove));
+        return winningMove;
+    }
+    freeGeneratedMoves(gm);
 
     expand(root, state, 1.0, agent);
 

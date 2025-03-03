@@ -45,7 +45,7 @@ void train(Trainer* trainer, int total_episodes) {
         }
     }
 
-    printf("Training complete!\nWhite wins: %d\nBlack wins: %d\nDraws: %d\n",
+    printf("\nTraining complete!\nWhite wins: %d\nBlack wins: %d\nDraws: %d\n",
             whiteWins, blackWins, draws);
 }
 
@@ -202,7 +202,7 @@ int trainAgainstAlphaBeta(Trainer* trainer, int total_episodes, int alphaBetaTim
         }
     }
 
-    printf("Training complete!\nWins: %d\nLosses: %d\nDraws: %d\n", wins, losses, draws);
+    printf("\nTraining complete!\nWins: %d\nLosses: %d\nDraws: %d\n", wins, losses, draws);
     return wins;
 }
 
@@ -285,11 +285,11 @@ int trainEpisodeVsAlphaBeta(Trainer* trainer, bool agentPlaysWhite, int alphaBet
 
     switch (gameResult) {
         case ROAD_WHITE:
-            finalReward = agentPlaysWhite ? ROAD_WIN_REWARD : (0.8 * ROAD_LOSS_REWARD);
+            finalReward = agentPlaysWhite ? ROAD_WIN_REWARD : (1.0 * ROAD_LOSS_REWARD);
             returnValue = 1;
             break;
         case FLAT_WHITE:
-            finalReward = agentPlaysWhite ? FLAT_WIN_REWARD : (0.5 * FLAT_LOSS_REWARD);
+            finalReward = agentPlaysWhite ? FLAT_WIN_REWARD : (0.85 * FLAT_LOSS_REWARD);
             returnValue = 1;
             break;
         case ROAD_BLACK:
