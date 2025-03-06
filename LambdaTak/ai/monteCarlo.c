@@ -1,7 +1,7 @@
-# include "monteCarlo.h"
+#include "monteCarlo.h"
 
-Move monteCarloTreeSearch(GameState* state, int timeLimit, QLearningAgent* agent) {
-    printf("Starting MCTS with Q-learning\n");
+Move monteCarloTreeSearch(GameState* state, int timeLimit, DenseNeuralNet* net) {
+    printf("Starting MCTS with Neural Net\n");
 
     double startTime = getTimeMs();
     double endTime = startTime + timeLimit;
@@ -15,10 +15,8 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit, QLearningAgent* agent
     for (u32 i = 0; i < gm->numMoves && !foundWinningMove; i++) {
         makeMoveNoChecks(state, &gm->moves[i], false);
         Result result = checkGameResult(state);
-        if (rootColor == WHITE && (result == ROAD_WHITE || result == FLAT_WHITE)) {
-            winningMove = gm->moves[i];
-            foundWinningMove = true;
-        } else if (rootColor == BLACK && (result == ROAD_BLACK || result == FLAT_BLACK)) {
+        if ((rootColor == WHITE && (result == ROAD_WHITE || result == FLAT_WHITE)) ||
+            (rootColor == BLACK && (result == ROAD_BLACK || result == FLAT_BLACK))) {
             winningMove = gm->moves[i];
             foundWinningMove = true;
         }
@@ -31,23 +29,19 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit, QLearningAgent* agent
     }
     freeGeneratedMoves(gm);
 
-    expand(root, state, 1.0, agent);
+    expand(root, state, 1.0, net);
 
     int curIteration = 0;
     Move bestMove = {0};
     while (curIteration < MAX_MCTS_ITERATIONS && getTimeMs() < endTime) {
-        agent->epsilon = 0.0;
-
         GameState* simState = copyGameState(state);
 
-        MCTSNode* selected = selectNode(root, simState, agent);
-
+        MCTSNode* selected = selectNode(root, simState, net);
         if (selected->numVisits < MIN_PLAYOUTS_PER_NODE) {
-            expand(selected, simState, 1.0, agent);
+            expand(selected, simState, 1.0, net);
         } 
 
-        double value = simulate(simState, agent);
-
+        double value = simulate(simState, net);
         backup(selected, value);
 
         freeGameState(simState);
@@ -68,7 +62,6 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit, QLearningAgent* agent
             bestChild = child;
         }
     }
-
     bestMove = bestChild ? bestChild->move : (Move){0};
 
     printf("Best move: %s\n", moveToString(&bestMove));
@@ -79,7 +72,7 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit, QLearningAgent* agent
     return bestMove;
 }
 
-MCTSNode* selectNode(MCTSNode* node, GameState* state, QLearningAgent* agent) {
+MCTSNode* selectNode(MCTSNode* node, GameState* state, DenseNeuralNet* net) {
     MCTSNode* cur = node;
 
     while (cur && cur->numChildren > 0) {
@@ -102,98 +95,75 @@ MCTSNode* selectNode(MCTSNode* node, GameState* state, QLearningAgent* agent) {
     return cur;
 }
 
-MCTSNode* expand(MCTSNode* node, GameState* state, double prior, QLearningAgent* agent) {
+MCTSNode* expand(MCTSNode* node, GameState* state, double prior, DenseNeuralNet* net) {
     GeneratedMoves* gm = generateAllMoves(state, 512);
-
-    Features stateFeatures = malloc(sizeof(double) * FEATURES_SIZE);
-    getFeatures(state, stateFeatures);
 
     node->children = (MCTSNode**)malloc(sizeof(MCTSNode*) * gm->numMoves);
     node->numChildren = gm->numMoves;
-
     Color childColor = oppositeColor(node->toPlay);
 
     for (u32 i = 0; i < gm->numMoves; i++) {
         Move move = gm->moves[i];
+        makeMoveNoChecks(state, &move, false);
+        double evaluation = evaluateStateWithNN(state, net);
+        undoMoveNoChecks(state, &move, false);
 
-        double actionFeatures[ACTION_FEATURES_SIZE];
-        getActionFeatures(&move, actionFeatures);
-
-        double qValue = computeQValue(agent, stateFeatures, actionFeatures);
-
-        if (isnan(qValue)) {
-            qValue = 0.0;
-        }
-
-        node->children[i] = createMCTSNode(childColor, node, qValue, move);
+        node->children[i] = createMCTSNode(childColor, node, evaluation, move);
     }
 
     freeGeneratedMoves(gm);
-    free(stateFeatures);
     return node;
 }
 
-double simulate(GameState* state, QLearningAgent* agent) {
-    agent->epsilon = 0.15;
+double simulate(GameState* state, DenseNeuralNet* net) {
+    double* input = gameStateToVector(state);
+    double* output = feedForwardDense(net, 7 * 36, input, 0.0);
 
-    Features stateFeatures = malloc(sizeof(double) * FEATURES_SIZE);
-    getFeatures(state, stateFeatures);
-
-    while (checkGameResult(state) == CONTINUE) {
+    int i = 0;
+    while (checkGameResult(state) == CONTINUE && i < MAX_TURNS) {
         GeneratedMoves* moves = generateAllMoves(state, 512);
-        Move move = selectAction(agent, state, moves, stateFeatures);
-        makeMoveNoChecks(state, &move, false);
-
-        free(stateFeatures);
-        stateFeatures = malloc(sizeof(double) * FEATURES_SIZE);
-        getFeatures(state, stateFeatures);
-
+        makeMoveNoChecks(state, &moves->moves[rand() % moves->numMoves], false);
         freeGeneratedMoves(moves);
     }
 
     // 1.0 for WHITE win, -1.0 for BLACK win
     Result result = checkGameResult(state);
 
-    if (result == DRAW) {
-
-        free(stateFeatures);
-        return 0;
-    } else if (result == CONTINUE) {
-        agent->epsilon = 0.0;
-        Move move = selectAction(agent, state, generateAllMoves(state, 512), stateFeatures);
-        double actionFeatures[ACTION_FEATURES_SIZE];
-        getActionFeatures(&move, actionFeatures);
-        double qValue = computeQValue(agent, stateFeatures, actionFeatures);
-        free(stateFeatures);
-        if (isnan(qValue) || qValue == -INFINITY || qValue < -1.0) {
-            qValue = 0.0;
-        } else if (qValue > 1.0) {
-            qValue = 1.0;
-        }
-        free(stateFeatures);
-        return qValue;
+    double resultValue = 0;
+    switch (result) {
+        case ROAD_WHITE:
+        case FLAT_WHITE:
+            resultValue = 1.0;
+            break;
+        case ROAD_BLACK:
+        case FLAT_BLACK:
+            resultValue = -1.0;
+            break;
+        default:
+            resultValue = 0.0;
+            break;
     }
-
-    free(stateFeatures);
-    return (result == ROAD_WHITE || result == FLAT_WHITE) ? 1.0 : -1.0;
+    return (resultValue + output[0]) / 2.0;
 }
 
 void backup(MCTSNode* node, double value) {
     MCTSNode* cur = node;
-
     while (cur) {
         cur->numVisits++;
-
-        if (cur->toPlay == WHITE) {
-            cur->valueSum += value;
-        } else {
-            cur->valueSum += -value;
-        }
-
+        cur->valueSum += (cur->toPlay == WHITE) ? value : -value;
         value = -value;
         cur = cur->parent;
     }
 }
+
+double evaluateStateWithNN(GameState* state, DenseNeuralNet* net) {
+    double* input = gameStateToVector(state);
+    double* output = feedForwardDense(net, 7 * 36, input, 0.0);
+    double result = output[0];
+    free(output);
+    return result;
+}
+
 
 double ucbScore(MCTSNode* parent, MCTSNode* child) {
     if (child->numVisits < MIN_PLAYOUTS_PER_NODE) {

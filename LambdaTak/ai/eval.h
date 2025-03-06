@@ -43,7 +43,7 @@ static const int centrality[TOTAL_SQUARES] = {
 
 #define ROW_COL_WALLS(state, rowcol) (__builtin_popcountll(state->standingStones & rowcol))
 
-#define FLAT_DIFF(state) (__builtin_popcountll(WHITE_FLATS(state)) - __builtin_popcountll(BLACK_FLATS(state)))
+#define FLAT_DIFF(state) (__builtin_popcountll(WHITE_FLATS(state)) - __builtin_popcountll(BLACK_FLATS(state)) - KOMI)
 
 #define CONTROL_CALCULATION(state) (__builtin_popcountll(state->whiteControlled) * CONTROL_BONUS - __builtin_popcountll(state->blackControlled) * CONTROL_BONUS)
 

@@ -1,59 +1,27 @@
-#include "trainer.h"
-#include "qlearner.h"
 #include "../lib/board.h"
+#include "../ai/neuralNetTrainer.h"
+#include "../ai/neuralNetworks.h"
 
 int main() {
     srand(time(NULL));
     initZobristTable();
 
-    double alphaLearningRate = 0.01;
-    double normalLearningRate = 0.0005;
+    int layerSizes[] = {(7 * TOTAL_SQUARES), (14 * TOTAL_SQUARES), (7 * TOTAL_SQUARES), 144, 144, 72, 72, 36, 36, 6, 1};
+    int numLayers = 11;
+    printf("Creating neural net\n");
+    DenseNeuralNet net = createDenseNeuralNet(layerSizes, numLayers, Relu);
 
-    for (int i = 1; i <= 1000; i++) {
-        printf("Iteration %d\n", i);
+    loadDenseNeuralNet(&net, "n_models/tak_model.weights_2");
+    printf("Creating trainer\n");
+    Trainer* trainer = createTrainer(&net, 0.999, 0.1, 100);
 
-        alphaLearningRate = alphaLearningRate * (1.0 - (0.005 * i));
-        normalLearningRate = normalLearningRate * (1.0 - (0.005 * i));
+    printf("Training\n");
+    train(trainer, 1000);
+    trainAlphaBeta(trainer, 1000, 25);
+    trainAlphaBeta(trainer, 500, 50);
 
-        QLearningAgent* agent = createQLearningAgent(0.0001, 0.8, 0.2);
 
-        loadWeights(agent, "model.weights");
-
-        Trainer* trainer = createTrainer(agent, 0.999, 0.01, 1000);
-
-        saveWeights(agent, "model.weights");
-
-        agent->alpha = alphaLearningRate;
-
-        trainAgainstAlphaBeta(trainer, MAX_EPISODES, 50);
-
-        saveWeights(agent, "model.weights");
-
-        agent->alpha = normalLearningRate;
-
-        train(trainer, MAX_EPISODES * 100);
-
-        saveWeights(agent, "model.weights");
-
-        agent->alpha = alphaLearningRate;
-
-        trainAgainstAlphaBeta(trainer, MAX_EPISODES, 100);
-
-        saveWeights(agent, "model.weights");
-
-        agent->alpha = normalLearningRate;
-
-        train(trainer, MAX_EPISODES * 100);
-
-        saveWeights(agent, "model.weights");
-
-        if (i % 20 == 0) {
-            evaluateAgent(agent, 50);
-        }
-
-        freeTrainer(trainer);
-        freeQLearningAgent(agent);
-    }
+    saveDenseNeuralNet(&net, "n_models/tak_model.weights_2");
 
     return 0;
 }

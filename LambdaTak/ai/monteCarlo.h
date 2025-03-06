@@ -2,9 +2,9 @@
 #define MONTECARLO_H
 #include "../lib/board.h"
 #include "../lib/moves.h"
-#include "qlearner.h"
 #include "searches.h"
-#include "utils.h"
+#include "neuralNetworks.h"
+#include "neuralNetTrainer.h"
 
 typedef struct MCTSNode {
     int numVisits;
@@ -18,23 +18,24 @@ typedef struct MCTSNode {
     Move move;
 } MCTSNode;
 
-/* #define DEFAULT_UCT_CONSTANT 1.41421356237  // sqrt(2) */
-#define DEFAULT_UCT_CONSTANT 5.0
-#define MAX_MCTS_ITERATIONS 5000
-#define MIN_PLAYOUTS_PER_NODE 5
-#define MAX_TURNS 100
+#define DEFAULT_UCT_CONSTANT 1.41421356237  // sqrt(2)
+#define MAX_MCTS_ITERATIONS 1000
+#define MIN_PLAYOUTS_PER_NODE 1
+#define MAX_TURNS 5
 
 #define MCTSNODE_VALUE(node) ((node)->valueSum / (double)(node)->numVisits)
 #define MCTSNODE_EXPANDED(node) ((node)->numChildren > 0)
 
-Move monteCarloTreeSearch(GameState* state, int timeLimit, QLearningAgent* agent);
+Move monteCarloTreeSearch(GameState* state, int timeLimit, DenseNeuralNet* net);
 
-MCTSNode* selectNode(MCTSNode* node, GameState* state, QLearningAgent* agent);
-MCTSNode* expand(MCTSNode* node, GameState* state, double prior, QLearningAgent* agent);
+MCTSNode* selectNode(MCTSNode* node, GameState* state, DenseNeuralNet* net);
+MCTSNode* expand(MCTSNode* node, GameState* state, double prior, DenseNeuralNet* net);
 void backup(MCTSNode* node, double value);
-double simulate(GameState* state, QLearningAgent* agent);
+double simulate(GameState* state, DenseNeuralNet* net);
 
 double ucbScore(MCTSNode* parent, MCTSNode* child);
+
+double evaluateStateWithNN(GameState* state, DenseNeuralNet* net);
 
 MCTSNode* createMCTSNode(Color toPlay, MCTSNode* parent, double prior, Move move);
 void freeMCTSNode(MCTSNode* node);

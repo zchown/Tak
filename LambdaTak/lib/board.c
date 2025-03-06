@@ -597,7 +597,8 @@ Result checkFullBoard(const GameState* state, bool emptyReserves) {
     Bitboard whiteFlatstones = (state->whiteControlled & ~state->standingStones) & ~state->capstones;
     Bitboard blackFlatstones = (state->blackControlled & ~state->standingStones) & ~state->capstones;
 
-    int diff = __builtin_popcountll(whiteFlatstones) - __builtin_popcountll(blackFlatstones);
+    double diff = __builtin_popcountll(whiteFlatstones) - __builtin_popcountll(blackFlatstones);
+    diff -= KOMI;
     if (diff > 0) {
         return FLAT_WHITE;
     } else if (diff < 0) {

@@ -47,9 +47,8 @@ add_executable(lambdaTak
     src/aiPlayer.c
     lib/zobrist.c
     ai/monteCarlo.c
-    ai/qlearner.c
-    ai/utils.c
-    ai/trainer.c
+    ai/neuralNetworks.c
+    ai/neuralNetTrainer.c
 )
 
 target_include_directories(lambdaTak PRIVATE
@@ -72,10 +71,9 @@ add_executable(trainTak
     ai/eval.c 
     ai/searches.c
     lib/zobrist.c
-    ai/qlearner.c
-    ai/utils.c
-    ai/trainer.c
     ai/monteCarlo.c
+    ai/neuralNetworks.c
+    ai/neuralNetTrainer.c
 )
 
 # Test suite configuration
