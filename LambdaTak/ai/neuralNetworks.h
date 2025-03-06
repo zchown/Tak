@@ -6,6 +6,9 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 typedef struct {
     double bias;

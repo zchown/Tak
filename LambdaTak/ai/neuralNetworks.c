@@ -61,109 +61,151 @@ DenseNeuralNet createDenseNeuralNet(int* layerSizes, int numLayers, Activation a
     return net;
 }
 
-double* feedForwardDense(DenseNeuralNet* net, int inputSize, double* inputs, double dropout) {
-    if (!net || !inputs || inputSize <= 0) {
+double* feedForwardDense(DenseNeuralNet* net, int inputSize, double* inputs, double dropout) { 
+    if (!net || !inputs || inputSize <= 0)
         return NULL;
-    }
-    double* curInputs = (double*)malloc(inputSize * sizeof(double));
-    if (!curInputs) {
-        return NULL;
-    }
-    memcpy(curInputs, inputs, inputSize * sizeof(double));
-    int curInputSize = inputSize;
+
+    int maxSize = inputSize;
     for (int i = 0; i < net->numLayers; i++) {
-        DenseLayer* curLayer = &net->layers[i];
-        if (curLayer->inputSize != curInputSize) {
-            fprintf(stderr, "Error: Mismatch in input size at layer %d\n", i);
-            free(curInputs);
-            return NULL;
-        }
-        double* newInputs = (double*)malloc(curLayer->numNeurons * sizeof(double));
-        if (!newInputs) {
-            free(curInputs);
-            return NULL;
-        }
-        for (int j = 0; j < curLayer->numNeurons; j++) {
-            Neuron* curNeuron = &curLayer->neurons[j];
-            double sum = curNeuron->bias;
-            for (int k = 0; k < curInputSize; k++) {
-                sum += curNeuron->weights[k] * curInputs[k];
-            }
-            newInputs[j] = curNeuron->activationFunction(sum);
-        }
-        free(curInputs);
-        curInputs = newInputs;
-        if (!curLayer->outputs) {
-            curLayer->outputs = (double*)malloc(curLayer->numNeurons * sizeof(double));
-        }
-        memcpy(curLayer->outputs, curInputs, curLayer->numNeurons * sizeof(double));
-        curInputSize = curLayer->numNeurons;
+        if (net->layers[i].numNeurons > maxSize)
+            maxSize = net->layers[i].numNeurons;
     }
 
-    return curInputs;
-}
-void backpropagateDense(DenseNeuralNet* net, double* inputs, double* outputs, double* expectedOutputs, double learningRate) {
-    double* deltas[net->numLayers];
-    for (int i = net->numLayers - 1; i >= 0; i--) {
+    double* workspace1 = (double*)malloc(maxSize * sizeof(double));
+    double* workspace2 = (double*)malloc(maxSize * sizeof(double));
+    if (!workspace1 || !workspace2) {
+        free(workspace1);
+        free(workspace2);
+        return NULL;
+    }
+
+    memcpy(workspace1, inputs, inputSize * sizeof(double));
+    double* curInput = workspace1;
+    double* curOutput = workspace2;
+    int curInputSize = inputSize;
+
+    for (int i = 0; i < net->numLayers; i++) {
         DenseLayer* layer = &net->layers[i];
-        deltas[i] = (double*)malloc(layer->numNeurons * sizeof(double));
+        if (layer->inputSize != curInputSize) {
+            fprintf(stderr, "Error: Mismatch in input size at layer %d\n", i);
+            free(workspace1);
+            free(workspace2);
+            return NULL;
+        }
+#pragma omp parallel for
         for (int j = 0; j < layer->numNeurons; j++) {
             Neuron* neuron = &layer->neurons[j];
-            double output = layer->outputs[j];
-            double error = (i == net->numLayers - 1) ? (output - expectedOutputs[j]) : 0;
+            double sum = neuron->bias;
+            for (int k = 0; k < curInputSize; k++) {
+                sum += neuron->weights[k] * curInput[k];
+            }
+            curOutput[j] = neuron->activationFunction(sum);
+        }
+        memcpy(layer->outputs, curOutput, layer->numNeurons * sizeof(double));
+        double* temp = curInput;
+        curInput = curOutput;
+        curOutput = temp;
+        curInputSize = layer->numNeurons;
+    }
+
+    double* result = (double*)malloc(curInputSize * sizeof(double));
+    if (!result) {
+        free(workspace1);
+        free(workspace2);
+        return NULL;
+    }
+    memcpy(result, curInput, curInputSize * sizeof(double));
+    free(workspace1);
+    free(workspace2);
+    return result;
+}
+
+void backpropagateDense(DenseNeuralNet* net, double* inputs, double* outputs, double* expectedOutputs, double learningRate) {
+    if (!net || !inputs || !expectedOutputs)
+        return;
+
+    double** deltas = (double**)malloc(net->numLayers * sizeof(double*));
+    for (int i = 0; i < net->numLayers; i++) {
+        deltas[i] = (double*)malloc(net->layers[i].numNeurons * sizeof(double));
+    }
+
+    int l = net->numLayers - 1;
+    DenseLayer* outputLayer = &net->layers[l];
+#pragma omp parallel for
+    for (int j = 0; j < outputLayer->numNeurons; j++) {
+        Neuron* neuron = &outputLayer->neurons[j];
+        double output = outputLayer->outputs[j];
+        double error = output - expectedOutputs[j];
+        deltas[l][j] = error * neuron->derivativeFunction(output);
+    }
+
+    for (int i = net->numLayers - 2; i >= 0; i--) {
+        DenseLayer* currentLayer = &net->layers[i];
+        DenseLayer* nextLayer = &net->layers[i+1];
+#pragma omp parallel for
+        for (int j = 0; j < currentLayer->numNeurons; j++) {
+            double error = 0.0;
+            for (int k = 0; k < nextLayer->numNeurons; k++) {
+                error += nextLayer->neurons[k].weights[j] * deltas[i+1][k];
+            }
+            Neuron* neuron = &currentLayer->neurons[j];
+            double output = currentLayer->outputs[j];
             deltas[i][j] = error * neuron->derivativeFunction(output);
         }
     }
+
     for (int i = 0; i < net->numLayers; i++) {
         DenseLayer* layer = &net->layers[i];
-        double* prevInputs = (i == 0) ? inputs : net->layers[i - 1].outputs;
+        double* prevOutput = (i == 0) ? inputs : net->layers[i-1].outputs;
+#pragma omp parallel for
         for (int j = 0; j < layer->numNeurons; j++) {
             Neuron* neuron = &layer->neurons[j];
             for (int k = 0; k < layer->inputSize; k++) {
-                neuron->weights[k] -= learningRate * deltas[i][j] * prevInputs[k];
+                neuron->weights[k] -= learningRate * deltas[i][j] * prevOutput[k];
             }
             neuron->bias -= learningRate * deltas[i][j];
         }
     }
+
     for (int i = 0; i < net->numLayers; i++) {
         free(deltas[i]);
     }
+    free(deltas);
 }
 
-
-double sigmoid(double x) {
+inline double sigmoid(double x) {
     return 1.0 / (1.0 + exp(-x));
 }
 
-double relu(double x) {
+inline double relu(double x) {
     return x > 0 ? x : 0;
 }
 
-double tanh(double x) {
+inline double tanh(double x) {
     return (exp(x) - exp(-x)) / (exp(x) + exp(-x));
 }
 
-double sigmoidDerivative(double x) {
+inline double sigmoidDerivative(double x) {
     return sigmoid(x) * (1 - sigmoid(x));
 }
 
-double reluDerivative(double x) {
+inline double reluDerivative(double x) {
     return x > 0 ? 1 : 0;
 }
 
-double tanhDerivative(double x) {
+inline double tanhDerivative(double x) {
     return 1 - pow(tanh(x), 2);
 }
 
-double meanSquaredError(double x, double y) {
+inline double meanSquaredError(double x, double y) {
     return 0.5 * pow(x - y, 2);
 }
 
-double crossEntropy(double x, double y) {
+inline double crossEntropy(double x, double y) {
     return -y * log(x) - (1 - y) * log(1 - x);
 }
 
-double softmax(double x, double y) {
+inline double softmax(double x, double y) {
     return exp(x) / y;
 }
 

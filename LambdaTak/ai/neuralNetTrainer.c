@@ -77,7 +77,6 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
         if ((rand() % 100) < 15) {
             move = moves->moves[rand() % moves->numMoves];
         } else {
-            // Select the best move based on neural network evaluation
             double bestValue = -INFINITY;
             for (int i = 0; i < moves->numMoves; i++) {
                 Move curMove = moves->moves[i];
@@ -126,6 +125,8 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
             break;
     }
 
+    reward += pseudoReward(state);
+
     for (int i = 0; i < numPastStates; i++) {
         backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &reward, epsilon);
     }
@@ -143,6 +144,12 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
 double pseudoReward(const GameState* state) {
     double toReturn = (__builtin_popcount(state->whiteControlled) 
             - __builtin_popcount(state->blackControlled) - KOMI) / 36.0;
+    int connectivity = connectivityIndex(state);
+    if (connectivity > 0) {
+        toReturn += 0.1;
+    } else if (connectivity < 0) {
+        toReturn -= 0.1;
+    }
     return toReturn;
 }
 
@@ -178,7 +185,7 @@ void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
     int draws = 0;
     bool agentPlaysWhite = true;
     for (int i = 1; i <= totalEpisodes; i++) {
-        printf("\rEpisode %d: Net Wins: %d, AlphaBeta Wins: %d, Draws: %d\n", i, netWins, alphaBetaWins, draws);
+        printf("Episode %d: Net Wins: %d, AlphaBeta Wins: %d, Draws: %d\n", i, netWins, alphaBetaWins, draws);
 
         int r = trainEpisodeAlphaBeta(trainer, i, agentPlaysWhite, alphaBetaTime);
         if (r == 1) {
@@ -218,11 +225,6 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         Move move = (Move){0};
         if ((state->turn == WHITE && !agentPlaysWhite) || (state->turn == BLACK && agentPlaysWhite)){
             move = iterativeDeepeningSearch(state, alphaBetaTime);
-            /* GeneratedMoves* moves = generateAllMoves(state, numMoves); */
-            /* numMoves = moves->numMoves; */
-            // random move
-            /* move = moves->moves[rand() % moves->numMoves]; */
-            /* freeGeneratedMoves(moves); */
         } else {
             GeneratedMoves* moves = generateAllMoves(state, numMoves);
             numMoves = moves->numMoves;
@@ -260,29 +262,102 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
     int toReturn = 0;
     switch (checkGameResult(state)) {
         case ROAD_WHITE:
-        case FLAT_WHITE:
             reward = 1.0;
+            toReturn = 2;
+            break;
+        case FLAT_WHITE:
+            reward = 0.5;
             toReturn = 1;
             break;
         case ROAD_BLACK:
-        case FLAT_BLACK:
             reward = -1.0;
+            toReturn = -2;
+            break;
+        case FLAT_BLACK:
+            reward = -0.5;
             toReturn = -1;
             break;
         case DRAW:
             reward = 0.0;
+            toReturn = 0;
             break;
         default:
             break;
     }
+    reward += pseudoReward(state);
+
     if (!agentPlaysWhite) {
         reward *= -1;
+        toReturn *= -1;
     }
+
     for (int i = 0; i < numPastStates; i++) {
         backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &reward, epsilon);
     }
-    if (!agentPlaysWhite) {
-        toReturn *= -1;
+
+    for (int i = 0; i < numPastStates; i++) {
+        free(pastStates[i]);
+        free(pastOutputs[i]);
     }
+    free(pastStates);
+    free(pastOutputs);
+    freeGameState(state);
     return toReturn;
+}
+
+void trainHybrid(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
+    printf("Hybrid training for %d episodes\n", totalEpisodes);
+    int regularWhiteRoads = 0;
+    int regularWhiteFlats = 0;
+    int regularBlackRoads = 0;
+    int regularBlackFlats = 0;
+    int regularDraws = 0;
+    int alphaBetaNetWins = 0;
+    int alphaBetaAlphaWins = 0;
+    int alphaBetaDraws = 0;
+    bool agentPlaysWhite = true;
+
+    for (int i = 1; i <= totalEpisodes; i++) {
+        printf("Episode %d: Regular: W.Road %d, W.Flat %d, B.Road %d, B.Flat %d, Draw %d | AlphaBeta: Net %d, Alpha %d, Draw %d\n",
+               i, regularWhiteRoads, regularWhiteFlats, regularBlackRoads, regularBlackFlats, regularDraws,
+               alphaBetaNetWins, alphaBetaAlphaWins, alphaBetaDraws);
+
+        if (i % 2 == 1) {
+            int r = trainEpisode(trainer, i);
+            switch (r) {
+                case 2:
+                    regularWhiteRoads++;
+                    break;
+                case 1:
+                    regularWhiteFlats++;
+                    break;
+                case -2:
+                    regularBlackRoads++;
+                    break;
+                case -1:
+                    regularBlackFlats++;
+                    break;
+                case 0:
+                    regularDraws++;
+                    break;
+                default:
+                    break;
+            }
+        } else {
+            int r = trainEpisodeAlphaBeta(trainer, i, agentPlaysWhite, alphaBetaTime);
+            if (r > 0) {
+                alphaBetaNetWins++;
+            } else if (r < 0) {
+                alphaBetaAlphaWins++;
+            } else {
+                alphaBetaDraws++;
+            }
+            agentPlaysWhite = !agentPlaysWhite;
+        }
+
+        if (i % trainer->saveInterval == 0) {
+            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_2");
+        }
+    }
+    printf("\n");
 }

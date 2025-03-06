@@ -16,10 +16,7 @@ int main() {
     Trainer* trainer = createTrainer(&net, 0.999, 0.1, 100);
 
     printf("Training\n");
-    train(trainer, 1000);
-    trainAlphaBeta(trainer, 1000, 25);
-    trainAlphaBeta(trainer, 500, 50);
-
+    trainHybrid(trainer, 1000000, 50);
 
     saveDenseNeuralNet(&net, "n_models/tak_model.weights_2");
 

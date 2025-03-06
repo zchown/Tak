@@ -4,6 +4,7 @@
 #include "neuralNetworks.h"
 #include "../lib/board.h"
 #include "../lib/moves.h"
+#include "eval.h"
 #include "searches.h"
 
 typedef struct {
@@ -24,5 +25,7 @@ int trainEpisode(Trainer* trainer, int episodeNum);
 
 void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime);
 int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite, int alphaBetaTime);
+
+void trainHybrid(Trainer* trainer, int totalEpisodes, int alphaBetaTime);
 
 #endif // NEURAL_NET_TRAINER_H
