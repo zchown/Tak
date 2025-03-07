@@ -43,7 +43,7 @@ void train(Trainer* trainer, int totalEpisodes) {
                 break;
         }
         if (i % trainer->saveInterval == 0) {
-            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_2");
+            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_3");
         }
 
     }
@@ -72,19 +72,22 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
         GeneratedMoves* moves = generateAllMoves(state, numMoves);
         numMoves = moves->numMoves;
 
-        Move move = (Move){0};
+        Move move = moves->moves[rand() % moves->numMoves];
 
         if ((rand() % 100) < 15) {
             move = moves->moves[rand() % moves->numMoves];
         } else {
             double bestValue = -INFINITY;
+            if (state->turn == BLACK) {
+                bestValue = INFINITY;
+            }
             for (int i = 0; i < moves->numMoves; i++) {
                 Move curMove = moves->moves[i];
                 makeMoveNoChecks(state, &curMove, false);
 
                 double* gameVector = gameStateToVector(state);
                 double* gameOutputs = feedForwardDense(trainer->net, (7 * 36), gameVector, 0.0);
-                if (gameOutputs[0] > bestValue) {
+                if ((gameOutputs[0] > bestValue && state->turn == WHITE) || (gameOutputs[0] < bestValue && state->turn == BLACK)) {
                     bestValue = gameOutputs[0];
                     move = curMove;
                 }
@@ -137,6 +140,7 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
     }
     free(pastStates);
     free(pastOutputs);
+    printf("numPastStates: %d\n", numPastStates);
     return toReturn;
 }
 
@@ -162,11 +166,11 @@ double* gameStateToVector(const GameState* state) {
         for (int j = 0; j < (BOARD_SIZE + 1); j++) {
             if (curIndex >= 0) {
                 if (sq.pieces[curIndex].stone == FLAT) {
-                    vector[i * (BOARD_SIZE + 1) + j] = 0.5;
+                    vector[i * (BOARD_SIZE + 1) + j] = 2.0;
                 } else if (sq.pieces[curIndex].stone == STANDING) {
-                    vector[i * (BOARD_SIZE + 1) + j] = 0.2;
+                    vector[i * (BOARD_SIZE + 1) + j] = 1.0;
                 } else {
-                    vector[i * (BOARD_SIZE + 1) + j] = 0.9;
+                    vector[i * (BOARD_SIZE + 1) + j] = 3.0;
                 }
                 curIndex--;
             } else {
@@ -196,7 +200,7 @@ void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
             draws++;
         }
         if (i % trainer->saveInterval == 0) {
-            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_2");
+            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_3");
         }
         agentPlaysWhite = !agentPlaysWhite;
     }
@@ -302,6 +306,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
     free(pastStates);
     free(pastOutputs);
     freeGameState(state);
+    printf("numPastStates: %d\n", numPastStates);
     return toReturn;
 }
 
@@ -356,7 +361,7 @@ void trainHybrid(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
         }
 
         if (i % trainer->saveInterval == 0) {
-            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_2");
+            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_3");
         }
     }
     printf("\n");

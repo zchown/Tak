@@ -1,0 +1,1523 @@
+commit 7d244e4769a2bb3dd0786dd631e2280186579de4
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Mar 6 18:34:22 2025 -0500
+
+    hybrid training
+
+commit 43e2123509a87311927ecea17d8a10b6ba09312d
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Mar 6 14:05:41 2025 -0500
+
+    networks and komi
+
+commit b7ebdef1b2fc060ce898878f100ca5cc5dfb0d62
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Mar 3 11:59:25 2025 -0500
+
+    monte carlo kind of working
+
+commit 7c53b1b92be4646e5872d575bfaf059deb59091e
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Mar 2 21:03:12 2025 -0500
+
+    properly using min playouts
+
+commit fb98abf304f3e105f02d9529eff9d3808453337b
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Mar 2 19:45:29 2025 -0500
+
+    monte carlo with q learning
+
+commit 862449789206ee3243ef6acac708111cb92b4a14
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Mar 2 15:32:45 2025 -0500
+
+    training improvements
+
+commit ebb9b26b02d25165a7656d9ce56901f75ad96fea
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Mar 2 02:51:05 2025 -0500
+
+    trainer and q learner
+
+commit 2fd5ab79bfc55438a149ac54a43701c635f0c3f8
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Mar 2 00:28:29 2025 -0500
+
+    fixed mcts for new transposition table
+
+commit 40109edb020a55934af06091dc17ef2f3fdd0bfc
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Mar 1 23:52:31 2025 -0500
+
+    final readme update
+
+commit d7eee8c0c51e072ad2306154fdfa81e6efde2b33
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Mar 1 23:49:40 2025 -0500
+
+    readme updates
+
+commit 93ca49e7a84f704a68ca1a448b25fa5f8ab1744d
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Mar 1 23:43:43 2025 -0500
+
+    readme update
+
+commit 97e21db8bad14823089987c20e166d4876298157
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Mar 1 23:39:20 2025 -0500
+
+    read me updates
+
+commit bd0a24d4533bf8bd3073592cdde6379157765d53
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Mar 1 23:28:12 2025 -0500
+
+    better organization between directories
+
+commit 2c74d7fd44929f86549547f707faede56241ded0
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Mar 1 23:00:27 2025 -0500
+
+    monte carlo
+
+commit e079478d15f99df06508895cba84cd57ec0dba93
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Mar 1 22:39:52 2025 -0500
+
+    working mcts
+
+commit 8eb7416894de43c352caf0434118d0da37516e56
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Mar 1 19:38:34 2025 -0500
+
+    maybe monte carlo improvements?
+
+commit 6c9aea78f7ea0f564465bd881c4e44eec31d4ce6
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Mar 1 17:53:32 2025 -0500
+
+    bug fixes and speedups in monte carlo
+
+commit ab6aada98423f6f1eed23f565afd2a3a630bbcc8
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Mar 1 17:12:08 2025 -0500
+
+    cleanup temp files
+
+commit 200e7c601cde842782e7496a74ded5e08dd4b05a
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Mar 1 17:11:32 2025 -0500
+
+    bad monte carlo
+
+commit 08d12dc62f1d3ec8b4a606a0fe740af37b60bbed
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Feb 28 15:56:15 2025 -0500
+
+    eval updates
+
+commit 85d917459fa10026a27faf1b3373556203459587
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 27 22:18:01 2025 -0500
+
+    nvm macros broke everything
+
+commit a014194ac1bd89eb97b3e38815db7f9269344e66
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 27 22:15:33 2025 -0500
+
+    macroing connectivity
+
+commit 2387ff98b222b400042433461cfe5e60511271be
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 27 22:07:20 2025 -0500
+
+    eval tuning
+
+commit 865fe46c56c144870a1cf85dd947c467ff099194
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 27 21:10:18 2025 -0500
+
+    good eval with connectivity index
+
+commit 818291b4ed0b37823be916ec65fffc8e28d78975
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 27 17:05:51 2025 -0500
+
+    added linear probing to transposition table
+
+commit 1b3c04c4145811ef4c385d3d03b0b7917f9740dd
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 26 23:08:20 2025 -0500
+
+    fixed bug in count legal moves
+
+commit 682784c724414d2d9247ced80ab16706cea6b1d9
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 26 22:12:48 2025 -0500
+
+    added count legal moves function
+
+commit ad5e044b2237ea489af1863a30a61f286fd7e217
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 26 16:47:01 2025 -0500
+
+    better stat tracking
+
+commit 2c4bbe447cea694c54c5abc43e6325cfb6c7a0dc
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 26 13:43:02 2025 -0500
+
+    added fail high re searches
+
+commit 9fc22210a2b099323c1f2e4e8ec212fa10be3a22
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 26 13:19:30 2025 -0500
+
+    better balancing of depth reductions
+
+commit 0ff10aaea2264b995b1a19298cc10e11a99ee70e
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 26 13:00:57 2025 -0500
+
+    better interest calculation
+
+commit f317f5dccbde9921ab7056567b1418868adb1536
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 26 12:54:22 2025 -0500
+
+    check moves that are next to pieces of teh same color first
+
+commit ebca6c6e519a0d6cae314e4cc8e69c6202191768
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 26 12:36:49 2025 -0500
+
+    fixed bm?
+
+commit ef2ab660630f5d5f14faec795b6dc215b1d34151
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 26 12:19:06 2025 -0500
+
+    better stat tracking
+
+commit 3f2c928cfb41c2aebcc995506e4113258e84233f
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 26 11:15:39 2025 -0500
+
+    fixed return 0 bug and added better stat tracking
+
+commit 72155dea536213b659da8c114d18fb7949d613db
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 26 09:28:02 2025 -0500
+
+    more advanced search with move ordering and transposition tables
+
+commit f7a8f7ca293dcd420bfe12c12112a1a5ab81824b
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 25 13:33:13 2025 -0500
+
+    zobrist hashing updating properly
+
+commit 664b71f64334ab0fab28662e5436b323d86a50f1
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 25 11:52:26 2025 -0500
+
+    max 7 stones in stack get tracked
+
+commit ec7c641c4ee7796deaffcf5f7c3953a924184856
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 25 03:16:44 2025 -0500
+
+    updated evaluation
+
+commit 904e4831ed7e6ee937330415bda16c46b7623463
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 25 02:24:35 2025 -0500
+
+    updated to arrays of pieces for squares
+
+commit d142a82c5991b0c468d07249d87a5bc668d48e41
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 24 21:56:41 2025 -0500
+
+    ai in a good spot
+
+commit 8d0723f89bb55936ee00d12fb1fc726c24e23dac
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 24 19:11:32 2025 -0500
+
+    better eval
+
+commit 1d8ba94deb7726b42896d70e5f3a1143c0a51a8c
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 24 16:31:13 2025 -0500
+
+    connection to server
+
+commit c5271f740754a669a7de09234c67670e9473a980
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 24 14:38:44 2025 -0500
+
+    search cleanup
+
+commit e991ecf05fb306f9e7b1bcf6949f1bfc5fc77f10
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 24 14:33:33 2025 -0500
+
+    negamax and iterative deepening searches
+
+commit 20aa90bce030485f15092583347665288eeff016
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Feb 23 18:58:12 2025 -0500
+
+    new checks to avoid dfs calls
+
+commit 52002eba447e1091cf19dd1975df69ead5f481c0
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Feb 23 16:52:15 2025 -0500
+
+    cleanup and sorcery
+
+commit e12b97cd948e51f396198e35359ec345fde92fc2
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Feb 23 16:34:46 2025 -0500
+
+    fixed sequence issues generating moves properly and quickly
+
+commit e4ebd2618df70ed5a7017fa0458d68361372fd12
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 22 11:45:36 2025 -0500
+
+    fixed bug in copy state
+
+commit fde10128c6cbc77e79dc4283c09a738c3d43e4b0
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Feb 21 14:21:34 2025 -0500
+
+    faster road checks
+
+commit f24d379b34c5e8f29bb5ae1d58f42c338d593e45
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Feb 21 13:45:30 2025 -0500
+
+    fixed count valid seq bug
+
+commit 8c6dd32e7ff9d89fe6d909c8dab3c2a7b4ace106
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Feb 21 04:55:49 2025 -0500
+
+    working well
+
+commit 6f5bb2842ca9dd5596517613a37b3584641dbc35
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Feb 21 03:46:46 2025 -0500
+
+    fixed num steps
+
+commit bc8e9f7c1cd1643552cf59a4f937f4170b8d594f
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Feb 21 02:08:41 2025 -0500
+
+    history optional
+
+commit 37588791ea91888245701405ce0a11e631d71423
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Feb 21 02:02:02 2025 -0500
+
+    pretty good optimizations
+
+commit 410a060442edc457cf3fb82187e2170fa7834dc8
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Feb 21 00:44:20 2025 -0500
+
+    fixed undo crush bug
+
+commit 63f92aa5a673ebb186786ae1c9897d22a2bb7052
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 20 22:48:06 2025 -0500
+
+    magic performance improvements
+
+commit d459820c6bf90b29160c1e5cee80d1314e0b4459
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 20 15:40:58 2025 -0500
+
+    started magics
+
+commit c0fa408910ba41ae36d3e205c2d3112180493dc6
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 20 15:10:24 2025 -0500
+
+    updates
+
+commit 40031e8f4f5dc7e89c230b5e1b1a49600e99d2c0
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 20 12:51:13 2025 -0500
+
+    fixed generated moves memory leak
+
+commit 86272d1a7323d7d8f11262b3bd5acd5c4824399d
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 20 11:54:27 2025 -0500
+
+    perft passing
+
+commit c2992e937bf4def9be299c957df672f1a684bd4f
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 20 11:01:48 2025 -0500
+
+    making and unmaking moves from ptn correctly
+
+commit 5788402f2a3644a5a8e79a737f16fb2febd1b1d9
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 20 03:35:44 2025 -0500
+
+    ptn testing for make and undo
+
+commit d980449fa2220d85fc6b64875b8a90801aa6dfb1
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 20 00:15:58 2025 -0500
+
+    git cleanup
+
+commit 1e3d06afe42b15b50166be10f7405f25aaa99828
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 20 00:14:59 2025 -0500
+
+    git ignore updates
+
+commit 761ec843b6dbb473207e2ad24f75a6915818a3bf
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 20 00:13:11 2025 -0500
+
+    perft working up to 3 and added bitboards
+
+commit 7b75105e21aed176c2eb268acd2d0863304e5ed7
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 19 21:18:42 2025 -0500
+
+    passing move generation checks
+
+commit c0e11ea51f709ad90f832d3ff6fd84833cb698a8
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 19 20:57:25 2025 -0500
+
+    move gen except for crushes working
+
+commit e68779342cb6e732048ad7d29c340c54f0ad4aa0
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 19 11:52:11 2025 -0500
+
+    check slides and places
+
+commit 206b80cde5d5de7929099d722983be506c2d35a0
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 18 13:27:08 2025 -0500
+
+    undo move with checks and update to use generatedmove struct
+
+commit 517beba3dc84adadfa9f6a0a2dbc654e2e8cd46e
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 18 11:01:29 2025 -0500
+
+    generated all moves
+
+commit b35f5c75ec82ca6b0b2c3913a3b66bbca76c2e2a
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 18 10:41:38 2025 -0500
+
+    working on slide move generation
+
+commit f361836e92bd7bc0afcd4dc1560db64ecdb02750
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 18 01:33:10 2025 -0500
+
+    added general updates to state on move and undo
+
+commit c82b151801f2c24b976dbc555513d9ea6df25e1c
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 18 01:26:03 2025 -0500
+
+    make slide move
+
+commit c0292a2c90b2f10625ec602b5315f051fd874002
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 18 00:35:11 2025 -0500
+
+    check slide move
+
+commit 62a47ccecd141c213d2c9a2f80c4d619c161c5c5
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 17 23:51:26 2025 -0500
+
+    make and undo place moves
+
+commit 2133c894983437a3708e986aba9fa83dc5ce44e8
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 17 23:05:50 2025 -0500
+
+    drops for crush
+
+commit 26c84c5f19fcb7b12db41c7f7c7e59db426cb531
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 17 22:53:47 2025 -0500
+
+    drop sequences
+
+commit ba53de01f8f39de5b7dc5d8fe98bf3623d8676b6
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 17 16:12:17 2025 -0500
+
+    controlled and empty positions
+
+commit 82b153f54182da80217d8b65c024f8d10e39fc59
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 17 15:54:19 2025 -0500
+
+    added history functionality
+
+commit 2536f77eb8b935013d7db4f81f3dcf7b7db6bffc
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 17 15:24:02 2025 -0500
+
+    passed more rigourous tps testing
+
+commit ff6875c09b8fcfb5dc5abe20f3a5bee539c82328
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 17 15:17:14 2025 -0500
+
+    tps and board passing tests
+
+commit aa15ec932bc378e43f5286f2e5963d16f399c9d9
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 15 20:59:43 2025 -0500
+
+    extended test suite
+
+commit e0b8c7ce1a8303d932bedd297ac2a267cf4ca2a6
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 15 20:21:51 2025 -0500
+
+    move -> string and string -> move
+
+commit cb723a6d55b672ff9992f3ee9ee9dbd6eecb19d0
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 15 19:27:39 2025 -0500
+
+    game state to tps
+
+commit e5a691ffb10b46cce8821168d38bc2ae7ad866f7
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 15 16:56:57 2025 -0500
+
+    parse tps
+
+commit 38af778f23ee59eaacd0757a13092de6ed3167e8
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 15 14:41:45 2025 -0500
+
+    board implementation
+
+commit a0b485690c41295c9b522b3a6c30d2cb66f54ca5
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 15 12:12:15 2025 -0500
+
+    read me format
+
+commit 5af5b5bb46caaa9e68b375dd4a86dd8af210bd35
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 15 12:11:26 2025 -0500
+
+    read me formating
+
+commit 9e2d52e4ffd9b17bead73847478938712fb4cae9
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 15 12:10:07 2025 -0500
+
+    read me
+
+commit 45ab5bf9d9d8b05b5a1da511ab14c3aefca8f5da
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Feb 14 16:59:09 2025 -0500
+
+    git cleanup
+
+commit 07f03d909c6cd1d88437ddc14809fda038013960
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Feb 14 16:55:47 2025 -0500
+
+    git cleanup
+
+commit c091a25b8981ae51d713f6b18a014d9c0298ab46
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Feb 14 16:55:20 2025 -0500
+
+    git cleanup
+
+commit ec5d6d77caac9d1d059d3e8c6153c1e6cc315d7b
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Feb 14 16:53:06 2025 -0500
+
+    refactor and starting new ai
+
+commit 9d8ec631dfd1f76b5d55c4f19fbf466697d4f4fe
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 13 13:49:21 2025 -0500
+
+    fixed swap bug
+
+commit 0893afc8b030534b04ada7e8b1f031cbd60d33c7
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 13 13:39:40 2025 -0500
+
+    mut eval and mut search
+
+commit f7a84fae58807f5699aa45b704d14e8594e912f2
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 13 01:17:03 2025 -0500
+
+    making and unmaking moves succesfully
+
+commit 36a0a8bb64aadcb292a7da4f311b9a2087818941
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 13 01:03:14 2025 -0500
+
+    "delete
+
+commit da323a68231b661cffa20ff181e9fdb596413e92
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 13 01:02:45 2025 -0500
+
+    fixed transpose board issue
+
+commit 46dfe76450912983ae21058f67db90c519a790d1
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 12 23:54:08 2025 -0500
+
+    passing more extensive tests
+
+commit 774a7d449415cd59c311a0eae13c6aaf942f9726
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 12 23:48:53 2025 -0500
+
+    passing basic tests
+
+commit b2ae6a820019e8cc3766fa450e8a38a23de44b9a
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 11 13:59:39 2025 -0500
+
+    road finding in mutable state
+
+commit e65ad35e4b713956bcb46e50924c6d7d81866777
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 11 00:32:21 2025 -0500
+
+    deleted temp files
+
+commit f5476f5a7820747a27c762c8153a025713d25402
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 11 00:20:42 2025 -0500
+
+    check road win, needs findRoad
+
+commit 1cfe6c0f7cdcb718fd5a0d22571cc9515f8bcabb
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 10 23:22:47 2025 -0500
+
+    new move generation with mutable states
+
+commit ceaf31dff5a4322824338e91e9456fe1a601749a
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 10 23:17:09 2025 -0500
+
+    generating slide moves
+
+commit 2be7717bd34edf172f25768f8427ab56fb8680fd
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 10 18:01:47 2025 -0500
+
+    quick update
+
+commit f2d88df8279391bf70cff6ded220b35aacbecdfe
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 10 13:12:53 2025 -0500
+
+    generate moves using state monads and no checking for speed
+
+commit bb4b883cd5bbb901dc63b2a3d8ade37d41c3b5a7
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Feb 9 20:00:14 2025 -0500
+
+    front end now gets score from backend
+
+commit ca0e082ae3ae3538f1a24d65dac470fff464614e
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Feb 9 19:50:59 2025 -0500
+
+    Game Server refactor
+
+commit 2bb4bc5ba0eb733147588ae04e97c68cca5b87b4
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Feb 7 18:46:37 2025 -0500
+
+    quick save
+
+commit ded040cf2af833a9615c2538d66c65f2f7ff4376
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Feb 7 18:15:44 2025 -0500
+
+    quick save
+
+commit ac2c2f61bb0e7d07e38b3be85ac3f44539b8110a
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Feb 7 14:45:14 2025 -0500
+
+    front end working smoothly even with spammed ai moves
+
+commit ce3f587bc4fed908e2d8d8d026e87028cb631272
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Feb 7 13:56:31 2025 -0500
+
+    setup board pre connection
+
+commit 5d3b00cfa21fc15e9b9fb394f17ed5132050573c
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Feb 7 01:21:10 2025 -0500
+
+    fully moved over to websockets
+
+commit 592c17de55b3e2c2e0620422398eaec402770632
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Feb 7 00:27:14 2025 -0500
+
+    moved duplicate web types into a single file
+
+commit c392fa4d62f67fe464070647cf4c032502421899
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Feb 7 00:16:21 2025 -0500
+
+    moved ai player to web sockets
+
+commit 2672514217477c5fee6784b8a43f847f02ef0744
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 6 15:00:02 2025 -0500
+
+    another road transpostion bug
+
+commit 2dd59782b2022b03c6ae0f8df9f94d04f9e9d94e
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Feb 6 13:56:28 2025 -0500
+
+    fixed draw bug
+
+commit 5a30975638cf8d4e06d8df796693934121aa67be
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 5 20:38:30 2025 -0500
+
+    first move generator
+
+commit 8ae4e584dd22a2f367a6401120c8fb99d342ee8e
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 5 19:58:41 2025 -0500
+
+    undo moves and make slide moves
+
+commit 70b882890e8493239648f2a510ffc73ea87ee3ce
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 5 18:02:11 2025 -0500
+
+    make place moves
+
+commit 510ef94bd8b0b2c44140721a7f0212cc5d864338
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 5 17:37:11 2025 -0500
+
+    create mutable board
+
+commit 01ba79037cbf69d8da4c45872e611c4a940ef13c
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 5 14:56:49 2025 -0500
+
+    bug in checkGameResult check of alphabeta
+
+commit 800af343b64e719af2f8eced6e02be32f9c53b74
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 5 14:38:12 2025 -0500
+
+    consistent padding
+
+commit 58a0e64e34330b7fe5e4bba4933d17224adfcdf5
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 5 14:36:42 2025 -0500
+
+    text updates game state panel
+
+commit 444f1e7b393b08d228a7677adc34b46ee62ca60a
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 5 14:35:07 2025 -0500
+
+    game state panels updates
+
+commit 6e6a4383d3673f98778af165b7e393d85a263b7f
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 5 13:22:14 2025 -0500
+
+    alpha beta
+
+commit 80f3116886506ffcecb90acc1355b39ffaed5dbf
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 5 13:11:05 2025 -0500
+
+    check for wins in search
+
+commit 43a4438ae5f9c376c0f8da502185705729ca2919
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 5 04:09:09 2025 -0500
+
+    percent random move
+
+commit c4e55b02e7087c061e8044767b30492bd1b08959
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 5 03:28:33 2025 -0500
+
+    updates
+
+commit 3ee9e526a6c7dc2f3e57643b6b2305cf954ba65b
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 5 02:49:52 2025 -0500
+
+    iterative deepening?
+
+commit 2312b12701a28d16fab5320e27f84e9011057e67
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 5 01:55:23 2025 -0500
+
+    generator pattern
+
+commit 78a6b1b6d00b31018877bdb90d03882dde9adc86
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 5 01:46:21 2025 -0500
+
+    alpha beta
+
+commit b6686d8c8fe5468e2912e5983a04000078ad0337
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Feb 5 01:34:45 2025 -0500
+
+    working negamax
+
+commit 93071753134502d5fc74db27f00a8a08327887d8
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 4 20:23:00 2025 -0500
+
+    split flat wins from road wins minor ai updates
+
+commit 1cb4da3ab233950e24a7f59bed9ce235185a2fd1
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 4 16:58:38 2025 -0500
+
+    update move request to hopefully enforce move alternating
+
+commit 872abe43eaf3e6c4f420bddff45b794a5ab9ee07
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 4 13:56:42 2025 -0500
+
+    fixed road bug that allowed f1 to win everytime
+
+commit 3329d9309ec0bc5f820186d8b1ac4c25ad92b0ec
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 4 12:20:44 2025 -0500
+
+    independent black and white strategies
+
+commit b0633ce719e5d3567c6ededde6698193b55ded4b
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 4 12:11:55 2025 -0500
+
+    module setup
+
+commit 3f79de05bfc1230d1decd3067c652b298c3199ea
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 4 11:56:44 2025 -0500
+
+    fixed reserve empty game ending checks
+
+commit 2063b31decc97e0b21045de6a3bcefeb4f72f5e8
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 4 02:36:54 2025 -0500
+
+    weird work around temp fix
+
+commit acbfb9b0976f311c5daeda2869a1aac8001be92a
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Feb 4 02:25:04 2025 -0500
+
+    ai doing random moves, and found and fixed tps bug
+
+commit 373e1602e316ed956215043ac9adaf72fe89b364
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 23:35:38 2025 -0500
+
+    websocket server
+
+commit 01637e2a957ce1db3aac2612287eaeb9d53707b2
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 23:28:47 2025 -0500
+
+    more robust game server
+
+commit 82e4fcd36f2a65335ca4ac491e16be1051ceedc1
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 22:47:39 2025 -0500
+
+    tweaks
+
+commit 49ac490f258cfc064c7c807dca8de4b43e75ed53
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 22:46:24 2025 -0500
+
+    better edging
+
+commit f26e44c16b1488dc5b6e64a5659ec8965d382637
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 22:29:38 2025 -0500
+
+    ai player project setup
+
+commit 469056a703543c384215200eede4d962f32e9cd5
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 21:59:37 2025 -0500
+
+    fixed bug in move generation
+
+commit 6c2effc4923f9edfa95c19165f61278e0d1d3a7e
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 20:04:08 2025 -0500
+
+    one to many oposite color bug fixed
+
+commit a26cb2f6bde80aa1abf8385757cf970961441bea
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 20:02:40 2025 -0500
+
+    oposite color first movef
+
+commit 00a41b75227c0f7de2945269aeef1a47c713d364
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 19:56:24 2025 -0500
+
+    custom piece meshes
+
+commit f1bc1c073f6901415e81412f4692b9315785723a
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 18:51:21 2025 -0500
+
+    easier to read markings
+
+commit 292b8919fd2187b2ecde26454ae8bbfdd9868fab
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 18:47:02 2025 -0500
+
+    minor visual tweaks
+
+commit e3d36835a8cae89e768141ecc8e81c92ec14be2b
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 18:33:29 2025 -0500
+
+    camera limits
+
+commit e6a0cd30cf25421cba7063771d7688dc905e7936
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 18:27:05 2025 -0500
+
+    title update
+
+commit 1926ee8c194370ce6745a7d863e0ddc1519cab48
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 18:26:11 2025 -0500
+
+    game explanation
+
+commit b4595b407f15d16daefeb9dde53ebc2d6eb73794
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 17:49:29 2025 -0500
+
+    game history
+
+commit d0e4d8200c82e8bc71e0a622ec03255d7bb28837
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 16:09:07 2025 -0500
+
+    visual updates
+
+commit 34f6afb011feb77c609aa8a4075279025e2e2a05
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 14:18:27 2025 -0500
+
+    better lighting
+
+commit abde6a9d61fc68cefb5cba0305a3cee80ecee073
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 12:41:49 2025 -0500
+
+    incorrect crush error correction
+
+commit 521730fc9e1769147d72a98a1858ec62d8f7deae
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 11:54:55 2025 -0500
+
+    fixed moveNum
+
+commit c08717e7e0a408603be21d225014fc6ec4c23f6d
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 11:52:55 2025 -0500
+
+    improved readability
+
+commit 321f0d5d71dd558f7519c552410138ff95ccf4fc
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 11:47:23 2025 -0500
+
+    game state panel updating correctly
+
+commit 6c7c077a80f3610c539d3779d57028f9a0ee3fb0
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 11:34:30 2025 -0500
+
+    actually fixed blinking this time
+
+commit 9af0954b6416f7b321c6e307711432d9e30f97cb
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 11:21:26 2025 -0500
+
+    better piece updating
+
+commit 4e3d40186e3fed37631e63434042b689a1a7990d
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 04:18:46 2025 -0500
+
+    more elegent piece updating
+
+commit 8a7c464c8bab2173b837f1cc2906650ce66d1109
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 04:05:29 2025 -0500
+
+    minor updates
+
+commit ae11f99e326ccde62b26bad696deebaf3019557a
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 03:53:29 2025 -0500
+
+    send moves update board
+
+commit de235e26549d842487e1899be3564c3dbf23d5fa
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Feb 3 02:48:16 2025 -0500
+
+    gui panels
+
+commit 3749d93f983cf124e405ade0f1292f287650cd6b
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Feb 2 21:07:05 2025 -0500
+
+    visual upgrades
+
+commit 247dfc45bcb9bdc72f3b5d569648e662574b0dfe
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Feb 2 20:41:57 2025 -0500
+
+    better piece sizing, lighting, and fixed positioning
+
+commit 9741b31cacb588ebb55596f3ccfa2b37e3d4deec
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Feb 2 20:28:28 2025 -0500
+
+    fixed labels
+
+commit 2af423aa8b52a63e037c9e60e00763f0de09e5b0
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Feb 2 19:42:09 2025 -0500
+
+    better pieces colors and labels
+
+commit 2d33a0ac403255ae7d3b8464ae2b70652e3febf6
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Feb 2 18:41:37 2025 -0500
+
+    started tps parsing and piece visuals
+
+commit f78d68000318fb30580024adb474665530279a0f
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Feb 2 17:32:45 2025 -0500
+
+    empty board visualization working well
+
+commit 0ead4b71465db979b8e4a220b8a1dac3b980ea5f
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Feb 2 17:16:14 2025 -0500
+
+    front and back end communicating properly
+
+commit cf33fbbbf6d2136b5d4497acef6693eb16fb57c6
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Feb 2 16:13:00 2025 -0500
+
+    cleanup
+
+commit c0f1241882d5fc7bacca229b93fa05685fd83ee9
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Feb 2 16:10:57 2025 -0500
+
+    more basic template
+
+commit 5f02dc7d1e2ccb9568eea90083f2771438fce1fd
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Feb 2 15:44:21 2025 -0500
+
+    vite and babylon template set up
+
+commit 43aefb90aac8b64e74f00270a9c7ed790b5e1aa9
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Feb 2 15:11:38 2025 -0500
+
+    initial setup for game server
+
+commit 147d7a22de934e720dcb0cc1ec185f270a2673f2
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Feb 2 00:14:28 2025 -0500
+
+    fixed board string
+
+commit cc21f1ace0dd8a757ecea293fc6dc65466367295
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 1 23:25:06 2025 -0500
+
+    display game
+
+commit d2086d9eb02569a94fe6ed7304c2f4a7ab85d198
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 1 23:03:16 2025 -0500
+
+    make user move
+
+commit 235a7ecba3b78758cc5e47b951666ef3b8050455
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 1 22:53:40 2025 -0500
+
+    reserves helper functions
+
+commit 0a9e96f4427d4e2a171bd20d9f456278bce75fb5
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 1 22:22:30 2025 -0500
+
+    game config options
+
+commit b90d2c383ddfb0223925a378a7e27ee8cd313ef4
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 1 20:06:12 2025 -0500
+
+    better result types
+
+commit 7fe6bdc8720a68b72d32e432145fb25ac4b7876d
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 1 19:49:55 2025 -0500
+
+    fixed undo crush
+
+commit 8294033ee65c189a8d535bcc615b7f19382fa80e
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 1 18:53:28 2025 -0500
+
+    allowed ptn to handle crush
+
+commit d4e8c62733d638cff1a828b6dc2dd14c908ef7ad
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 1 18:47:05 2025 -0500
+
+    fixed issue where it was over writing origin stack of undoslide if whole stack wasn't picked up
+
+commit 12b1323fdfe2c869ecbe72eac23715e3dcf70d31
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 1 18:36:05 2025 -0500
+
+    still fixing undo bugs maybe slide fixed now?
+
+commit 4cae4a489098430a34585b7ee682648bccd5f0a0
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 1 18:21:04 2025 -0500
+
+    fixed bug where stack can be reversed in undo slide move
+
+commit c423bd4231757b2d233d5741020b01cbb148b98a
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 1 17:36:16 2025 -0500
+
+    fixed bug in ptn parsing slide moves
+
+commit ce54a03fe8725baa43945d73eae97ec000850ff9
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 1 17:26:29 2025 -0500
+
+    fixed ptn move parsing
+
+commit 0f9f49a01630f144eea8b2f495004e642ff12440
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 1 17:17:27 2025 -0500
+
+    fixed board to tps
+
+commit 8355b401a045c3d76849d68cc9a12a4afd70f779
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 1 16:41:15 2025 -0500
+
+    fixed move issues, still issues with real game parsing
+
+commit 158f30dc4b4f88f43d4e721f8d305b7770af18ba
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sat Feb 1 16:20:02 2025 -0500
+
+    fixed transpose issue in tps
+
+commit 7f3cf465e8e147ee8908ff3adff746b0c7e83c06
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Jan 31 13:59:05 2025 -0500
+
+    syntax updates for testmoves
+
+commit 21802a7c620311473616220a3531c1ba4908929d
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Jan 31 13:53:49 2025 -0500
+
+    syntax update for test ptn
+
+commit 0d009754c4b29d32a3cd823e934220e39e1d3f9a
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Jan 31 13:49:30 2025 -0500
+
+    char to direction function to avoid repetition
+
+commit 35543c8ec0c5b1cdb42a7ba1e4e10fb490b9551e
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Jan 31 13:43:07 2025 -0500
+
+    PTN updated
+
+commit 847e936b579f55a7766414cd8d8bc168b5a66889
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Jan 31 13:31:04 2025 -0500
+
+    moves updated
+
+commit 461067475cf9cb8365a50b413a25ed80467c91d8
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Fri Jan 31 12:52:56 2025 -0500
+
+    updated board to new configuration
+
+commit 99b5e8757c37895b8fd79a8f1e3c26fe80bf812a
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Jan 30 22:01:29 2025 -0500
+
+    parses single slide correctly
+
+commit 46680e04fe68bf3d0bf0eb5e456784d9c374f357
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Jan 30 20:54:23 2025 -0500
+
+    added general tests
+
+commit 8f7cd6e348bff53d4f88e0f8460b1faa621aec6b
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Jan 30 18:36:39 2025 -0500
+
+    parsing ptn finished
+
+commit 1cd4d097678bcfacefa0e3cadcf88908092d948a
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Jan 30 18:11:09 2025 -0500
+
+    more elegent parseTPS
+
+commit 3111e6ba5190d95b3b41b411ddd13b99dacc8023
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Jan 30 18:06:10 2025 -0500
+
+    fixed tps bugs and increased testing, improved ptn testing and caught bug
+
+commit bfaf7a191ad4dad0bfaae508b3302781818cf6cc
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Jan 30 17:41:12 2025 -0500
+
+    gamestate to tps
+
+commit 45556ddcb6f9dec5b7016fe68324b0d03cedfed2
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Jan 30 13:49:37 2025 -0500
+
+    update tps
+
+commit 4b854b3979d75c1a02737222d184b3f8b5bbc52b
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Jan 30 13:28:59 2025 -0500
+
+    added error handling to tps parsing
+
+commit dbea5c4a525e88f2293858cb5cd5d14f93bd57ff
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Jan 29 18:56:27 2025 -0500
+
+    fixed b -> board
+
+commit d076dcc33d5214c6a4f8d2c076c7e4c450aa32f6
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Jan 29 18:53:43 2025 -0500
+
+    cleanup
+
+commit 97c4dd0d6c596eda97eb32ae79707fd2fbecf8c7
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Jan 29 18:28:49 2025 -0500
+
+    passing most move tests
+
+commit b11e8948649a6bc2b1ef3adf49eb5225fe325095
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Jan 29 17:58:32 2025 -0500
+
+    fixed check crush
+
+commit 18ca492beb25ee5f22d0fcc48bdada4200f51299
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Jan 29 14:09:52 2025 -0500
+
+    check move bug fixes
+
+commit 846e385891529122431d8ca569d2d8feb2d833c5
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Jan 29 13:11:50 2025 -0500
+
+    better tests
+
+commit 80b6575f42b85a643db4d3ba68e287484f06f3bb
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Jan 28 21:15:22 2025 -0500
+
+    broken tests as foldl on placeFlat doesn't work
+
+commit b4fbc47755f979f36736b160b4e56eaf3e243252
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Jan 28 19:55:46 2025 -0500
+
+    more tests added, more debugging needed
+
+commit 5e175498ddae7f683a5616ea7c07d6e3a4c3431f
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Jan 28 12:56:48 2025 -0500
+
+    bug fixes and additional tests
+
+commit 92fad76ec293f037154953f068dcec371473bd4c
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Jan 28 10:45:54 2025 -0500
+
+    fixed occupied square for flat place
+
+commit 35db519794438ecc40a9f3f6d7f02bc845482612
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Jan 27 21:46:43 2025 -0500
+
+    some basic move tests and not quite there yet move testing and generation
+
+commit d9206e001c5c45f5500b2dcdff31e4dfeab5c463
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Jan 27 20:12:10 2025 -0500
+
+    undo slide finished?
+
+commit 98573604eae2c95896be5d9c5a12bbd1bf3a794a
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Jan 27 19:43:56 2025 -0500
+
+    moved board helper functions
+
+commit 84e9c8534b5b789c438314cf3c97c5615f1c357f
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Jan 27 14:25:33 2025 -0500
+
+    better next pos
+
+commit 97c6bfc54efd299b4e6835ca97d210432f37052e
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Jan 27 14:18:56 2025 -0500
+
+    better undo place
+
+commit 636862f3bdd78d6fb5e104de58f559a7c86713eb
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Jan 27 14:13:29 2025 -0500
+
+    make slide moves
+
+commit 64f3c7ff8bcd4c58987d9b5a84e754f050a37364
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Jan 27 13:56:26 2025 -0500
+
+    simplify directions
+
+commit a72be775dabb4a534f3f1aec53f953c91a6a6a54
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Jan 27 12:48:05 2025 -0500
+
+    basic placement undos
+
+commit 71c29dc115074086d5bacfa1238bacf7a36410da
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Mon Jan 27 12:33:07 2025 -0500
+
+    make basic place moves
+
+commit f39c1a4414611f95fcc573e18889d0bccd8e63e9
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Jan 26 22:57:50 2025 -0500
+
+    updated to either
+
+commit e02a520ca9a1ceaed7dbc0bfb36b292767b32062
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Jan 26 22:38:33 2025 -0500
+
+    move validation?
+
+commit 7efc297b0e38b60a584b0237cdd44a9326c4b4df
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Jan 26 22:23:38 2025 -0500
+
+    starting move checking
+
+commit 9efbd0b719dd39ce2fa5364b95baae6f7805ca0f
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Jan 26 15:39:30 2025 -0500
+
+    fixed test error
+
+commit 6a447747b7d7ffa2009db9f610e1a34ab10dc7e7
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Jan 26 15:24:47 2025 -0500
+
+    slide works but doesn't handle multiple drops correctly
+
+commit 5eeb3df3fcdeb8e23694cbaf50be89e73279251c
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Jan 26 15:19:17 2025 -0500
+
+    slide move attempt
+
+commit 2c6aa7eb2293c005bd5cddfcdf968be4d08c31c1
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Sun Jan 26 14:39:17 2025 -0500
+
+    correctly parsing placement moves for ptn
+
+commit 1b4ed7082d919374947036c70547a20cdbc47802
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Jan 23 21:43:59 2025 -0500
+
+    better parsemove
+
+commit 821710d81ed1e4df034368b3e8f4344c2911228a
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Jan 23 21:41:54 2025 -0500
+
+    attempted parsemove
+
+commit 4fbc858c192d48ff2b687bf002e1db22a016697d
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Jan 23 21:31:10 2025 -0500
+
+    parse ptn meta data
+
+commit d8b72edaa2e10e80f45bfbf73261771c94048cb7
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Thu Jan 23 20:55:48 2025 -0500
+
+    working tps parsing
+
+commit f966f5855625baee449d4067414f9b2f544daff7
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Jan 22 23:08:17 2025 -0500
+
+    fixed findRoad/checkGameWin and started TPS testing
+
+commit 0c8380ceed2fe56fa5d7efe33b71141815035a86
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Jan 22 21:34:11 2025 -0500
+
+    fixed checkFullBoard bug
+
+commit bcf2107aa1a0c39d7181f5232d5f816c193bb698
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Jan 22 21:21:21 2025 -0500
+
+    fixed index error in checkFullBoard
+
+commit 70f6626f740158b9b90d77c4bbaf4f0c68c85f88
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Jan 22 20:49:37 2025 -0500
+
+    testing enviorment setup
+
+commit 5dc1cbedd835111243ae0a854793ce5792e6b027
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Jan 22 18:15:32 2025 -0500
+
+    fixed checkFullBoard to give the win to player with most flat squares
+
+commit ad1361876513e9e5eda436a587bfbd85e27207ce
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Jan 22 17:31:42 2025 -0500
+
+    added tps parsing
+
+commit 65f02132cd4f41b6b402d439f0df137f0865ae5e
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Jan 22 14:12:03 2025 -0500
+
+    print functions
+
+commit 45e8a75f7589398fbdf3658634f221f1b98d548d
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Jan 22 13:57:41 2025 -0500
+
+    board state checking
+
+commit dc9c3422de649ed39f484fa949b5232428825c7f
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Jan 22 13:43:11 2025 -0500
+
+    search rode
+
+commit 220e7541b080845de0f892e9135cc04442023b86
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Wed Jan 22 11:47:34 2025 -0500
+
+    piece redefinition
+
+commit 23e6af227acc69816a2b8ed6c2e9e974c8c2a60b
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Jan 21 19:57:55 2025 -0500
+
+    started on types to represent game state
+
+commit 1e844e4045eb542ef6bf67e8270adef37d07ba39
+Author: zchown <91749140+zchown@users.noreply.github.com>
+Date:   Tue Jan 21 17:43:12 2025 -0500
+
+    batman
+
+commit 26c1320a040c76e4eb56eb38121b3409c95e3fb5
+Author: Zander <91749140+zchown@users.noreply.github.com>
+Date:   Tue Jan 21 17:38:43 2025 -0500
+
+    Initial commit

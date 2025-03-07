@@ -11,14 +11,15 @@ int main() {
     printf("Creating neural net\n");
     DenseNeuralNet net = createDenseNeuralNet(layerSizes, numLayers, Relu);
 
-    loadDenseNeuralNet(&net, "n_models/tak_model.weights_2");
+    loadDenseNeuralNet(&net, "n_models/tak_model.weights_3");
     printf("Creating trainer\n");
     Trainer* trainer = createTrainer(&net, 0.999, 0.1, 100);
 
     printf("Training\n");
-    trainHybrid(trainer, 1000000, 50);
+    trainHybrid(trainer, 1000000, 250);
 
-    saveDenseNeuralNet(&net, "n_models/tak_model.weights_2");
+    saveDenseNeuralNet(&net, "n_models/tak_model.weights_3");
 
     return 0;
 }
+
