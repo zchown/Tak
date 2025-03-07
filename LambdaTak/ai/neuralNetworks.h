@@ -69,4 +69,6 @@ void freeNeuron(Neuron* neuron);
 void freeDenseLayer(DenseLayer* layer);
 void freeDenseNeuralNet(DenseNeuralNet* net);
 
+void printDenseNeuralNet(DenseNeuralNet* net);
+
 #endif // NEURAL_NETWORKS_H

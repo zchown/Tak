@@ -1,40 +1,44 @@
 cmake_minimum_required(VERSION 3.10)
 project(LambdaTak VERSION 1.0)
 
-set(CMAKE_C_STANDARD 99)
-set(CMAKE_C_STANDARD_REQUIRED True)
+# Enforce modern policy for *_ROOT variables
+cmake_policy(SET CMP0074 NEW)
+set(OpenMP_ROOT "/opt/homebrew/opt/libomp")
 
-# Set compiler optimization flags for different build types
-set(CMAKE_C_FLAGS_DEBUG "-g -O0")
-set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -mtune=native -funroll-loops -fprefetch-loop-arrays -fomit-frame-pointer -finline-functions -finline-limit=1000 -flto -fwhole-program") 
+# Find OpenMP before other dependencies
+find_package(OpenMP REQUIRED)
 
-# If no build type is specified, default to Debug
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build: Debug or Release" FORCE)
-endif()
-
-# Find WebSocket and JSON libraries
-find_library(WEBSOCKETS_LIBRARY NAMES websockets libwebsockets)
-find_path(WEBSOCKETS_INCLUDE_DIR NAMES libwebsockets.h)
-find_library(JANSSON_LIBRARY NAMES jansson)
-find_path(JANSSON_INCLUDE_DIR NAMES jansson.h)
-
-# Handle macOS Homebrew installations
 if(APPLE)
-    list(APPEND WEBSOCKETS_INCLUDE_DIR /opt/homebrew/include)
-    list(APPEND WEBSOCKETS_LIBRARY /opt/homebrew/lib/libwebsockets.dylib)
-    list(APPEND JANSSON_INCLUDE_DIR /opt/homebrew/include)
-    list(APPEND JANSSON_LIBRARY /opt/homebrew/lib/libjansson.dylib)
+    # Apple Silicon optimizations
+    set(CMAKE_C_FLAGS_RELEASE "-O3 -mcpu=apple-m1 -mtune=native -ffast-math -flto")
+    
+    # Accelerate Framework
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -framework Accelerate")
+    
+    # Explicit OpenMP paths
+    set(OPENMP_INCLUDE_DIR "${OpenMP_ROOT}/include")
+    set(OPENMP_LIB_DIR "${OpenMP_ROOT}/lib")
+    include_directories(${OPENMP_INCLUDE_DIR})
+    link_directories(${OPENMP_LIB_DIR})
 endif()
 
-if(WEBSOCKETS_LIBRARY AND WEBSOCKETS_INCLUDE_DIR AND JANSSON_LIBRARY AND JANSSON_INCLUDE_DIR)
-    message(STATUS "Found libwebsockets: ${WEBSOCKETS_LIBRARY}")
-    message(STATUS "Found jansson: ${JANSSON_LIBRARY}")
-else()
-    message(FATAL_ERROR "libwebsockets or jansson not found. Install using:\n  sudo apt-get install libwebsockets-dev libjansson-dev\nOr on macOS: brew install libwebsockets jansson")
-endif()
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Add main executable
+# WebSocket/JSON Configuration
+find_library(WEBSOCKETS_LIBRARY NAMES websockets
+    PATHS /opt/homebrew/lib
+    REQUIRED)
+find_path(WEBSOCKETS_INCLUDE_DIR NAMES libwebsockets.h
+    PATHS /opt/homebrew/include)
+
+find_library(JANSSON_LIBRARY NAMES jansson
+    PATHS /opt/homebrew/lib
+    REQUIRED)
+find_path(JANSSON_INCLUDE_DIR NAMES jansson.h
+    PATHS /opt/homebrew/include)
+
+# Main executable
 add_executable(lambdaTak 
     src/main.c 
     lib/board.c 
@@ -55,10 +59,14 @@ target_include_directories(lambdaTak PRIVATE
     ${WEBSOCKETS_INCLUDE_DIR}
     ${JANSSON_INCLUDE_DIR}
 )
-target_link_libraries(lambdaTak
+
+target_link_libraries(lambdaTak PRIVATE
     ${WEBSOCKETS_LIBRARY}
     ${JANSSON_LIBRARY}
+    OpenMP::OpenMP_C
+    omp
 )
+
 
 # training executable
 add_executable(trainTak

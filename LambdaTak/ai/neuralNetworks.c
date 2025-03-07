@@ -1,3 +1,4 @@
+#include <Accelerate/Accelerate.h>
 #include "neuralNetworks.h"
 
 Neuron createNeuron(int numInputs, Activation act) {
@@ -61,115 +62,186 @@ DenseNeuralNet createDenseNeuralNet(int* layerSizes, int numLayers, Activation a
     return net;
 }
 
-double* feedForwardDense(DenseNeuralNet* net, int inputSize, double* inputs, double dropout) { 
-    if (!net || !inputs || inputSize <= 0)
-        return NULL;
+double* feedForwardDense(DenseNeuralNet* net, int inputSize, double* inputs, double dropout) {
+    if (!net || !inputs || inputSize <= 0) return NULL;
 
-    int maxSize = inputSize;
+    // Calculate maximum layer size to allocate workspace
+    int maxLayerSize = 0;
     for (int i = 0; i < net->numLayers; i++) {
-        if (net->layers[i].numNeurons > maxSize)
-            maxSize = net->layers[i].numNeurons;
+        if (net->layers[i].numNeurons > maxLayerSize) {
+            maxLayerSize = net->layers[i].numNeurons;
+        }
     }
-
-    double* workspace1 = (double*)malloc(maxSize * sizeof(double));
-    double* workspace2 = (double*)malloc(maxSize * sizeof(double));
+    
+    // Allocate two workspaces to alternate between
+    double* workspace1 = malloc(maxLayerSize * sizeof(double));
+    double* workspace2 = malloc(maxLayerSize * sizeof(double));
     if (!workspace1 || !workspace2) {
         free(workspace1);
         free(workspace2);
-        return NULL;
+        return NULL; // Memory allocation failed
     }
+    
+    double* curOutput = workspace1;
+    double* nextOutput = workspace2;
+    double* curInput = inputs;
 
-    memcpy(workspace1, inputs, inputSize * sizeof(double));
-    double* curInput = workspace1;
-    double* curOutput = workspace2;
-    int curInputSize = inputSize;
-
+    // Process all layers
     for (int i = 0; i < net->numLayers; i++) {
         DenseLayer* layer = &net->layers[i];
-        if (layer->inputSize != curInputSize) {
-            fprintf(stderr, "Error: Mismatch in input size at layer %d\n", i);
+        const int M = layer->numNeurons;
+        const int N = 1;  // Single input vector
+        const int K = layer->inputSize;
+
+        // Flatten weights into contiguous array [M x K]
+        double* weightsFlat = malloc(M * K * sizeof(double));
+        if (!weightsFlat) {
             free(workspace1);
             free(workspace2);
             return NULL;
         }
-#pragma omp parallel for
-        for (int j = 0; j < layer->numNeurons; j++) {
-            Neuron* neuron = &layer->neurons[j];
-            double sum = neuron->bias;
-            for (int k = 0; k < curInputSize; k++) {
-                sum += neuron->weights[k] * curInput[k];
-            }
-            curOutput[j] = neuron->activationFunction(sum);
+        
+        for (int n = 0; n < M; n++) {
+            memcpy(weightsFlat + n*K, layer->neurons[n].weights, K*sizeof(double));
         }
-        memcpy(layer->outputs, curOutput, layer->numNeurons * sizeof(double));
-        double* temp = curInput;
-        curInput = curOutput;
-        curOutput = temp;
-        curInputSize = layer->numNeurons;
+
+        // Matrix multiplication: output = weights * input
+        vDSP_mmulD(weightsFlat, 1, 
+                  curInput, 1,
+                  curOutput, 1,
+                  M, N, K);
+
+        // Add biases
+        double* biases = malloc(M * sizeof(double));
+        if (!biases) {
+            free(weightsFlat);
+            free(workspace1);
+            free(workspace2);
+            return NULL;
+        }
+        
+        for (int n = 0; n < M; n++) {
+            biases[n] = layer->neurons[n].bias;
+        }
+        vDSP_vaddD(curOutput, 1, biases, 1, curOutput, 1, M);
+
+        // Apply activation function (vectorized)
+        if (layer->neurons[0].activationFunction == sigmoid) {
+            for (int j = 0; j < M; j++) {
+                curOutput[j] = sigmoid(curOutput[j]);
+            }
+        } else if (layer->neurons[0].activationFunction == relu) {
+            vDSP_vthrD(curOutput, 1, &(double){0.0}, curOutput, 1, M);  // ReLU
+        }
+
+        // Store outputs in layer for backpropagation use
+        memcpy(layer->outputs, curOutput, M * sizeof(double));
+        
+        if (i != net->numLayers - 1) {
+            curInput = curOutput;
+            double* temp = curOutput;
+            curOutput = nextOutput;
+            nextOutput = temp;
+        }
+
+        free(weightsFlat);
+        free(biases);
     }
 
-    double* result = (double*)malloc(curInputSize * sizeof(double));
-    if (!result) {
-        free(workspace1);
-        free(workspace2);
-        return NULL;
+    double* result = malloc(net->layers[net->numLayers-1].numNeurons * sizeof(double));
+    if (result) {
+        memcpy(result, curOutput, net->layers[net->numLayers-1].numNeurons * sizeof(double));
     }
-    memcpy(result, curInput, curInputSize * sizeof(double));
+    
     free(workspace1);
     free(workspace2);
+    
     return result;
 }
 
-void backpropagateDense(DenseNeuralNet* net, double* inputs, double* outputs, double* expectedOutputs, double learningRate) {
-    if (!net || !inputs || !expectedOutputs)
-        return;
+void backpropagateDense(DenseNeuralNet* net, double* inputs, double* outputs, 
+                       double* expectedOutputs, double learningRate) {
+    if (!net || !inputs || !expectedOutputs) return;
 
-    double** deltas = (double**)malloc(net->numLayers * sizeof(double*));
-    for (int i = 0; i < net->numLayers; i++) {
-        deltas[i] = (double*)malloc(net->layers[i].numNeurons * sizeof(double));
-    }
-
-    int l = net->numLayers - 1;
-    DenseLayer* outputLayer = &net->layers[l];
-#pragma omp parallel for
-    for (int j = 0; j < outputLayer->numNeurons; j++) {
-        Neuron* neuron = &outputLayer->neurons[j];
-        double output = outputLayer->outputs[j];
-        double error = output - expectedOutputs[j];
-        deltas[l][j] = error * neuron->derivativeFunction(output);
-    }
-
-    for (int i = net->numLayers - 2; i >= 0; i--) {
-        DenseLayer* currentLayer = &net->layers[i];
-        DenseLayer* nextLayer = &net->layers[i+1];
-#pragma omp parallel for
-        for (int j = 0; j < currentLayer->numNeurons; j++) {
-            double error = 0.0;
-            for (int k = 0; k < nextLayer->numNeurons; k++) {
-                error += nextLayer->neurons[k].weights[j] * deltas[i+1][k];
+    const int numLayers = net->numLayers;
+    double** deltas = malloc(numLayers * sizeof(double*));
+    
+    // Output layer delta
+    deltas[numLayers-1] = malloc(net->layers[numLayers-1].numNeurons * sizeof(double));
+    vDSP_vsubD(expectedOutputs, 1, outputs, 1, deltas[numLayers-1], 1, 
+              net->layers[numLayers-1].numNeurons);
+    
+    // Hidden layer deltas
+    for(int i=numLayers-2; i>=0; i--) {
+        const int currentSize = net->layers[i].numNeurons;
+        const int nextSize = net->layers[i+1].numNeurons;
+        
+        // Transpose weights matrix [nextSize x currentSize]
+        double* weightsT = malloc(currentSize * nextSize * sizeof(double));
+        for(int n=0; n<nextSize; n++) {
+            for(int k=0; k<currentSize; k++) {
+                weightsT[k*nextSize + n] = net->layers[i+1].neurons[n].weights[k];
             }
-            Neuron* neuron = &currentLayer->neurons[j];
-            double output = currentLayer->outputs[j];
-            deltas[i][j] = error * neuron->derivativeFunction(output);
         }
+        
+        // delta = (weights^T * nextDelta) ⊙ derivative
+        deltas[i] = malloc(currentSize * sizeof(double));
+        vDSP_mmulD(weightsT, 1, deltas[i+1], 1, deltas[i], 1,
+                  currentSize, 1, nextSize);
+        
+        // Apply derivative
+        if(net->layers[i].neurons[0].derivativeFunction == sigmoidDerivative) {
+            #pragma omp parallel for simd
+            for(int j=0; j<currentSize; j++) {
+                deltas[i][j] *= outputs[j] * (1 - outputs[j]);
+            }
+        }
+        
+        free(weightsT);
     }
 
-    for (int i = 0; i < net->numLayers; i++) {
+    // Update weights and biases
+    #pragma omp parallel for
+    for(int i=0; i<numLayers; i++) {
         DenseLayer* layer = &net->layers[i];
-        double* prevOutput = (i == 0) ? inputs : net->layers[i-1].outputs;
-#pragma omp parallel for
-        for (int j = 0; j < layer->numNeurons; j++) {
-            Neuron* neuron = &layer->neurons[j];
-            for (int k = 0; k < layer->inputSize; k++) {
-                neuron->weights[k] -= learningRate * deltas[i][j] * prevOutput[k];
-            }
-            neuron->bias -= learningRate * deltas[i][j];
+        const int M = layer->numNeurons;
+        const int K = layer->inputSize;
+        
+        // Flatten weights and deltas
+        double* weightUpdates = calloc(M*K, sizeof(double));
+        double* biasUpdates = calloc(M, sizeof(double));
+        
+        // Compute weight updates: ΔW = learningRate * delta * input^T
+        vDSP_mmulD(deltas[i], 1, 
+                  (i == 0) ? inputs : net->layers[i-1].outputs, 1,
+                  weightUpdates, 1,
+                  M, K, 1);
+        
+        // Apply learning rate
+        double negLearningRate = -learningRate;
+        vDSP_vsmulD(weightUpdates, 1, &negLearningRate, weightUpdates, 1, M*K);
+        vDSP_vsmulD(deltas[i], 1, &negLearningRate, biasUpdates, 1, M);
+
+        // Update weights
+        double* weightsFlat = malloc(M*K * sizeof(double));
+        for(int n=0; n<M; n++) {
+            memcpy(weightsFlat + n*K, layer->neurons[n].weights, K*sizeof(double));
         }
+        vDSP_vaddD(weightsFlat, 1, weightUpdates, 1, weightsFlat, 1, M*K);
+        
+        // Distribute back to individual neurons
+        for(int n=0; n<M; n++) {
+            memcpy(layer->neurons[n].weights, weightsFlat + n*K, K*sizeof(double));
+            layer->neurons[n].bias += biasUpdates[n];
+        }
+
+        free(weightUpdates);
+        free(biasUpdates);
+        free(weightsFlat);
     }
 
-    for (int i = 0; i < net->numLayers; i++) {
-        free(deltas[i]);
-    }
+    // Cleanup
+    for(int i=0; i<numLayers; i++) free(deltas[i]);
     free(deltas);
 }
 
@@ -185,9 +257,10 @@ inline double tanh(double x) {
     return (exp(x) - exp(-x)) / (exp(x) + exp(-x));
 }
 
-inline double sigmoidDerivative(double x) {
-    return sigmoid(x) * (1 - sigmoid(x));
+inline double sigmoidDerivative(double activated_output) {
+    return activated_output * (1 - activated_output);
 }
+
 
 inline double reluDerivative(double x) {
     return x > 0 ? 1 : 0;
@@ -296,3 +369,18 @@ void freeDenseNeuralNet(DenseNeuralNet* net) {
 }
 
 
+void printDenseNeuralNet(DenseNeuralNet* net) {
+    printf("Neural Net:\n");
+    printf("Number of layers: %d\n", net->numLayers);
+    for (int i = 0; i < net->numLayers; i++) {
+        DenseLayer* layer = &net->layers[i];
+        printf("Layer %d: %d neurons, %d inputs\n", i, layer->numNeurons, layer->inputSize);
+        for (int j = 0; j < layer->numNeurons; j++) {
+            Neuron* neuron = &layer->neurons[j];
+            printf("Neuron %d: Bias: %f\n", j, neuron->bias);
+            for (int k = 0; k < layer->inputSize; k++) {
+                printf("Weight %d: %f\n", k, neuron->weights[k]);
+            }
+        }
+    }
+}
