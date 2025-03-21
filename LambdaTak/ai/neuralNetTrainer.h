@@ -22,10 +22,10 @@ double* gameStateToVector(const GameState* state);
 double pseudoReward(const GameState* state);
 
 void train(Trainer* trainer, int totalEpisodes);
-int trainEpisode(Trainer* trainer, int episodeNum);
+int trainEpisode(Trainer* trainer, int episodeNum, double localLearningRate);
 
 void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime);
-int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite, int alphaBetaTime);
+int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite, int alphaBetaTime, double localLearningRate);
 
 void trainHybrid(Trainer* trainer, int totalEpisodes, int alphaBetaTime);
 

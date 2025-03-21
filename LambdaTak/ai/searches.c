@@ -43,7 +43,7 @@ Move iterativeDeepeningSearch(GameState* state, int timeLimit) {
         prevTime = elapsedTime;
     }
 
-    printSearchStats(&stats);
+    /* printSearchStats(&stats); */
     transpositionFill = stats.transpositionFill;
 
     return hasValidMove ? bestMove : (Move){0};
