@@ -61,6 +61,9 @@ An advanced AI implementation focused on competitive play:
   - Threat assessment
   - Connectivity index (a novel algorithm for efficiently estimating road-building potential)
     - This feature is useful as a dfs-based approach is computationally expensive
+    - The connectivity index is a heuristic that estimates the number of moves required to build a road
+    - Player is incentivized to build pieces that connect across the board
+    - Also insentivizes the player to block the opponent with standing stones
 
 - **Neural Network Integration**:
   - Handmade neural network implementation using Apples Accelerate framework

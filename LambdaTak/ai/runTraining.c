@@ -28,7 +28,7 @@ int main() {
     Trainer* trainer = createTrainer(&net, 0.9, 0.005, 0.1, 100);
 
     printf("Training\n");
-    trainHybrid(trainer, 500, 100);
+    trainHybrid(trainer, 500, 10000000);
 
     // fun to look at
     // and make sure no nan's or anything weird
