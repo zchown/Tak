@@ -505,7 +505,7 @@ int countAllSlidesInDir(const GameState* state, Position pos, Direction dir) {
 }
 
 int countAllMoves(const GameState* state) {
-    if (state->result != CONTINUE) return NULL;
+    if (state->result != CONTINUE) return 0;
     if (state->turnNumber <= 2) {
         return 37 - state->turnNumber;
     }

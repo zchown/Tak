@@ -1,10 +1,11 @@
 #include "neuralNetTrainer.h"
 
-Trainer* createTrainer(DenseNeuralNet* net, double epsilonDecay, double minEpsilon, int saveInterval) {
+Trainer* createTrainer(DenseNeuralNet* net, double learningRateUpdate, double minLearningRate, double learningRate, int saveInterval) {
     Trainer* trainer = (Trainer*)malloc(sizeof(Trainer));
     trainer->net = net;
-    trainer->epsilonDecay = epsilonDecay;
-    trainer->minEpsilon = minEpsilon;
+    trainer->learningRateUpdate = learningRateUpdate;
+    trainer->minLearningRate = minLearningRate;
+    trainer->learningRate = learningRate;
     trainer->saveInterval = saveInterval;
     return trainer;
 }
@@ -20,6 +21,7 @@ void train(Trainer* trainer, int totalEpisodes) {
     int blackFlats = 0;
     int draws = 0;
     for (int i = 1; i <= totalEpisodes; i++) {
+        trainer->learningRate = trainer->learningRate * trainer->learningRateUpdate;
         printf("Episode %d: White Roads: %d, White Flats: %d, Black Roads: %d, Black Flats: %d, Draws: %d\n", 
                 i, whiteRoads, whiteFlats, blackRoads, blackFlats, draws);
         int r = trainEpisode(trainer, i);
@@ -57,7 +59,6 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
     double** pastOutputs = (double**)malloc(1000 * sizeof(double*));
     int numPastStates = 0;
 
-    double epsilon = fmax(trainer->minEpsilon, 1.0 - (episodeNum * trainer->epsilonDecay));
     int numMoves = 512;
     while (checkGameResult(state) == CONTINUE) {
         double* inputs = gameStateToVector(state);
@@ -67,7 +68,9 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
         numPastStates++;
         double pReward = pseudoReward(state);
 
-        backpropagateDense(trainer->net, inputs, outputs, &pReward, 0.15);
+        pReward = meanSquaredError(outputs[0], pReward);
+
+        backpropagateDense(trainer->net, inputs, outputs, &pReward, trainer->learningRate);
 
         GeneratedMoves* moves = generateAllMoves(state, numMoves);
         numMoves = moves->numMoves;
@@ -129,7 +132,9 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
     }
 
     for (int i = 0; i < numPastStates; i++) {
-        backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &reward, 0.15);
+        reward = meanSquaredError(pastOutputs[i][0], reward);
+        feedForwardDense(trainer->net, (7 * 36), pastStates[i], 0.0);
+        backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &reward, trainer->learningRate);
     }
 
     for (int i = 0; i < numPastStates; i++) {
@@ -161,6 +166,8 @@ double pseudoReward(const GameState* state) {
     return toReturn;
 }
 
+// 0-1 normalized
+// -1-1 was giving me issues previously
 double* gameStateToVector(const GameState* state) {
     // top 7 pieces for each square
     double* vector = (double*)malloc(TOTAL_SQUARES * (BOARD_SIZE + 1) * sizeof(double));
@@ -172,9 +179,9 @@ double* gameStateToVector(const GameState* state) {
                 if (sq.pieces[curIndex].stone == FLAT) {
                     vector[i * (BOARD_SIZE + 1) + j] = 0.8;
                 } else if (sq.pieces[curIndex].stone == STANDING) {
-                    vector[i * (BOARD_SIZE + 1) + j] = 0.7;
+                    vector[i * (BOARD_SIZE + 1) + j] = 0.6;
                 } else {
-                    vector[i * (BOARD_SIZE + 1) + j] = 0.9;
+                    vector[i * (BOARD_SIZE + 1) + j] = 0.0;
                 }
                 if (sq.pieces[curIndex].color == BLACK) {
                     vector[i * (BOARD_SIZE + 1) + j] = 1.0 - vector[i * (BOARD_SIZE + 1) + j];
@@ -198,6 +205,7 @@ void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
     int draws = 0;
     bool agentPlaysWhite = true;
     for (int i = 1; i <= totalEpisodes; i++) {
+        trainer->learningRate = trainer->learningRate * trainer->learningRateUpdate;
         printf("Episode %d: Net Roads: %d, Net Flats: %d, Alpha Roads: %d, Alpha Flats: %d, Draws: %d\n",
                i, netRoads, netFlats, alphaRoads, alphaFlats, draws);
         int r = trainEpisodeAlphaBeta(trainer, i, agentPlaysWhite, alphaBetaTime);
@@ -237,8 +245,6 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
     double** pastOutputs = (double**)malloc(1000 * sizeof(double*));
     int numPastStates = 0;
 
-    double epsilon = fmax(trainer->minEpsilon, 0.5 - (episodeNum * trainer->epsilonDecay)) * 1000;
-    epsilon = 15;
     int numMoves = 512;
     while (checkGameResult(state) == CONTINUE) {
         double* inputs = gameStateToVector(state);
@@ -248,12 +254,13 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         numPastStates++;
         double pReward = pseudoReward(state);
 
-        backpropagateDense(trainer->net, inputs, outputs, &pReward, 0.15);
+        pReward = meanSquaredError(outputs[0], pReward);
+        backpropagateDense(trainer->net, inputs, outputs, &pReward, trainer->learningRate);
 
         GeneratedMoves* moves = generateAllMoves(state, numMoves);
         Move move = moves->moves[rand() % moves->numMoves];
         if ((state->turn == WHITE && !agentPlaysWhite) || (state->turn == BLACK && agentPlaysWhite)){
-            if ((rand() % 100 < epsilon)) {
+            if ((rand() % 100 < 10)) {
                 move = moves->moves[rand() % moves->numMoves];
             } else {
                 move = iterativeDeepeningSearch(state, alphaBetaTime);
@@ -261,7 +268,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         } else {
             numMoves = moves->numMoves;
 
-            if ((rand() % 100) < epsilon) {
+            if ((rand() % 100) < 10) {
                 move = moves->moves[rand() % moves->numMoves];
             } else {
                 double bestValue = -INFINITY;
@@ -328,7 +335,9 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
     }
 
     for (int i = 0; i < numPastStates; i++) {
-        backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &reward, 0.15);
+        reward = meanSquaredError(pastOutputs[i][0], reward);
+        feedForwardDense(trainer->net, (7 * 36), pastStates[i], 0.0);
+        backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &reward, trainer->learningRate);
     }
 
     for (int i = 0; i < numPastStates; i++) {
@@ -357,6 +366,7 @@ void trainHybrid(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
     bool agentPlaysWhite = true;
 
     for (int i = 1; i <= totalEpisodes; i++) {
+        trainer->learningRate = trainer->learningRate * trainer->learningRateUpdate;
         printf("Episode %d: Regular: W.Road %d, W.Flat %d, B.Road %d, B.Flat %d, Draw %d | AlphaBeta: Net %d, Alpha %d, Draw %d\n",
                i, regularWhiteRoads, regularWhiteFlats, regularBlackRoads, regularBlackFlats, regularDraws,
                alphaBetaNetWins, alphaBetaAlphaWins, alphaBetaDraws);

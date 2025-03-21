@@ -12,7 +12,7 @@
 
 extern Move killerMoves[MAX_DEPTH][KILLER_MOVES];
 extern int historyHeuristic[NUM_COLORS][TOTAL_SQUARES][TOTAL_SQUARES];
-static const u32 TRANSPOSITION_TABLE_SIZE = (1 << 29);
+static const u32 TRANSPOSITION_TABLE_SIZE = (1 << 26);
 
 typedef enum {UNDER, OVER, EXACT} EstimationType;
 

@@ -23,17 +23,16 @@ const char* generateMove(const char* gameStateJson, int time) {
         return NULL;
     }
     printf("Parsed TPS\n");
-    /* Move move = iterativeDeepeningSearch(state, time); */
+    Move move = iterativeDeepeningSearch(state, time);
 
-    DenseNeuralNet net;
-    printf("Loading neural net\n");
-    loadDenseNeuralNet(&net, "n_models/tak_model.weights_2");
-    printf("Loaded neural net\n");
+    /* DenseNeuralNet net; */
+    /* printf("Loading neural net\n"); */
+    /* loadDenseNeuralNet(&net, "n_models/tak_model.weights_2"); */
+    /* printf("Loaded neural net\n"); */
     /* loadWeights(agent, "model.weights"); */
-    Move move = monteCarloTreeSearch(state, time, &net);
+    /* Move move = monteCarloTreeSearch(state, time, &net); */
     char* moveStr = moveToString(&move);
     freeGameState(state);
-    /* freeQLearningAgent(agent); */
     printf("Move: %s\n", moveStr);
     return moveStr;
 }
@@ -56,7 +55,7 @@ void handleMessage(const char* msg) {
         if ((!swapFlag && strcmp(player, "White") == 0) 
                 || (swapFlag && strcmp(player, "Black") == 0)) {
             ourTurn = 1;
-            time = 3000;
+            time = 750;
         }
         printf("Player: %s, Our turn: %d\n", player, ourTurn);
 

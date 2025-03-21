@@ -29,6 +29,7 @@ typedef struct {
     DenseLayer* layers;
     int* layerSizes;
     int numLayers;
+
 } DenseNeuralNet;
 
 typedef enum {
@@ -36,6 +37,12 @@ typedef enum {
     Relu,
     Tanh
 } Activation;
+
+typedef enum {
+    MeanSquaredError,
+    CrossEntropy,
+    Softmax,
+} LossFunction;
 
 Neuron createNeuron(int numInputs, Activation act);
 

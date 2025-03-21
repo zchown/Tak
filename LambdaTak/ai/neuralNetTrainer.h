@@ -9,12 +9,13 @@
 
 typedef struct {
     DenseNeuralNet* net;
-    double epsilonDecay;
-    double minEpsilon;
+    double learningRateUpdate;
+    double minLearningRate;
+    double learningRate;
     int saveInterval;
 } Trainer;
 
-Trainer* createTrainer(DenseNeuralNet* net, double epsilonDecay, double minEpsilon, int saveInterval);
+Trainer* createTrainer(DenseNeuralNet* net, double learningRateUpdate, double minLearningRate, double learningRate, int saveInterval);
 void freeTrainer(Trainer* trainer);
 
 double* gameStateToVector(const GameState* state);
