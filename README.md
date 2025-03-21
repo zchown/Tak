@@ -11,7 +11,7 @@ This repository contains three integrated projects:
 
 ### 1. TakServer
 
-At the heart of this implementation is a powerful Haskell-based game server with several components:
+At the heart of this implementation is a Haskell-based game server with several components:
 
 - **Game Logic Library** (in `/Lib`): Contains both pure and stateful implementations of Tak's rules and mechanics:
   - The pure representation offers excellent composability and reasoning properties
@@ -29,10 +29,9 @@ At the heart of this implementation is a powerful Haskell-based game server with
 
 The frontend interface built with BabylonJS provides:
 
-- Rich 3D visualization of the game board and pieces
-- Comprehensive tutorial on game rules and strategy
+- 3D visualization of the game board and pieces
+- Simple tutorial on game rules and strategy
 - Support for move input using the standard [Portable Tak Notation (PTN)](https://ustak.org/portable-tak-notation/)
-- Responsive design for various screen sizes
 
 ### 3. LambdaTak
 
@@ -48,7 +47,7 @@ An advanced AI implementation focused on competitive play:
   - Has a good test suite in CUnit
   - Has a perft function for debugging and performance testing
 
-- **C-based Engine**: Reimplements core game logic for significant performance improvements
+- **C-based Engine**: 
 - **Search Optimizations**:
   - Alpha-beta pruning within a negamax framework
   - Transposition tables with Zobrist hashing and linear probing

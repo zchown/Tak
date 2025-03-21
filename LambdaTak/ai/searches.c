@@ -6,13 +6,9 @@ static int transpositionFill = 0;
 TranspositionEntry* transpositionTable = NULL;
 
 Move iterativeDeepeningSearch(GameState* state, int timeLimit) {
-    /* printf("Starting search\n"); */
     if (!transpositionTable) {
         transpositionTable = malloc(sizeof(TranspositionEntry) * TRANSPOSITION_TABLE_SIZE);
     }
-
-    int conIndex = connectivityIndex(state);
-    /* printf("Connectivity index: %d\n", conIndex); */
 
     if (state->turnNumber < 3) {
         clearKillerMoves();
@@ -41,16 +37,13 @@ Move iterativeDeepeningSearch(GameState* state, int timeLimit) {
         hasValidMove = true;
 
         double elapsedTime = getTimeMs() - startTime;
-        /* double nps = (*nodes) / ((elapsedTime - prevTime)/ 1000.0); */
         if (timeLimit > 0 && elapsedTime >= timeLimit) {
-            /* printf("elapsedTime: %f, timeLimit: %d\n", elapsedTime, timeLimit); */
-            /* printf("Time limit reached\n"); */
             timeUp = true;
         }
         prevTime = elapsedTime;
     }
 
-    /* printSearchStats(&stats); */
+    printSearchStats(&stats);
     transpositionFill = stats.transpositionFill;
 
     return hasValidMove ? bestMove : (Move){0};
