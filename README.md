@@ -63,9 +63,13 @@ An advanced AI implementation focused on competitive play:
   - Connectivity index (a novel algorithm for efficiently estimating road-building potential)
     - This feature is useful as a dfs-based approach is computationally expensive
 
-- **Work in Progress**: Neural network and reinforcement learning approaches to overcome the limitations of traditional search techniques:
+- **Neural Network Integration**:
+  - Handmade neural network implementation using Apples Accelerate framework
+    - TODO: do conditional compilation for non m series macs using simd instructions instead
+  - Netork trainer to train the network on self play and against an alpha beta search
+
+- **Work in Progress**
   - Monte Carlo Tree Search implementation (currently limited by lack of policy network)
-  - Preliminary machine learning integration
 
 ## Setup and Running
 
@@ -88,5 +92,21 @@ Uses CMake build system with the following dependencies:
 - CUnit (for testing)
 - Janson (for JSON parsing)
 - libwebsockets (for WebSocket communication)
+- Accelerate (for neural network)
+    - WIP: offer a non-m series mac version using simd instructions instead
 
-Build with standard CMake commands after installing dependencies.
+1. Navigate to the LambdaTak directory
+2. To build project in debug mode:
+   `cmake -B build-debug -DCMAKE_BUILD_TYPE=Debug
+   cmake --build build-debug`
+3. To build project in release mode:
+    `cmake -B build-release -DCMAKE_BUILD_TYPE=Release
+    cmake --build build-release`
+4. To run the project:
+    `./build-debug/LambdaTak` 
+    or
+    `./build-release/LambdaTak`
+5. To run the tests:
+    `./build-debug/LambdaTak-test`
+6. To run the neural network trainer:
+    `./build-release/trainTak`
