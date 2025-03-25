@@ -9,8 +9,50 @@ Trainer* createTrainer(DenseNeuralNet* net, double learningRateUpdate, double mi
     trainer->saveInterval = saveInterval;
     return trainer;
 }
+
 void freeTrainer(Trainer* trainer) {
     free(trainer);
+}
+
+double calculateTimeAdjustedReward(int result, int numMoves, int maxMoves) {
+    double baseReward;
+    switch (result) {
+        case ROAD_WHITE:
+            baseReward = 1.0;
+            break;
+        case FLAT_WHITE:
+            baseReward = 0.6;
+            break;
+        case ROAD_BLACK:
+            baseReward = 0.0;
+            break;
+        case FLAT_BLACK:
+            baseReward = 0.4;
+            break;
+        case DRAW:
+            baseReward = 0.5;
+            break;
+        default:
+            baseReward = 0.5;
+            break;
+    }
+
+    double moveFactor = 1.0 - ((double)numMoves / maxMoves);
+    moveFactor *= moveFactor;
+    double toReturn = baseReward;
+
+    if (baseReward > 0.5) {  // Win for White
+        toReturn = baseReward + (moveFactor * 0.5);
+        if (toReturn < 0.5) {
+            toReturn = 0.5;
+        }
+    } else if (baseReward < 0.5) {  
+        toReturn = baseReward - (moveFactor * 0.5);
+        if (toReturn > 0.5) {
+            toReturn = 0.5;
+        }
+    }
+    return toReturn;
 }
 
 void train(Trainer* trainer, int totalEpisodes) {
@@ -45,7 +87,7 @@ void train(Trainer* trainer, int totalEpisodes) {
                 break;
         }
         if (i % trainer->saveInterval == 0) {
-            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_3");
+            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_large");
         }
 
     }
@@ -68,7 +110,7 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
         numPastStates++;
         double pReward = pseudoReward(state);
 
-        pReward = meanSquaredError(outputs[0], pReward);
+        /* pReward = meanSquaredError(outputs[0], pReward); */
 
         backpropagateDense(trainer->net, inputs, outputs, &pReward, trainer->learningRate);
 
@@ -77,7 +119,7 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
 
         Move move = moves->moves[rand() % moves->numMoves];
 
-        if ((rand() % 100) < 15) {
+        if ((rand() % 100) < 1) {
             move = moves->moves[rand() % moves->numMoves];
         } else {
             double bestValue = -INFINITY;
@@ -105,34 +147,22 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
         freeGeneratedMoves(moves);
     }
 
-    double reward = 0;
+    int gameResult = checkGameResult(state);
     int toReturn = 0;
-    switch (checkGameResult(state)) {
-        case ROAD_WHITE:
-            reward = 1.0;
-            toReturn = 2;
-            break;
-        case FLAT_WHITE:
-            reward = 0.8;
-            toReturn = 1;
-            break;
-        case ROAD_BLACK:
-            reward = 0.0;
-            toReturn = -2;
-            break;
-        case FLAT_BLACK:
-            reward = 0.2;
-            toReturn = -1;
-            break;
-        case DRAW:
-            reward = 0.0;
-            break;
-        default:
-            break;
+    
+    // Map the game result to the return value
+    switch (gameResult) {
+        case ROAD_WHITE: toReturn = 2; break;
+        case FLAT_WHITE: toReturn = 1; break;
+        case ROAD_BLACK: toReturn = -2; break;
+        case FLAT_BLACK: toReturn = -1; break;
+        case DRAW: toReturn = 0; break;
+        default: break;
     }
+    
+    double reward = calculateTimeAdjustedReward(gameResult, numPastStates, 225);
 
     for (int i = 0; i < numPastStates; i++) {
-        reward = meanSquaredError(pastOutputs[i][0], reward);
         feedForwardDense(trainer->net, (7 * 36), pastStates[i], 0.0);
         backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &reward, trainer->learningRate);
     }
@@ -143,26 +173,23 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
     }
     free(pastStates);
     free(pastOutputs);
+    freeGameState(state);
     printf("numPastStates: %d\n", numPastStates);
     return toReturn;
 }
 
 
 double pseudoReward(const GameState* state) {
-    double toReturn = (__builtin_popcount(state->whiteControlled) 
-            - __builtin_popcount(state->blackControlled) - KOMI) / 36.0;
+    /* double toReturn = (__builtin_popcount(state->whiteControlled)  */
+            /* - __builtin_popcount(state->blackControlled) - KOMI) / 36.0; */
     int connectivity = connectivityIndex(state);
+    double toReturn = 0;
     if (connectivity > 0) {
-        toReturn += 0.1;
+        toReturn += 0.4;
     } else if (connectivity < 0) {
-        toReturn -= 0.1;
+        toReturn -= 0.4;
     }
     toReturn += 0.5;
-    if (toReturn > 1.0) {
-        toReturn = 1.0;
-    } else if (toReturn < 0) {
-        toReturn = 0.0;
-    }
     return toReturn;
 }
 
@@ -231,7 +258,7 @@ void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
         }
 
         if (i % trainer->saveInterval == 0) {
-            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_3");
+            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_large");
         }
         agentPlaysWhite = !agentPlaysWhite;
     }
@@ -254,7 +281,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         numPastStates++;
         double pReward = pseudoReward(state);
 
-        pReward = meanSquaredError(outputs[0], pReward);
+        /* pReward = meanSquaredError(outputs[0], pReward); */
         backpropagateDense(trainer->net, inputs, outputs, &pReward, trainer->learningRate);
 
         GeneratedMoves* moves = generateAllMoves(state, numMoves);
@@ -268,7 +295,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         } else {
             numMoves = moves->numMoves;
 
-            if ((rand() % 100) < 10) {
+            if ((rand() % 100) < 1) {
                 move = moves->moves[rand() % moves->numMoves];
             } else {
                 double bestValue = -INFINITY;
@@ -302,40 +329,27 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         makeMoveNoChecks(state, &move, false);
     }
 
-    double reward = 0;
+    int gameResult = checkGameResult(state);
     int toReturn = 0;
-    printf("Game result: %d\n", checkGameResult(state));
-    switch (checkGameResult(state)) {
-        case ROAD_WHITE:
-            reward = 1.0;
-            toReturn = 2;
-            break;
-        case FLAT_WHITE:
-            reward = 0.8;
-            toReturn = 1;
-            break;
-        case ROAD_BLACK:
-            reward = 0.0;
-            toReturn = -2;
-            break;
-        case FLAT_BLACK:
-            reward = 0.2;
-            toReturn = -1;
-            break;
-        case DRAW:
-            reward = 0.5;
-            toReturn = 0;
-            break;
-        default:
-            break;
+
+    switch (gameResult) {
+        case ROAD_WHITE: toReturn = 2; break;
+        case FLAT_WHITE: toReturn = 1; break;
+        case ROAD_BLACK: toReturn = -2; break;
+        case FLAT_BLACK: toReturn = -1; break;
+        case DRAW: toReturn = 0; break;
+        default: break;
     }
 
-    if (!agentPlaysWhite) {
-        toReturn *= -1;
-    }
+    double reward = calculateTimeAdjustedReward(gameResult, numPastStates, 100);
+
+    /* if (!agentPlaysWhite) { */
+        /* toReturn *= -1; */
+        /* reward = 1.0 - reward; */
+    /* } */
 
     for (int i = 0; i < numPastStates; i++) {
-        reward = meanSquaredError(pastOutputs[i][0], reward);
+        /* double treward = meanSquaredError(pastOutputs[i][0], reward); */
         feedForwardDense(trainer->net, (7 * 36), pastStates[i], 0.0);
         backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &reward, trainer->learningRate);
     }
@@ -405,7 +419,7 @@ void trainHybrid(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
         }
 
         if (i % trainer->saveInterval == 0) {
-            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_3");
+            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_large");
         }
     }
     printf("\n");

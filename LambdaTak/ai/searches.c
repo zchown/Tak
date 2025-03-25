@@ -43,7 +43,7 @@ Move iterativeDeepeningSearch(GameState* state, int timeLimit) {
         prevTime = elapsedTime;
     }
 
-    printSearchStats(&stats);
+    /* printSearchStats(&stats); */
     transpositionFill = stats.transpositionFill;
 
     return hasValidMove ? bestMove : (Move){0};
@@ -272,10 +272,7 @@ const TranspositionEntry* lookupTranspositionTable(ZobristKey hash, int depth, i
 
         if (te->hash == hash) {  
             stats->transpositionHits++;
-            if (te->depth >= depth) {
-                stats->transpositionCutOffs++;
-                return te;
-            }
+            return te;
         } else if (te->hash == 0) {
             break;
         }
@@ -290,29 +287,44 @@ void updateTranspositionTable(ZobristKey hash, int score, EstimationType type, M
     u32 index = zobristToIndex(hash);
     stats->transpositionTableUpdates++;
 
+    u32 lowest_depth_index = index;
+    int lowest_depth = transpositionTable[index].depth;
+
     for (int i = 0; i < 8; i++) {
         u32 probe = (index + i) & (TRANSPOSITION_TABLE_SIZE - 1);
         TranspositionEntry* te = &transpositionTable[probe];
 
-        if (te->hash == 0 || te->depth < depth) {
-            if (te->hash == 0) {
-                stats->transpositionFill++;
-            } else if (te->depth < depth) {
-                stats->transpositionDepthRewrites++;
-            }
-
-            *te = (TranspositionEntry){ 
-                .hash = hash, 
-                    .score = score, 
-                    .type = type, 
-                    .move = move, 
-                    .depth = depth
-            };
+        if (te->hash == 0) {
+            stats->transpositionFill++;
+            te->hash = hash;
+            te->score = score;
+            te->type = type;
+            te->move = move;
+            te->depth = depth;
             return;
+        } else if ((te->hash == hash) && (te->depth < depth)) {
+            stats->transpositionDepthRewrites++;
+            te->score = score;
+            te->type = type;
+            te->move = move;
+            te->depth = depth;
+            return;
+        } else if (te->depth < lowest_depth) {
+            lowest_depth = te->depth;
+            lowest_depth_index = probe;
         }
     }
-
     stats->transpositionCollisions++;
+
+    if (depth > lowest_depth) {
+        stats->transpositionDepthRewrites++;
+        TranspositionEntry* te = &transpositionTable[lowest_depth_index];
+        te->hash = hash;
+        te->score = score;
+        te->type = type;
+        te->move = move;
+        te->depth = depth;
+    }
 }
 
 #pragma inline

@@ -409,7 +409,7 @@ void loadDenseNeuralNet(DenseNeuralNet* net, const char* filename) {
         fread(&layer->inputSize, sizeof(int), 1, file);
         layer->neurons = (Neuron*)malloc(layer->numNeurons * sizeof(Neuron));
         layer->outputs = (double*)malloc(layer->numNeurons * sizeof(double));
-        Activation defaultAct = Sigmoid;
+        Activation defaultAct = Relu;
         for (int j = 0; j < layer->numNeurons; j++) {
             Neuron* neuron = &layer->neurons[j];
             fread(&neuron->bias, sizeof(double), 1, file);
