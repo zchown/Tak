@@ -24,11 +24,11 @@ int main() {
     DenseNeuralNet net = createDenseNeuralNet(layerSizes, numLayers, Relu);
 
     loadDenseNeuralNet(&net, "n_models/tak_model.weights_large");
-    Trainer* trainer = createTrainer(&net, 0.9, 0.005, 0.05, 100);
+    Trainer* trainer = createTrainer(&net, 0.9, 0.005, 0.1, 100);
 
     printf("Training\n");
-    trainHybrid(trainer, 5000000, 100);
-    /* trainAlphaBeta(trainer, 5000000, 100); */
+    /* trainHybrid(trainer, 5000000, 100); */
+    trainAlphaBeta(trainer, 5000000, 100);
     /* train(trainer, 5000000); */
 
     // fun to look at

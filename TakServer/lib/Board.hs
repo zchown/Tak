@@ -113,6 +113,9 @@ data GameState = GameState
   , gameHistory :: History
   } deriving (Show, Eq, Generic)
 
+komi :: Float
+komi = 0.5
+
 instance Ord GameState where
   compare gs1 gs2 = compare (compute gs1) (compute gs2)
     where
@@ -145,11 +148,11 @@ checkGameResult gs =
     r -> r
 
 checkFullBoard :: Board -> Bool -> Result
-checkFullBoard b f = go 1 1 (0, 0)
+checkFullBoard b f = go 1 1 (0.0, komi)
   where
     n = nrows b
     m = ncols b
-    go :: Int -> Int -> (Int, Int) -> Result
+    go :: Int -> Int -> (Float, Float) -> Result
     go x y c@(wc, bc)
       | x > n = go 1 (y + 1) c
       | y >= m =
@@ -162,10 +165,10 @@ checkFullBoard b f = go 1 1 (0, 0)
       | null (getElem x y b) = go (x + 1) y c
       | otherwise = go (x + 1) y $ addCount c
       where
-        addCount :: (Int, Int) -> (Int, Int)
+        addCount :: (Float, Float) -> (Float, Float)
         addCount (wc', bc')
-          | pc (head (getElem x y b)) == White = (wc' + 1, bc')
-          | pc (head (getElem x y b)) == Black = (wc', bc' + 1)
+          | pc (head (getElem x y b)) == White = (wc' + 1.0, bc')
+          | pc (head (getElem x y b)) == Black = (wc', bc' + 1.0)
           | otherwise = (wc, bc)
 
 checkReservesDraw :: Reserves -> Reserves -> Maybe Result
