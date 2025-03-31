@@ -193,35 +193,6 @@ double pseudoReward(const GameState* state) {
     return toReturn;
 }
 
-// 0-1 normalized
-// -1-1 was giving me issues previously
-double* gameStateToVector(const GameState* state) {
-    // top 7 pieces for each square
-    double* vector = (double*)malloc(TOTAL_SQUARES * (BOARD_SIZE + 1) * sizeof(double));
-    for (int i = 0; i < TOTAL_SQUARES; i++) {
-        Square sq = state->board->squares[i];
-        int curIndex = sq.numPieces - 1;
-        for (int j = 0; j < (BOARD_SIZE + 1); j++) {
-            if (curIndex >= 0) {
-                if (sq.pieces[curIndex].stone == FLAT) {
-                    vector[i * (BOARD_SIZE + 1) + j] = 0.8;
-                } else if (sq.pieces[curIndex].stone == STANDING) {
-                    vector[i * (BOARD_SIZE + 1) + j] = 0.6;
-                } else {
-                    vector[i * (BOARD_SIZE + 1) + j] = 0.0;
-                }
-                if (sq.pieces[curIndex].color == BLACK) {
-                    vector[i * (BOARD_SIZE + 1) + j] = 1.0 - vector[i * (BOARD_SIZE + 1) + j];
-                }
-                curIndex--;
-            } else {
-                vector[i * (BOARD_SIZE + 1) + j] = 0.0;
-            }
-        }
-
-    }
-    return vector;
-}
 
 void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
     printf("Training for %d episodes\n", totalEpisodes);
@@ -295,7 +266,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         } else {
             numMoves = moves->numMoves;
 
-            if ((rand() % 100) < 1) {
+            if ((rand() % 100) < 10) {
                 move = moves->moves[rand() % moves->numMoves];
             } else {
                 double bestValue = -INFINITY;

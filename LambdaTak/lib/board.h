@@ -17,7 +17,7 @@
 #define TOTAL_SQUARES (BOARD_SIZE * BOARD_SIZE)
 #define MAX_PICKUP BOARD_SIZE
 #define MAX_DROPS (MAX_PICKUP - 1)
-#define KOMI 0
+#define KOMI 0.5
 
 #define STONES_PER_PLAYER 30
 #define CAPS_PER_PLAYER 1
@@ -222,6 +222,9 @@ void printSquare(const Square* square);
 void printBoard(const Board* board);
 void printGameState(const GameState* state);
 void printBitboard(Bitboard bitboard);
+
+// for neural networks
+double* gameStateToVector(const GameState* state);
 
 #endif // BOARD_H
 

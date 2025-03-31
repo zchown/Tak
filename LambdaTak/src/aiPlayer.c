@@ -1,5 +1,7 @@
 #include "aiPlayer.h"
 
+static DenseNeuralNet net;
+
 void sendConnectionMessage(void) {
     char msg[256];
     snprintf(msg, sizeof(msg), "{\"gameId\":\"%s\"}", GAME_ID);
@@ -25,11 +27,6 @@ const char* generateMove(const char* gameStateJson, int time) {
     printf("Parsed TPS\n");
     Move move = iterativeDeepeningSearch(state, time);
 
-    /* DenseNeuralNet net; */
-    /* printf("Loading neural net\n"); */
-    /* loadDenseNeuralNet(&net, "n_models/tak_model.weights_2"); */
-    /* printf("Loaded neural net\n"); */
-    /* loadWeights(agent, "model.weights"); */
     /* Move move = monteCarloTreeSearch(state, time, &net); */
     char* moveStr = moveToString(&move);
     freeGameState(state);
@@ -50,12 +47,12 @@ void handleMessage(const char* msg) {
     if (curPlayer && json_is_string(curPlayer) && swap && json_is_boolean(swap)) {
         const char* player = json_string_value(curPlayer);
         int swapFlag = json_boolean_value(swap);
-        int ourTurn = 0;
-        int time = 1000;
+        int ourTurn = 1;
+        int time = 500;
         if ((!swapFlag && strcmp(player, "White") == 0) 
                 || (swapFlag && strcmp(player, "Black") == 0)) {
-            ourTurn = 1;
-            time = 750;
+            ourTurn = 0;
+            time = 500;
         }
         printf("Player: %s, Our turn: %d\n", player, ourTurn);
 
@@ -113,6 +110,12 @@ int runAI() {
     struct lws_client_connect_info connectInfo;
     struct lws_context* context;
     const char* address = SERVER_IP;
+
+    int layerSizes[] = {(7 * TOTAL_SQUARES), (7 * TOTAL_SQUARES), (7 * TOTAL_SQUARES), 252, 252, 252, 64, 64, 32, 32, 16, 16, 8, 4, 1};
+    int numLayers = 15;
+
+    net = createDenseNeuralNet(layerSizes, numLayers, Relu);
+    loadDenseNeuralNet(&net, "n_models/tak_model.weights_large");
 
     memset(&info, 0, sizeof(info));
     info.port = CONTEXT_PORT_NO_LISTEN;

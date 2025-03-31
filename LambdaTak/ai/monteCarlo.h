@@ -21,7 +21,7 @@ typedef struct MCTSNode {
 #define DEFAULT_UCT_CONSTANT 1.41421356237  // sqrt(2)
 #define MAX_MCTS_ITERATIONS 1000
 #define MIN_PLAYOUTS_PER_NODE 1
-#define MAX_TURNS 5
+#define MAX_TURNS 1
 
 #define MCTSNODE_VALUE(node) ((node)->valueSum / (double)(node)->numVisits)
 #define MCTSNODE_EXPANDED(node) ((node)->numChildren > 0)

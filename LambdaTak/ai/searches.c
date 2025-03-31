@@ -8,6 +8,7 @@ TranspositionEntry* transpositionTable = NULL;
 Move iterativeDeepeningSearch(GameState* state, int timeLimit) {
     if (!transpositionTable) {
         transpositionTable = malloc(sizeof(TranspositionEntry) * TRANSPOSITION_TABLE_SIZE);
+        setupNN();
     }
 
     if (state->turnNumber < 3) {
@@ -121,9 +122,18 @@ int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* t
     const TranspositionEntry* te = lookupTranspositionTable(state->hash, depth, alpha, beta, stats);
     if (te) {
         switch (te->type) {
-            case EXACT: return te->score;
-            case UNDER: if (te->score <= alpha) return alpha; break;
-            case OVER: if (te->score >= beta) return beta; break;
+            case EXACT: {
+                            stats->transpositionCutOffs++;
+                            return te->score;
+                        }
+            case UNDER: if (te->score <= alpha) {
+                            stats->transpositionCutOffs++;
+                            return alpha; break;
+                        }
+            case OVER: if (te->score >= beta) {
+                           stats->transpositionCutOffs++;
+                           return beta; break;
+                       }
         }
     }
 

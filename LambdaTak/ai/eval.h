@@ -3,6 +3,7 @@
 
 #include "../lib/board.h"
 #include "../lib/moves.h"
+#include "neuralNetworks.h"
 #include <limits.h>
 
 #define WHITE_ROAD_WIN INT_MAX
@@ -50,6 +51,9 @@ static const int centrality[TOTAL_SQUARES] = {
 #define GET_NEIGHBORS(pos) (1ULL << (pos - 1) | 1ULL << (pos + 1) | 1ULL << (pos - 6) | 1ULL << (pos + 6))
 
 int evaluate(GameState* state);
+int evaluateWithNN(GameState* state);
+
+void setupNN(void);
 
 int calculateFlatDiff(GameState* state);
 int calculateLongRowCol(GameState* state);

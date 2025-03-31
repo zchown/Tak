@@ -28,7 +28,7 @@ int main() {
 
     printf("Training\n");
     /* trainHybrid(trainer, 5000000, 100); */
-    trainAlphaBeta(trainer, 5000000, 100);
+    trainAlphaBeta(trainer, 5000000, 50);
     /* train(trainer, 5000000); */
 
     // fun to look at

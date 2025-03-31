@@ -18,7 +18,6 @@ typedef struct {
 Trainer* createTrainer(DenseNeuralNet* net, double learningRateUpdate, double minLearningRate, double learningRate, int saveInterval);
 void freeTrainer(Trainer* trainer);
 
-double* gameStateToVector(const GameState* state);
 double pseudoReward(const GameState* state);
 
 void train(Trainer* trainer, int totalEpisodes);
