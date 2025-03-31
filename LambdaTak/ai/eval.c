@@ -3,49 +3,49 @@
 static DenseNeuralNet net;
 
 int evaluate(GameState* state) {
-    return evaluateWithNN(state);
-    /* int score = calculateFlatDiff(state); */
-    /* score += PATH_BONUS * connectivityIndex(state); */
-    /* score += calculateLongRowCol(state); */
-    /* score += squareLoop(state); */
-    /*  */
-    /* score += CONTROL_CALCULATION(state); */
-    /*  */
-    /* score += WALL_BONUS * (__builtin_popcountll(state->standingStones & state->whiteControlled) - __builtin_popcountll(state->standingStones & state->blackControlled)); */
-    /*  */
-    /*  */
-    /* int whiteEncoragement = state->player1.stones - 18; */
-    /* if (whiteEncoragement > 0) { */
-    /*     score -= ENCOURAGE_PLACEMENT * whiteEncoragement * whiteEncoragement; */
-    /* } */
-    /*  */
-    /* int blackEncoragement = state->player2.stones - 18; */
-    /* if (blackEncoragement > 0) { */
-    /*     score += ENCOURAGE_PLACEMENT * blackEncoragement * blackEncoragement; */
-    /* } */
-    /*  */
-    /* whiteEncoragement = __builtin_popcountll(state->whiteControlled) - 12; */
-    /* if (whiteEncoragement < 0) { */
-    /*     score += CONTROL_BONUS * whiteEncoragement * whiteEncoragement; */
-    /* } */
-    /*  */
-    /* blackEncoragement = __builtin_popcountll(state->blackControlled) - 12; */
-    /* if (blackEncoragement < 0) { */
-    /*     score -= CONTROL_BONUS * blackEncoragement * blackEncoragement; */
-    /* } */
-    /*  */
-    /* if (state->turn == WHITE) { */
-    /*     score += FLAT_SCORE; */
-    /* } else { */
-    /*     score -= FLAT_SCORE; */
-    /* } */
-    /*  */
-    /* return score; */
+    /* return evaluateWithNN(state); */
+    int score = calculateFlatDiff(state);
+    score += PATH_BONUS * connectivityIndex(state);
+    score += calculateLongRowCol(state);
+    score += squareLoop(state);
+
+    score += CONTROL_CALCULATION(state);
+
+    score += WALL_BONUS * (__builtin_popcountll(state->standingStones & state->whiteControlled) - __builtin_popcountll(state->standingStones & state->blackControlled));
+
+
+    int whiteEncoragement = state->player1.stones - 18;
+    if (whiteEncoragement > 0) {
+        score -= ENCOURAGE_PLACEMENT * whiteEncoragement * whiteEncoragement;
+    }
+
+    int blackEncoragement = state->player2.stones - 18;
+    if (blackEncoragement > 0) {
+        score += ENCOURAGE_PLACEMENT * blackEncoragement * blackEncoragement;
+    }
+
+    whiteEncoragement = __builtin_popcountll(state->whiteControlled) - 12;
+    if (whiteEncoragement < 0) {
+        score += CONTROL_BONUS * whiteEncoragement * whiteEncoragement;
+    }
+
+    blackEncoragement = __builtin_popcountll(state->blackControlled) - 12;
+    if (blackEncoragement < 0) {
+        score -= CONTROL_BONUS * blackEncoragement * blackEncoragement;
+    }
+
+    if (state->turn == WHITE) {
+        score += FLAT_SCORE;
+    } else {
+        score -= FLAT_SCORE;
+    }
+
+    return score;
 }
 
 int evaluateWithNN(GameState* state) {
     double* result = feedForwardDense(&net, 7 * 36, gameStateToVector(state), 0.0);
-    return (int)(result[0] * 100000);
+    return (int)(result[0] * 10000);
 }
 
 void setupNN(void) {

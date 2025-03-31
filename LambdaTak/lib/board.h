@@ -131,6 +131,7 @@ typedef struct GameHistory {
     struct GameHistory* next;
 } GameHistory;
 
+
 typedef struct {
     GameHistory* history;
     Reserves player1;
