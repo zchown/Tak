@@ -9,6 +9,7 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+#include <Accelerate/Accelerate.h>
 
 typedef struct {
     double bias;

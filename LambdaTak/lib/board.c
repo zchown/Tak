@@ -370,6 +370,7 @@ PieceStack squareRemovePieces(GameState* state, Square* square, u8 numPieces) {
             square->blackStones++;
         }
     }
+
     return stack;
 }
 
@@ -864,3 +865,30 @@ double* gameStateToVector(const GameState* state) {
     return vector;
 }
 
+void updateSquareVector(GameState *state, int squareIndex) {
+    if (!state || !state->board) return;
+    Square *sq = &state->board->squares[squareIndex];
+    int curIndex = sq->numPieces - 1;
+    int baseIdx = squareIndex * (BOARD_SIZE + 1);
+    for (int j = 0; j < (BOARD_SIZE + 1); j++) {
+        double val = 0.0;
+        if (curIndex >= 0) {
+            // Determine base value from the stone type.
+            if (sq->pieces[curIndex].stone == FLAT) {
+                val = 0.8;
+            } else if (sq->pieces[curIndex].stone == STANDING) {
+                val = 0.6;
+            } else { // CAP
+                val = 0.0;
+            }
+            // Adjust value if the piece is black.
+            if (sq->pieces[curIndex].color == BLACK) {
+                val = 1.0 - val;
+            }
+            curIndex--;
+        } else {
+            val = 0.0;
+        }
+        state->gameVector[baseIdx + j] = val;
+    }
+}

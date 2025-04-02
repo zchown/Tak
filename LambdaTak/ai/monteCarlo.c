@@ -9,32 +9,45 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit, DenseNeuralNet* net) 
     Color rootColor = state->turn;
     MCTSNode* root = createMCTSNode(rootColor, NULL, 1.0, (Move){0});
 
-    // Expand root node
+    GeneratedMoves* gm = generateAllMoves(state, 512);
+    Move winningMove = {0};
+    bool foundWinningMove = false;
+    for (u32 i = 0; i < gm->numMoves && !foundWinningMove; i++) {
+        makeMoveNoChecks(state, &gm->moves[i], false);
+        Result result = checkGameResult(state);
+        if ((rootColor == WHITE && (result == ROAD_WHITE || result == FLAT_WHITE)) ||
+            (rootColor == BLACK && (result == ROAD_BLACK || result == FLAT_BLACK))) {
+            winningMove = gm->moves[i];
+            foundWinningMove = true;
+        }
+        undoMoveNoChecks(state, &gm->moves[i], false);
+    }
+    if (foundWinningMove) {
+        freeGeneratedMoves(gm);
+        printf("Found winning move: %s\n", moveToString(&winningMove));
+        return winningMove;
+    }
+    freeGeneratedMoves(gm);
+
     expand(root, state, 1.0, net);
 
     int curIteration = 0;
     Move bestMove = {0};
     while (curIteration < MAX_MCTS_ITERATIONS && getTimeMs() < endTime) {
-        // Use the same state throughout - we'll make/unmake moves as we go
-        MCTSNode* selected = selectNodeWithMakeUnmake(root, state, net);
+        GameState* simState = copyGameState(state);
 
+        MCTSNode* selected = selectNode(root, simState, net);
         if (selected->numVisits < MIN_PLAYOUTS_PER_NODE) {
-            expand(selected, state, 1.0, net);
+            expand(selected, simState, 1.0, net);
         } 
 
-        // Simulate from current position
-        double value = simulateWithMakeUnmake(state, net);
-
-        // Restore state to root position by unmaking moves
-        restoreToRoot(selected, state);
-
-        // Update statistics
+        double value = simulate(simState, net);
         backup(selected, value);
 
+        freeGameState(simState);
         curIteration++;
     }
-
-    // Find best move based on visit count
+    
     MCTSNode* bestChild = NULL;
     int maxVisits = -1;
     for (u32 i = 0; i < root->numChildren; i++) {
@@ -59,7 +72,7 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit, DenseNeuralNet* net) 
     return bestMove;
 }
 
-MCTSNode* selectNodeWithMakeUnmake(MCTSNode* node, GameState* state, DenseNeuralNet* net) {
+MCTSNode* selectNode(MCTSNode* node, GameState* state, DenseNeuralNet* net) {
     MCTSNode* cur = node;
 
     while (cur && cur->numChildren > 0) {
@@ -76,29 +89,10 @@ MCTSNode* selectNodeWithMakeUnmake(MCTSNode* node, GameState* state, DenseNeural
         }
 
         cur = bestChild;
-        // Make the move to update the state
         makeMoveNoChecks(state, &cur->move, false);
     }
 
     return cur;
-}
-
-void restoreToRoot(MCTSNode* node, GameState* state) {
-    // Create a stack of moves to undo
-    Move moveStack[5];  // Adjust size based on your maximum tree depth
-    int stackSize = 0;
-
-    // Traverse up the tree to collect moves
-    MCTSNode* current = node;
-    while (current->parent) {
-        moveStack[stackSize++] = current->move;
-        current = current->parent;
-    }
-
-    // Undo all moves in reverse order
-    for (int i = 0; i < stackSize; i++) {
-        undoMoveNoChecks(state, &moveStack[i], false);
-    }
 }
 
 MCTSNode* expand(MCTSNode* node, GameState* state, double prior, DenseNeuralNet* net) {
@@ -108,107 +102,76 @@ MCTSNode* expand(MCTSNode* node, GameState* state, double prior, DenseNeuralNet*
     node->numChildren = gm->numMoves;
     Color childColor = oppositeColor(node->toPlay);
 
-    // Batch evaluation approach - prepare to evaluate all child positions at once
-    double** inputs = (double**)malloc(sizeof(double*) * gm->numMoves);
+    int moveScores[gm->numMoves];
+    int moveTotal = 0;
 
     for (u32 i = 0; i < gm->numMoves; i++) {
         Move move = gm->moves[i];
+        moveScores[i] = moveHeuristic(state, &move);
+        moveTotal += moveScores[i];
         makeMoveNoChecks(state, &move, false);
-
-        // Store game state representation for batch evaluation
-        inputs[i] = gameStateToVector(state);
-
-        // Undo the move to restore state
         undoMoveNoChecks(state, &move, false);
 
-        // Create node - we'll update the evaluation later
-        node->children[i] = createMCTSNode(childColor, node, prior, move);
+        // 0.5 is prior and is temporary
+        node->children[i] = createMCTSNode(childColor, node, 0.5, move);
     }
 
-    // Efficiently batch evaluate all positions
-    double* evaluations = batchEvaluateWithNN(inputs, gm->numMoves, net);
-
-    // Update nodes with evaluations and free memory
     for (u32 i = 0; i < gm->numMoves; i++) {
-        node->children[i]->prior = evaluations[i];
-        free(inputs[i]);  // Free the input vector
+        node->children[i]->prior = (double)moveScores[i] / (double)moveTotal;
     }
 
-    free(inputs);
-    free(evaluations);
     freeGeneratedMoves(gm);
     return node;
 }
 
-double simulateWithMakeUnmake(GameState* state, DenseNeuralNet* net) {
-    // Get neural network evaluation of current position
-    double* input = gameStateToVector(state);
-    double* output = feedForwardDense(net, 7 * 36, input, 0.0);
-    double nnEval = output[0];
+double simulate(GameState* state, DenseNeuralNet* net) {
 
-    free(input);
+    /* int i = 0; */
+    /* while (checkGameResult(state) == CONTINUE && i < MAX_TURNS) { */
+    /*     GeneratedMoves* moves = generateAllMoves(state, 512); */
+    /*     makeMoveNoChecks(state, &moves->moves[rand() % moves->numMoves], false); */
+    /*     freeGeneratedMoves(moves); */
+    /*     printf("Simulating move %d\n", i); */
+    /*     i++; */
+    /* } */
+
+    // 1.0 for WHITE win, -1.0 for BLACK win
+    Result result = checkGameResult(state);
+
+    double resultValue = 0;
+    switch (result) {
+        case ROAD_WHITE:
+        case FLAT_WHITE:
+            resultValue = 100.0;
+            break;
+        case ROAD_BLACK:
+        case FLAT_BLACK:
+            resultValue = -100.0;
+            break;
+        default:
+            resultValue = feedForwardDense(net, 7 * 36, state->gameVector, 0.0)[0];
+            break;
+    }
+    return resultValue;
+}
+
+void backup(MCTSNode* node, double value) {
+    MCTSNode* cur = node;
+    while (cur) {
+        cur->numVisits++;
+        cur->valueSum += (cur->toPlay == WHITE) ? value : -value;
+        value = -value;
+        cur = cur->parent;
+    }
+}
+
+double evaluateStateWithNN(GameState* state, DenseNeuralNet* net) {
+    double* output = feedForwardDense(net, 7 * 36, state->gameVector, 0.0);
+    double result = output[0];
     free(output);
-
-    // Store moves made during simulation to undo them later
-    Move moveStack[MAX_TURNS];
-    int numMoves = 0;
-
-    // Fast random rollout
-    int i = 0;
-    Result gameResult = CONTINUE;
-    while ((gameResult = checkGameResult(state)) == CONTINUE && i < MAX_TURNS) {
-        GeneratedMoves* moves = generateAllMoves(state, 512);
-        if (moves->numMoves == 0) break;
-
-        Move randomMove = moves->moves[rand() % moves->numMoves];
-        moveStack[numMoves++] = randomMove;
-
-        makeMoveNoChecks(state, &randomMove, false);
-        freeGeneratedMoves(moves);
-        i++;
-    }
-
-    // Determine result value
-    double resultValue = 0.0;
-    if (gameResult != CONTINUE) {
-        switch (gameResult) {
-            case ROAD_WHITE:
-            case FLAT_WHITE:
-                resultValue = 1.0;
-                break;
-            case ROAD_BLACK:
-            case FLAT_BLACK:
-                resultValue = -1.0;
-                break;
-            default:
-                resultValue = 0.0;
-                break;
-        }
-    }
-
-    // Undo all moves made during simulation
-    for (int j = numMoves - 1; j >= 0; j--) {
-        undoMoveNoChecks(state, &moveStack[j], false);
-    }
-
-    // Blend neural net evaluation with rollout result
-    return (gameResult != CONTINUE) ? resultValue : nnEval;
+    return result;
 }
 
-// Helper function for batch evaluations
-double* batchEvaluateWithNN(double** inputs, int numInputs, DenseNeuralNet* net) {
-    double* evaluations = (double*)malloc(sizeof(double) * numInputs);
-
-    // In a real implementation, you'd want to actually batch the evaluations
-    // through the neural network, but for now we'll just evaluate them individually
-    for (int i = 0; i < numInputs; i++) {
-        double* output = feedForwardDense(net, 7 * 36, inputs[i], 0.0);
-        evaluations[i] = output[0];
-        free(output);
-    }
-
-    return evaluations;
-}
 
 double ucbScore(MCTSNode* parent, MCTSNode* child) {
     if (child->numVisits < MIN_PLAYOUTS_PER_NODE) {
@@ -221,16 +184,6 @@ double ucbScore(MCTSNode* parent, MCTSNode* child) {
         child->prior * sqrt(log(parent->numVisits + 1) / (1 + child->numVisits));
 
     return exploitation + exploration;
-}
-
-void backup(MCTSNode* node, double value) {
-    MCTSNode* cur = node;
-    while (cur) {
-        cur->numVisits++;
-        cur->valueSum += (cur->toPlay == WHITE) ? value : -value;
-        value = -value;
-        cur = cur->parent;
-    }
 }
 
 MCTSNode* createMCTSNode(Color toPlay, MCTSNode* parent, double prior, Move move) {
@@ -262,3 +215,76 @@ static double getTimeMs() {
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return ts.tv_sec * 1000.0 + ts.tv_nsec / 1.0e6;
 }
+
+int moveHeuristic(const GameState* state, const Move* move) {
+    int score = 0;
+
+    Bitboard whiteControlled = state->whiteControlled;
+    Bitboard blackControlled = state->blackControlled;
+    Bitboard whiteInterest = (whiteControlled >> 6) | (whiteControlled << 6) | 
+        (whiteControlled >> 1) | (whiteControlled << 1);
+    Bitboard blackInterest = (blackControlled >> 6) | (blackControlled << 6) |
+        (blackControlled >> 1) | (blackControlled << 1);
+    whiteInterest = whiteInterest & state->emptySquares;
+    blackInterest = blackInterest & state->emptySquares;
+
+    Bitboard ourInterest = (state->turn == WHITE) ? whiteInterest : blackInterest;
+    Bitboard theirInterest = (state->turn == WHITE) ? blackInterest : whiteInterest;
+    Bitboard ofInterest = blackInterest | whiteInterest;
+
+    if (move->type == PLACE) {
+        if (move->move.place.stone == CAP) {
+            score += 1000;  // Capstone placements are high priority
+            if (ourInterest & move->move.place.pos) {
+                score += 1000;
+            }
+        } else if (move->move.place.stone == FLAT) {
+            score += 600;
+            if (ourInterest & move->move.place.pos) {
+                score += 1000;
+            }
+        } else {
+            score += 500;
+            if (theirInterest & move->move.place.pos) {
+                score += 1000;
+            }
+        }
+
+        int minStonesRemaining = (state->player1.stones < state->player2.stones) ? state->player1.stones : state->player2.stones;
+        if (minStonesRemaining < 10) {
+            score += 500 * (11 - minStonesRemaining);
+        }
+
+        // Favor central placements
+        score += 75 - (GET_X(abs(move->move.place.pos) - BOARD_SIZE / 2) +
+                GET_Y(abs(move->move.place.pos) - BOARD_SIZE / 2));
+        score += historyHeuristic[state->turn][move->move.place.pos][move->move.place.pos];
+    } 
+
+    else if (move->type == SLIDE) {
+        SlideMove mv = move->move.slide;
+        score += 400;
+
+        Bitboard mvBitboard = 0;
+        for (int i = 0; i < mv.count; i++) {
+            mvBitboard |= 1ULL << slidePosition(mv.startPos, mv.direction, i);
+        }
+        if (ofInterest & mvBitboard) {
+            score += 1000;
+        }
+
+        Bitboard enemyControlled = (state->turn == WHITE) ? blackControlled : whiteControlled;
+        if (enemyControlled & mvBitboard) {
+            score += 1000;
+        }
+
+        score += mv.count * mv.count * 10;
+    }
+
+    if (state->turnNumber < 3) {
+        score = 0 - score;
+    }
+
+    return score;
+}
+

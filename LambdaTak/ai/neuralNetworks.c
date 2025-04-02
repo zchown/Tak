@@ -1,4 +1,3 @@
-#include <Accelerate/Accelerate.h>
 #include "neuralNetworks.h"
 
 Neuron createNeuron(int numInputs, Activation act) {

@@ -120,6 +120,7 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move, bool doHistory) 
         Square* sq = readSquare(state->board, mv->pos);
         Piece piece = (Piece){mv->stone, mv->color};
         squareInsertPiece(state, sq, piece);
+        updateSquareVector(state, mv->pos);
         Reserves* reserves = (mv->color == WHITE) ? &state->player1 : &state->player2;
         if (mv->stone == FLAT || mv->stone == STANDING) {
             reserves->stones--;
@@ -133,6 +134,7 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move, bool doHistory) 
         const SlideMove* mv = &move->move.slide;
         Square* startSq = readSquare(state->board, mv->startPos);
         PieceStack stack = squareRemovePieces(state, startSq, mv->count);
+        updateSquareVector(state, mv->startPos);
 
         u8 slideLength = 0;
         while (slideLength < MAX_DROPS && ((mv->drops >> (slideLength * 3)) & 0x7)) {
@@ -237,6 +239,7 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move, bool doHistory) 
         const PlaceMove* mv = &move->move.place;
         Square* sq = readSquare(state->board, mv->pos);
         squareRemovePiece(state, sq);
+        updateSquareVector(state, mv->pos);
         Reserves* reserves = (mv->color == WHITE) ? &state->player1 : &state->player2;
         if (mv->stone == FLAT || mv->stone == STANDING) {
             reserves->stones++;
@@ -263,6 +266,8 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move, bool doHistory) 
 
             Square* sq = readSquare(state->board, curPos);
             PieceStack removed = squareRemovePieces(state, sq, dropCount);
+            updateSquareVector(state, curPos);
+
 
             combinedStack = combineStacks(&removed, &combinedStack);
 
@@ -270,6 +275,7 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move, bool doHistory) 
         }
 
         squareInsertPieces(state, readSquare(state->board, mv->startPos), &combinedStack);
+        updateSquareVector(state, mv->startPos);
 
         if (mv->crush == CRUSH) {
             Square* sq = readSquare(state->board, endPos);

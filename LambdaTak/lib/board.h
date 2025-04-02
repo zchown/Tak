@@ -131,8 +131,8 @@ typedef struct GameHistory {
     struct GameHistory* next;
 } GameHistory;
 
-
 typedef struct {
+    double gameVector[TOTAL_SQUARES * (BOARD_SIZE + 1)];
     GameHistory* history;
     Reserves player1;
     Reserves player2;
@@ -226,6 +226,7 @@ void printBitboard(Bitboard bitboard);
 
 // for neural networks
 double* gameStateToVector(const GameState* state);
+void updateSquareVector(GameState* state, int squareIndex);
 
 #endif // BOARD_H
 
