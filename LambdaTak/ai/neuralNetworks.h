@@ -51,7 +51,7 @@ DenseLayer createDenseLayer(int numNeurons, int numInputs, Activation act);
 
 DenseNeuralNet createDenseNeuralNet(int* layerSizes, int numLayers, Activation act);
 
-double* feedForwardDense(DenseNeuralNet* net, int inputSize, double* inputs, double dropout);
+double* feedForwardDense(DenseNeuralNet* net, int inputSize, double* inputs, double dropout, bool training);
 
 void backpropagateDense(DenseNeuralNet* net, double* inputs, double* outputs, double* expectedOutputs, double learningRate);
 

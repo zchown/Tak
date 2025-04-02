@@ -14,12 +14,20 @@ GameState* createGameState(void) {
     state->result = CONTINUE;
     state->history = NULL;
 
+
     state->whiteControlled = 0;
     state->blackControlled = 0;
     state->emptySquares = (1ULL << TOTAL_SQUARES) - 1;
     state->standingStones = 0;
     state->capstones = 0;
     state->hash = computeBoardHash(state);
+
+    double* gv = gameStateToVector(state);
+    for (int i = 0; i < 7 * 36; i++) {
+        state->gameVector[i] = gv[i];
+    }
+    free(gv);
+
     return state;
 }
 
@@ -46,6 +54,10 @@ GameState* copyGameState(const GameState* state) {
     newState->player2 = state->player2;
     newState->result = state->result;
     newState->history = copyHistory(state->history);
+
+    for (int i = 0; i < (7 * 36); i++) {
+        newState->gameVector[i] = state->gameVector[i];
+    }
 
     newState->whiteControlled = state->whiteControlled;
     newState->blackControlled = state->blackControlled;
@@ -891,4 +903,10 @@ void updateSquareVector(GameState *state, int squareIndex) {
         }
         state->gameVector[baseIdx + j] = val;
     }
+
+    double* gv = gameStateToVector(state);
+    for (int i = 0; i < 7 * 36; i++) {
+        state->gameVector[i] = gv[i];
+    }
+    free(gv);
 }

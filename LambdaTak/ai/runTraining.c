@@ -19,16 +19,22 @@ int main() {
     }
     printf("Number of weights: %d\n", numWeights);
 
+    int numNodes = 0;
+    for (int i = 0; i < numLayers; i++) {
+        numNodes += layerSizes[i];
+    }
+    printf("Number of nodes: %d\n", numNodes);
+
     printf("Creating neural net\n");
     // last layer is sigmoid hardcoded
     DenseNeuralNet net = createDenseNeuralNet(layerSizes, numLayers, Relu);
 
     loadDenseNeuralNet(&net, "n_models/tak_model.weights_large");
-    Trainer* trainer = createTrainer(&net, 0.9, 0.005, 0.1, 100);
+    Trainer* trainer = createTrainer(&net, 0.99, 0.005, 0.15, 100);
 
     printf("Training\n");
     /* trainHybrid(trainer, 5000000, 100); */
-    trainAlphaBeta(trainer, 5000000, 50);
+    trainAlphaBeta(trainer, 5000000, 25);
     /* train(trainer, 5000000); */
 
     // fun to look at

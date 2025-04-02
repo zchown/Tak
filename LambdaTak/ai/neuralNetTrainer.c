@@ -18,13 +18,13 @@ double calculateTimeAdjustedReward(int result, int numMoves, int maxMoves) {
     double baseReward;
     switch (result) {
         case ROAD_WHITE:
-            baseReward = 1.0;
+            baseReward = 0.9;
             break;
         case FLAT_WHITE:
             baseReward = 0.6;
             break;
         case ROAD_BLACK:
-            baseReward = 0.0;
+            baseReward = 0.1;
             break;
         case FLAT_BLACK:
             baseReward = 0.4;
@@ -42,15 +42,21 @@ double calculateTimeAdjustedReward(int result, int numMoves, int maxMoves) {
     double toReturn = baseReward;
 
     if (baseReward > 0.5) {  // Win for White
-        toReturn = baseReward + (moveFactor * 0.5);
+        toReturn = baseReward + (moveFactor * 0.1);
         if (toReturn < 0.5) {
             toReturn = 0.5;
         }
     } else if (baseReward < 0.5) {  
-        toReturn = baseReward - (moveFactor * 0.5);
+        toReturn = baseReward - (moveFactor * 0.1);
         if (toReturn > 0.5) {
             toReturn = 0.5;
         }
+    }
+
+    if (toReturn < 0.0) {
+        toReturn = 0.0;
+    } else if (toReturn > 1.0) {
+        toReturn = 1.0;
     }
     return toReturn;
 }
@@ -104,13 +110,11 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
     int numMoves = 512;
     while (checkGameResult(state) == CONTINUE) {
         double* inputs = gameStateToVector(state);
-        double* outputs = feedForwardDense(trainer->net, (7 * 36), inputs, 0.0);
+        double* outputs = feedForwardDense(trainer->net, (7 * 36), inputs, 0.0, true);
         pastStates[numPastStates] = inputs;
         pastOutputs[numPastStates] = outputs;
         numPastStates++;
         double pReward = pseudoReward(state);
-
-        /* pReward = meanSquaredError(outputs[0], pReward); */
 
         backpropagateDense(trainer->net, inputs, outputs, &pReward, trainer->learningRate);
 
@@ -119,29 +123,7 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
 
         Move move = moves->moves[rand() % moves->numMoves];
 
-        if ((rand() % 100) < 1) {
-            move = moves->moves[rand() % moves->numMoves];
-        } else {
-            double bestValue = -INFINITY;
-            if (state->turn == BLACK) {
-                bestValue = INFINITY;
-            }
-            for (int i = 0; i < moves->numMoves; i++) {
-                Move curMove = moves->moves[i];
-                makeMoveNoChecks(state, &curMove, false);
-
-                double* gameVector = gameStateToVector(state);
-                double* gameOutputs = feedForwardDense(trainer->net, (7 * 36), gameVector, 0.0);
-                if ((gameOutputs[0] > bestValue && state->turn == WHITE) || (gameOutputs[0] < bestValue && state->turn == BLACK)) {
-                    bestValue = gameOutputs[0];
-                    move = curMove;
-                }
-
-                undoMoveNoChecks(state, &curMove, false);
-                free(gameVector);
-                free(gameOutputs);
-            }
-        }
+        move = monteCarloTreeSearch(state, 50, trainer->net);
 
         makeMoveNoChecks(state, &move, false);
         freeGeneratedMoves(moves);
@@ -149,7 +131,7 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
 
     int gameResult = checkGameResult(state);
     int toReturn = 0;
-    
+
     // Map the game result to the return value
     switch (gameResult) {
         case ROAD_WHITE: toReturn = 2; break;
@@ -159,11 +141,11 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
         case DRAW: toReturn = 0; break;
         default: break;
     }
-    
+
     double reward = calculateTimeAdjustedReward(gameResult, numPastStates, 225);
 
     for (int i = 0; i < numPastStates; i++) {
-        feedForwardDense(trainer->net, (7 * 36), pastStates[i], 0.0);
+        feedForwardDense(trainer->net, (7 * 36), pastStates[i], 0.0, true);
         backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &reward, trainer->learningRate);
     }
 
@@ -180,16 +162,20 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
 
 
 double pseudoReward(const GameState* state) {
-    /* double toReturn = (__builtin_popcount(state->whiteControlled)  */
-            /* - __builtin_popcount(state->blackControlled) - KOMI) / 36.0; */
+    double toReturn = (__builtin_popcount(state->whiteControlled) 
+            - __builtin_popcount(state->blackControlled) - KOMI) / 36.0;
     int connectivity = connectivityIndex(state);
-    double toReturn = 0;
     if (connectivity > 0) {
-        toReturn += 0.4;
+        toReturn += 0.2;
     } else if (connectivity < 0) {
-        toReturn -= 0.4;
+        toReturn -= 0.2;
     }
     toReturn += 0.5;
+    if (toReturn < 0.0) {
+        toReturn = 0.0;
+    } else if (toReturn > 1.0) {
+        toReturn = 1.0;
+    }
     return toReturn;
 }
 
@@ -205,7 +191,9 @@ void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
     for (int i = 1; i <= totalEpisodes; i++) {
         trainer->learningRate = trainer->learningRate * trainer->learningRateUpdate;
         printf("Episode %d: Net Roads: %d, Net Flats: %d, Alpha Roads: %d, Alpha Flats: %d, Draws: %d\n",
-               i, netRoads, netFlats, alphaRoads, alphaFlats, draws);
+                i, netRoads, netFlats, alphaRoads, alphaFlats, draws);
+        free(transpositionTable);
+        transpositionTable = NULL;
         int r = trainEpisodeAlphaBeta(trainer, i, agentPlaysWhite, alphaBetaTime);
 
         switch (r) {
@@ -246,7 +234,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
     int numMoves = 512;
     while (checkGameResult(state) == CONTINUE) {
         double* inputs = gameStateToVector(state);
-        double* outputs = feedForwardDense(trainer->net, (7 * 36), inputs, 0.0);
+        double* outputs = feedForwardDense(trainer->net, (7 * 36), inputs, 0.0, true);
         pastStates[numPastStates] = inputs;
         pastOutputs[numPastStates] = outputs;
         numPastStates++;
@@ -258,43 +246,9 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         GeneratedMoves* moves = generateAllMoves(state, numMoves);
         Move move = moves->moves[rand() % moves->numMoves];
         if ((state->turn == WHITE && !agentPlaysWhite) || (state->turn == BLACK && agentPlaysWhite)){
-            if ((rand() % 100 < 10)) {
-                move = moves->moves[rand() % moves->numMoves];
-            } else {
-                move = iterativeDeepeningSearch(state, alphaBetaTime);
-            }
+            move = iterativeDeepeningSearch(state, alphaBetaTime);
         } else {
-            numMoves = moves->numMoves;
-
-            if ((rand() % 100) < 10) {
-                move = moves->moves[rand() % moves->numMoves];
-            } else {
-                double bestValue = -INFINITY;
-                if (!agentPlaysWhite) {
-                    bestValue = INFINITY;
-                }
-                for (int i = 0; i < moves->numMoves; i++) {
-                    Move curMove = moves->moves[i];
-                    makeMoveNoChecks(state, &curMove, false);
-
-                    double* gameVector = gameStateToVector(state);
-                    double* gameOutputs = feedForwardDense(trainer->net, (7 * 36), gameVector, 0.0);
-
-                    if (agentPlaysWhite && gameOutputs[0] > bestValue) {
-                        bestValue = gameOutputs[0];
-                        move = curMove;
-                    } else if (!agentPlaysWhite && gameOutputs[0] < bestValue) {
-                        bestValue = gameOutputs[0];
-                        move = curMove;
-                    }
-
-                    undoMoveNoChecks(state, &curMove, false);
-                    free(gameVector);
-                    free(gameOutputs);
-                }
-                freeGeneratedMoves(moves);
-            }
-
+            move = monteCarloTreeSearch(state, 100, trainer->net);
         }
 
         makeMoveNoChecks(state, &move, false);
@@ -312,17 +266,21 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         default: break;
     }
 
-    double reward = calculateTimeAdjustedReward(gameResult, numPastStates, 100);
+    if (!agentPlaysWhite) {
+        toReturn = -toReturn;
+    }
 
-    /* if (!agentPlaysWhite) { */
-        /* toReturn *= -1; */
-        /* reward = 1.0 - reward; */
-    /* } */
+    double reward = calculateTimeAdjustedReward(gameResult, numPastStates, 75);
 
     for (int i = 0; i < numPastStates; i++) {
-        /* double treward = meanSquaredError(pastOutputs[i][0], reward); */
-        feedForwardDense(trainer->net, (7 * 36), pastStates[i], 0.0);
-        backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &reward, trainer->learningRate);
+
+        double temp = reward;
+        temp -= 0.5;
+        double factor = 1.0 - ((double)i / numPastStates);
+        temp *= factor;
+        temp += 0.5;
+        feedForwardDense(trainer->net, (7 * 36), pastStates[i], 0.0, true);
+        backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &temp, trainer->learningRate);
     }
 
     for (int i = 0; i < numPastStates; i++) {

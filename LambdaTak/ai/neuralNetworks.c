@@ -79,7 +79,7 @@ void clipGradients(double* gradients, int size, double threshold) {
     }
 }
 
-double* feedForwardDense(DenseNeuralNet* net, int inputSize, double* inputs, double dropout) {
+double* feedForwardDense(DenseNeuralNet* net, int inputSize, double* inputs, double dropout, bool training) {
     if (!net || !inputs || inputSize <= 0) return NULL;
 
     // Find maximum layer size for workspace allocation
@@ -150,7 +150,13 @@ double* feedForwardDense(DenseNeuralNet* net, int inputSize, double* inputs, dou
         vDSP_vaddD(curOutput, 1, biases, 1, curOutput, 1, M);
 
         // Apply activation function
-        if (layer->neurons[0].activationFunction == sigmoid) {
+        if (layer->neurons[0].activationFunction == sigmoid && !training) {
+            // linear function instead
+            for (int j = 0; j < M; j++) {
+                curOutput[j] = curOutput[j];
+            }
+        }
+        else if (layer->neurons[0].activationFunction == sigmoid) {
             for (int j = 0; j < M; j++) {
                 curOutput[j] = sigmoid(curOutput[j]);
             }

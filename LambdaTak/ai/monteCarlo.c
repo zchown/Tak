@@ -1,33 +1,13 @@
 #include "monteCarlo.h"
 
 Move monteCarloTreeSearch(GameState* state, int timeLimit, DenseNeuralNet* net) {
-    printf("Starting MCTS with Neural Net\n");
+    /* printf("Starting MCTS with Neural Net\n"); */
 
     double startTime = getTimeMs();
     double endTime = startTime + timeLimit;
 
     Color rootColor = state->turn;
     MCTSNode* root = createMCTSNode(rootColor, NULL, 1.0, (Move){0});
-
-    GeneratedMoves* gm = generateAllMoves(state, 512);
-    Move winningMove = {0};
-    bool foundWinningMove = false;
-    for (u32 i = 0; i < gm->numMoves && !foundWinningMove; i++) {
-        makeMoveNoChecks(state, &gm->moves[i], false);
-        Result result = checkGameResult(state);
-        if ((rootColor == WHITE && (result == ROAD_WHITE || result == FLAT_WHITE)) ||
-            (rootColor == BLACK && (result == ROAD_BLACK || result == FLAT_BLACK))) {
-            winningMove = gm->moves[i];
-            foundWinningMove = true;
-        }
-        undoMoveNoChecks(state, &gm->moves[i], false);
-    }
-    if (foundWinningMove) {
-        freeGeneratedMoves(gm);
-        printf("Found winning move: %s\n", moveToString(&winningMove));
-        return winningMove;
-    }
-    freeGeneratedMoves(gm);
 
     expand(root, state, 1.0, net);
 
@@ -42,20 +22,23 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit, DenseNeuralNet* net) 
         } 
 
         double value = simulate(simState, net);
+        if (rootColor == BLACK) {
+            value = -value;
+        }
         backup(selected, value);
 
         freeGameState(simState);
         curIteration++;
     }
-    
+
     MCTSNode* bestChild = NULL;
     int maxVisits = -1;
     for (u32 i = 0; i < root->numChildren; i++) {
         MCTSNode* child = root->children[i];
-        printf("Move: %s, Visits: %d, Value: %f\n", 
-                moveToString(&child->move), 
-                child->numVisits, 
-                child->numVisits > 0 ? child->valueSum / child->numVisits : 0.0);
+        /* printf("Move: %s, Visits: %d, Value: %f\n",  */
+                /* moveToString(&child->move),  */
+                /* child->numVisits,  */
+                /* child->numVisits > 0 ? child->valueSum / child->numVisits : 0.0); */
 
         if (child->numVisits > maxVisits) {
             maxVisits = child->numVisits;
@@ -64,9 +47,9 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit, DenseNeuralNet* net) 
     }
     bestMove = bestChild ? bestChild->move : (Move){0};
 
-    printf("Best move: %s\n", moveToString(&bestMove));
-    printf("MCTS iterations: %d\n", curIteration);
-    printf("Score: %f\n", bestChild ? (bestChild->valueSum / bestChild->numVisits) : 0.0);
+    /* printf("Best move: %s\n", moveToString(&bestMove)); */
+    /* printf("MCTS iterations: %d\n", curIteration); */
+    /* printf("Score: %f\n", bestChild ? (bestChild->valueSum / bestChild->numVisits) : 0.0); */
 
     freeMCTSNode(root);
     return bestMove;
@@ -126,32 +109,25 @@ MCTSNode* expand(MCTSNode* node, GameState* state, double prior, DenseNeuralNet*
 
 double simulate(GameState* state, DenseNeuralNet* net) {
 
-    /* int i = 0; */
-    /* while (checkGameResult(state) == CONTINUE && i < MAX_TURNS) { */
-    /*     GeneratedMoves* moves = generateAllMoves(state, 512); */
-    /*     makeMoveNoChecks(state, &moves->moves[rand() % moves->numMoves], false); */
-    /*     freeGeneratedMoves(moves); */
-    /*     printf("Simulating move %d\n", i); */
-    /*     i++; */
-    /* } */
-
     // 1.0 for WHITE win, -1.0 for BLACK win
     Result result = checkGameResult(state);
 
+    double* gv = gameStateToVector(state);
     double resultValue = 0;
     switch (result) {
         case ROAD_WHITE:
         case FLAT_WHITE:
-            resultValue = 100.0;
+            resultValue = 100000000.0;
             break;
         case ROAD_BLACK:
         case FLAT_BLACK:
-            resultValue = -100.0;
+            resultValue = -100000000.0;
             break;
         default:
-            resultValue = feedForwardDense(net, 7 * 36, state->gameVector, 0.0)[0];
+            resultValue = feedForwardDense(net, 7 * 36, gv, 0.0, false)[0];
             break;
     }
+    free(gv);
     return resultValue;
 }
 
@@ -159,19 +135,11 @@ void backup(MCTSNode* node, double value) {
     MCTSNode* cur = node;
     while (cur) {
         cur->numVisits++;
-        cur->valueSum += (cur->toPlay == WHITE) ? value : -value;
+        cur->valueSum += value;
         value = -value;
         cur = cur->parent;
     }
 }
-
-double evaluateStateWithNN(GameState* state, DenseNeuralNet* net) {
-    double* output = feedForwardDense(net, 7 * 36, state->gameVector, 0.0);
-    double result = output[0];
-    free(output);
-    return result;
-}
-
 
 double ucbScore(MCTSNode* parent, MCTSNode* child) {
     if (child->numVisits < MIN_PLAYOUTS_PER_NODE) {

@@ -4,7 +4,7 @@
 #include "../lib/moves.h"
 #include "searches.h"
 #include "neuralNetworks.h"
-#include "neuralNetTrainer.h"
+/* #include "neuralNetTrainer.h" */
 
 typedef struct MCTSNode {
     int numVisits;

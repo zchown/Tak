@@ -4,9 +4,18 @@ DenseNeuralNet net;
 
 u64 perft(GameState* state, int depth, int currentDepth, u64 nodes, u32 prevMoves) {
 
+    double* gv = gameStateToVector(state);
+    for (int i = 0; i < 7 * 36; i++) {
+        if (gv[i] != state->gameVector[i]) {
+            printf("Mismatch at index %d: %f vs %f\n", i, gv[i], state->gameVector[i]);
+            exit(1);
+        }
+    }
+    free(gv);
+
     GeneratedMoves* moves;
     if (currentDepth == depth) {
-        feedForwardDense(&net, (7 * 36), state->gameVector, 0);
+        feedForwardDense(&net, (7 * 36), state->gameVector, 0, false);
         /* evaluate(state); */
         return 1;
         /* GeneratedMoves* moves = generateAllMoves(state, prevMoves); */

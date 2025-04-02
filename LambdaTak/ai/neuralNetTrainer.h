@@ -6,6 +6,7 @@
 #include "../lib/moves.h"
 #include "eval.h"
 #include "searches.h"
+#include "monteCarlo.h"
 
 typedef struct {
     DenseNeuralNet* net;
