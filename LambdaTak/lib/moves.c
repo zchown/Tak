@@ -439,6 +439,7 @@ void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Mo
 u8 numSteps(const GameState* state, Position pos, Direction dir) {
     u8 steps = 0;
     pos = nextPosition(pos, dir);
+    if (!VALID_POSITION(pos)) return steps;
     Bitboard posBit = 1ULL << pos;
 
     for (u8 i = 0; i < MAX_DROPS; i++) {

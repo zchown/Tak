@@ -3,7 +3,6 @@
 static DenseNeuralNet net;
 
 int evaluate(GameState* state) {
-    /* return evaluateWithNN(state); */
     int score = calculateFlatDiff(state);
     score += PATH_BONUS * connectivityIndex(state);
     score += calculateLongRowCol(state);
@@ -101,7 +100,7 @@ int calculateLongestDFS(GameState* state, Color player, Bitboard visited, int po
         return 0;
     }
 
-    Bitboard neighbours = GET_NEIGHBORS(pos);
+    Bitboard neighbours = getNeighbors(pos);
 
     Bitboard playerStones = (player == WHITE) ? state->whiteControlled : state->blackControlled;
 
@@ -154,7 +153,7 @@ int calculatePathScore(GameState* state) {
 int squareLoop(GameState* state) {
     int score = 0;
     Bitboard controlled = state->whiteControlled | state->blackControlled;
-    Bitboard controlledForLoop = controlled;
+    Bitboard controlledForLoop = controlled & ((1ULL << TOTAL_SQUARES) - 1);
     Bitboard wallCaps = state->capstones & state->standingStones;
 
     score += __builtin_popcountll(state->whiteControlled & wallCaps) * WALL_BONUS;
@@ -174,7 +173,7 @@ int squareLoop(GameState* state) {
                 score += 5 * CONTROL_BONUS * (centrality[pos] - 5);
             }
 
-            Bitboard neighbours = GET_NEIGHBORS(pos);
+            Bitboard neighbours = getNeighbors(pos);
             int whiteNeighbours = __builtin_popcountll(neighbours & state->whiteControlled);
             int blackNeighbours = __builtin_popcountll(neighbours & state->blackControlled);
 
@@ -190,7 +189,7 @@ int squareLoop(GameState* state) {
                     score += reserves * RESERVE_BONUS;
                 }
 
-                if (square->pieces[square->numPieces - 2].color == WHITE) {
+                if (square->numPieces >= 2 && square->pieces[square->numPieces - 2].color == WHITE) {
                     if ((state->standingStones | state->capstones) & (1ULL << pos)) {
                         score += 25 * RESERVE_BONUS;
                     } else {
@@ -219,7 +218,7 @@ int squareLoop(GameState* state) {
                 score -= 5 * CENTRALITY_BONUS * (centrality[pos] - 5);
             }
 
-            Bitboard neighbours = GET_NEIGHBORS(pos);
+            Bitboard neighbours = getNeighbors(pos);
             int blackNeighbours = __builtin_popcountll(neighbours & state->blackControlled);
             int whiteNeighbours = __builtin_popcountll(neighbours & state->whiteControlled);
 
@@ -235,7 +234,7 @@ int squareLoop(GameState* state) {
                     score -= reserves * RESERVE_BONUS;
                 }
 
-                if (square->pieces[square->numPieces - 2].color == BLACK) {
+                if (square->numPieces >= 2 && square->pieces[square->numPieces - 2].color == BLACK) {
                     if ((state->standingStones | state->capstones) & (1ULL << pos)) {
                         score -= 25 * RESERVE_BONUS;
                     } else {
@@ -329,34 +328,235 @@ int connectivityIndex(GameState* state) {
     Bitboard blackCaps = state->capstones & state->blackControlled;
     Bitboard standing = state->standingStones;
 
-    int whiteBoard[TOTAL_SQUARES];
-    int blackBoard[TOTAL_SQUARES];
-    int whiteBoard2[TOTAL_SQUARES];
-    int blackBoard2[TOTAL_SQUARES];
+    int whiteBoard[TOTAL_SQUARES] = {0};
+    int blackBoard[TOTAL_SQUARES] = {0};
+    int whiteBoard2[TOTAL_SQUARES] = {0};
+    int blackBoard2[TOTAL_SQUARES] = {0};
     int whiteMax = 0;
     int blackMax = 0;
 
-    // Process vertical connectivity (initial row + propagation)
-    #pragma unroll
-    PROCESS_INITIAL_POSITIONS(white, black, blackCaps, whiteBoard, 0)
-    #pragma unroll
-    PROCESS_INITIAL_POSITIONS(black, white, whiteCaps, blackBoard, 0)
-    
-    #pragma unroll
-    PROCESS_CONNECTIVITY(white, blackCaps, black, whiteBoard, 0)
-    #pragma unroll
-    PROCESS_CONNECTIVITY(black, whiteCaps, white, blackBoard, 0)
+    // Process initial positions for vertical connectivity
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        Position pos = SET_POS(0, i);
+        if (pos < TOTAL_SQUARES) {
+            if (state->whiteControlled & (1ULL << pos)) {
+                whiteBoard[pos] = 1;
+                // Subtract 5 if opponent's capstone is in this square
+                if (blackCaps & (1ULL << pos)) {
+                    whiteBoard[pos] -= 5;
+                }
+                // Subtract 4 if there's an opponent's standing stone
+                if (standing & (1ULL << pos) & state->blackControlled) {
+                    whiteBoard[pos] -= 4;
+                }
+            }
 
-    // Process horizontal connectivity (initial column + propagation)
-    #pragma unroll
-    PROCESS_INITIAL_POSITIONS(white, black, blackCaps, whiteBoard2, 1)
-    #pragma unroll
-    PROCESS_INITIAL_POSITIONS(black, white, whiteCaps, blackBoard2, 1)
-    
-    #pragma unroll
-    PROCESS_CONNECTIVITY(white, blackCaps, black, whiteBoard2, 1)
-    #pragma unroll
-    PROCESS_CONNECTIVITY(black, whiteCaps, white, blackBoard2, 1)
+            if (state->blackControlled & (1ULL << pos)) {
+                blackBoard[pos] = 1;
+                // Subtract 5 if opponent's capstone is in this square
+                if (whiteCaps & (1ULL << pos)) {
+                    blackBoard[pos] -= 5;
+                }
+                // Subtract 4 if there's an opponent's standing stone
+                if (standing & (1ULL << pos) & state->whiteControlled) {
+                    blackBoard[pos] -= 4;
+                }
+            }
+        }
+    }
+
+    // Process connectivity for vertical paths
+    for (int i = 1; i < BOARD_SIZE; i++) {
+        for (int j = 0; j < BOARD_SIZE; j++) {
+            Position pos = SET_POS(i, j);
+            if (pos >= TOTAL_SQUARES) continue;
+
+            Position primary = DOWN_POSITION(pos);
+            if (primary >= TOTAL_SQUARES) continue;
+
+            Position secondary1 = RIGHT_POSITION(primary);
+            Position secondary2 = LEFT_POSITION(primary);
+
+            // Process white connectivity
+            if (state->whiteControlled & (1ULL << pos)) {
+                whiteBoard[pos] = 3 * whiteBoard[primary];
+
+                if (j > 0 && secondary2 < TOTAL_SQUARES) {
+                    whiteBoard[pos] += whiteBoard[secondary2];
+                }
+
+                if (j < BOARD_SIZE - 1 && secondary1 < TOTAL_SQUARES) {
+                    whiteBoard[pos] += whiteBoard[secondary1];
+                }
+
+                // Subtract 3 if opponent's capstone is in this square
+                if (blackCaps & (1ULL << pos)) {
+                    whiteBoard[pos] -= 3;
+                }
+
+                // Subtract 2 if there's an opponent's standing stone
+                if (standing & (1ULL << pos) & state->blackControlled) {
+                    whiteBoard[pos] -= 2;
+                }
+
+                if (whiteBoard[pos] > whiteMax) {
+                    whiteMax = whiteBoard[pos];
+                } else if (whiteBoard[pos] <= 0) {
+                    whiteBoard[pos] = 1;
+                }
+            }
+
+            // Process black connectivity
+            if (state->blackControlled & (1ULL << pos)) {
+                blackBoard[pos] = 3 * blackBoard[primary];
+
+                if (j > 0 && secondary2 < TOTAL_SQUARES) {
+                    blackBoard[pos] += blackBoard[secondary2];
+                }
+
+                if (j < BOARD_SIZE - 1 && secondary1 < TOTAL_SQUARES) {
+                    blackBoard[pos] += blackBoard[secondary1];
+                }
+
+                // Subtract 3 if opponent's capstone is in this square
+                if (whiteCaps & (1ULL << pos)) {
+                    blackBoard[pos] -= 3;
+                }
+
+                // Subtract 2 if there's an opponent's standing stone
+                if (standing & (1ULL << pos) & state->whiteControlled) {
+                    blackBoard[pos] -= 2;
+                }
+
+                if (blackBoard[pos] > blackMax) {
+                    blackMax = blackBoard[pos];
+                } else if (blackBoard[pos] <= 0) {
+                    blackBoard[pos] = 1;
+                }
+            }
+        }
+    }
+
+    // Process initial positions for horizontal connectivity
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        Position pos = SET_POS(i, 0);
+        if (pos < TOTAL_SQUARES) {
+            if (state->whiteControlled & (1ULL << pos)) {
+                whiteBoard2[pos] = 1;
+                // Subtract 5 if opponent's capstone is in this square
+                if (blackCaps & (1ULL << pos)) {
+                    whiteBoard2[pos] -= 5;
+                }
+                // Subtract 4 if there's an opponent's standing stone
+                if (standing & (1ULL << pos) & state->blackControlled) {
+                    whiteBoard2[pos] -= 4;
+                }
+            }
+
+            if (state->blackControlled & (1ULL << pos)) {
+                blackBoard2[pos] = 1;
+                // Subtract 5 if opponent's capstone is in this square
+                if (whiteCaps & (1ULL << pos)) {
+                    blackBoard2[pos] -= 5;
+                }
+                // Subtract 4 if there's an opponent's standing stone
+                if (standing & (1ULL << pos) & state->whiteControlled) {
+                    blackBoard2[pos] -= 4;
+                }
+            }
+        }
+    }
+
+    // Process connectivity for horizontal paths
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        for (int j = 1; j < BOARD_SIZE; j++) {
+            Position pos = SET_POS(i, j);
+            if (pos >= TOTAL_SQUARES) continue;
+
+            Position primary = LEFT_POSITION(pos);
+            if (primary >= TOTAL_SQUARES) continue;
+
+            Position secondary1 = UP_POSITION(primary);
+            Position secondary2 = DOWN_POSITION(primary);
+
+            // Process white connectivity
+            if (state->whiteControlled & (1ULL << pos)) {
+                whiteBoard2[pos] = 3 * whiteBoard2[primary];
+
+                if (i > 0 && secondary2 < TOTAL_SQUARES) {
+                    whiteBoard2[pos] += whiteBoard2[secondary2];
+                }
+
+                if (i < BOARD_SIZE - 1 && secondary1 < TOTAL_SQUARES) {
+                    whiteBoard2[pos] += whiteBoard2[secondary1];
+                }
+
+                // Subtract 3 if opponent's capstone is in this square
+                if (blackCaps & (1ULL << pos)) {
+                    whiteBoard2[pos] -= 3;
+                }
+
+                // Subtract 2 if there's an opponent's standing stone
+                if (standing & (1ULL << pos) & state->blackControlled) {
+                    whiteBoard2[pos] -= 2;
+                }
+
+                if (whiteBoard2[pos] > whiteMax) {
+                    whiteMax = whiteBoard2[pos];
+                } else if (whiteBoard2[pos] <= 0) {
+                    whiteBoard2[pos] = 1;
+                }
+            }
+
+            // Process black connectivity
+            if (state->blackControlled & (1ULL << pos)) {
+                blackBoard2[pos] = 3 * blackBoard2[primary];
+
+                if (i > 0 && secondary2 < TOTAL_SQUARES) {
+                    blackBoard2[pos] += blackBoard2[secondary2];
+                }
+
+                if (i < BOARD_SIZE - 1 && secondary1 < TOTAL_SQUARES) {
+                    blackBoard2[pos] += blackBoard2[secondary1];
+                }
+
+                // Subtract 3 if opponent's capstone is in this square
+                if (whiteCaps & (1ULL << pos)) {
+                    blackBoard2[pos] -= 3;
+                }
+
+                // Subtract 2 if there's an opponent's standing stone
+                if (standing & (1ULL << pos) & state->whiteControlled) {
+                    blackBoard2[pos] -= 2;
+                }
+
+                if (blackBoard2[pos] > blackMax) {
+                    blackMax = blackBoard2[pos];
+                } else if (blackBoard2[pos] <= 0) {
+                    blackBoard2[pos] = 1;
+                }
+            }
+        }
+    }
 
     return whiteMax - blackMax;
+}
+
+#pragma inline
+Bitboard getNeighbors(int pos) {
+    Bitboard neighbors = 0;
+    Bitboard board = (1ULL << pos);
+    if (pos >= 6) {
+        neighbors |= (board >> 6);
+    }
+    if (pos < 30) {
+        neighbors |= (board << 6);
+    }
+    if (pos % 6 != 0) {
+        neighbors |= (board >> 1);
+    }
+    if (pos % 6 != 5) {
+        neighbors |= (board << 1);
+    }
+    return neighbors;
 }

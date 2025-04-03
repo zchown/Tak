@@ -1,12 +1,13 @@
 #include "neuralNetTrainer.h"
 
-Trainer* createTrainer(DenseNeuralNet* net, double learningRateUpdate, double minLearningRate, double learningRate, int saveInterval) {
+Trainer* createTrainer(DenseNeuralNet* net, double learningRateUpdate, double minLearningRate, double learningRate, int saveInterval, double discountFactor) {
     Trainer* trainer = (Trainer*)malloc(sizeof(Trainer));
     trainer->net = net;
     trainer->learningRateUpdate = learningRateUpdate;
     trainer->minLearningRate = minLearningRate;
     trainer->learningRate = learningRate;
     trainer->saveInterval = saveInterval;
+    trainer->discountFactor = discountFactor;
     return trainer;
 }
 
@@ -70,8 +71,13 @@ void train(Trainer* trainer, int totalEpisodes) {
     int draws = 0;
     for (int i = 1; i <= totalEpisodes; i++) {
         trainer->learningRate = trainer->learningRate * trainer->learningRateUpdate;
-        printf("Episode %d: White Roads: %d, White Flats: %d, Black Roads: %d, Black Flats: %d, Draws: %d\n", 
-                i, whiteRoads, whiteFlats, blackRoads, blackFlats, draws);
+        if (trainer->learningRate < trainer->minLearningRate) {
+            trainer->learningRate = trainer->minLearningRate;
+        }
+
+        printf("Episode %d: White Roads: %d, White Flats: %d, Black Roads: %d, Black Flats: %d, Draws: %d, LR: %.6f\n", 
+                i, whiteRoads, whiteFlats, blackRoads, blackFlats, draws, trainer->learningRate);
+
         int r = trainEpisode(trainer, i);
         switch (r) {
             case 2:
@@ -93,9 +99,8 @@ void train(Trainer* trainer, int totalEpisodes) {
                 break;
         }
         if (i % trainer->saveInterval == 0) {
-            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_large");
+            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_new");
         }
-
     }
     printf("\n");
 }
@@ -103,36 +108,55 @@ void train(Trainer* trainer, int totalEpisodes) {
 int trainEpisode(Trainer* trainer, int episodeNum) {
     GameState* state = createGameState();
 
+    // Store the entire sequence of states, actions, and rewards
     double** pastStates = (double**)malloc(1000 * sizeof(double*));
     double** pastOutputs = (double**)malloc(1000 * sizeof(double*));
+    double* pastValues = (double*)malloc(1000 * sizeof(double));
     int numPastStates = 0;
 
     int numMoves = 512;
     while (checkGameResult(state) == CONTINUE) {
         double* inputs = gameStateToVector(state);
         double* outputs = feedForwardDense(trainer->net, (7 * 36), inputs, 0.0, true);
+
         pastStates[numPastStates] = inputs;
         pastOutputs[numPastStates] = outputs;
-        numPastStates++;
-        double pReward = pseudoReward(state);
-
-        backpropagateDense(trainer->net, inputs, outputs, &pReward, trainer->learningRate);
+        pastValues[numPastStates] = outputs[0];
 
         GeneratedMoves* moves = generateAllMoves(state, numMoves);
         numMoves = moves->numMoves;
-
-        Move move = moves->moves[rand() % moves->numMoves];
-
-        move = monteCarloTreeSearch(state, 50, trainer->net);
+        Move move = monteCarloTreeSearch(state, 50, trainer->net);
 
         makeMoveNoChecks(state, &move, false);
         freeGeneratedMoves(moves);
+
+        if (numPastStates > 0) {
+            // TD(0) update: V(s) = V(s) + α[r + γV(s') - V(s)]
+            double currentValue = pastValues[numPastStates];
+            double prevValue = pastValues[numPastStates - 1];
+            double immediateReward = pseudoReward(state) - 0.5; // Adjust to be centered around 0
+
+            // Calculate TD error: r + γV(s') - V(s)
+            double tdError = immediateReward + (trainer->discountFactor * currentValue) - prevValue;
+
+            double targetValue = prevValue + tdError;
+
+            // Convert back to 0-1 range for the network
+            targetValue += 0.5;
+            if (targetValue < 0.0) targetValue = 0.0;
+            if (targetValue > 1.0) targetValue = 1.0;
+
+            // Backpropagate the TD error for the previous state
+            backpropagateDense(trainer->net, pastStates[numPastStates - 1], 
+                    pastOutputs[numPastStates - 1], &targetValue, trainer->learningRate);
+        }
+
+        numPastStates++;
     }
 
     int gameResult = checkGameResult(state);
     int toReturn = 0;
 
-    // Map the game result to the return value
     switch (gameResult) {
         case ROAD_WHITE: toReturn = 2; break;
         case FLAT_WHITE: toReturn = 1; break;
@@ -142,11 +166,24 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
         default: break;
     }
 
-    double reward = calculateTimeAdjustedReward(gameResult, numPastStates, 225);
+    double finalReward = calculateTimeAdjustedReward(gameResult, numPastStates, 225);
 
-    for (int i = 0; i < numPastStates; i++) {
-        feedForwardDense(trainer->net, (7 * 36), pastStates[i], 0.0, true);
-        backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &reward, trainer->learningRate);
+    if (numPastStates > 0) {
+        backpropagateDense(trainer->net, pastStates[numPastStates - 1], 
+                pastOutputs[numPastStates - 1], &finalReward, trainer->learningRate);
+    }
+
+    double decayFactor = 0.9;
+    for (int i = numPastStates - 2; i >= 0; i--) {
+        double decay = pow(decayFactor * trainer->discountFactor, numPastStates - 1 - i);
+        double targetValue = pastValues[i] + (decay * (finalReward - pastValues[i]));
+
+        // Ensure targetValue is in valid range [0, 1]
+        if (targetValue < 0.0) targetValue = 0.0;
+        if (targetValue > 1.0) targetValue = 1.0;
+
+        backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &targetValue, 
+                trainer->learningRate * decay);
     }
 
     for (int i = 0; i < numPastStates; i++) {
@@ -155,11 +192,12 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
     }
     free(pastStates);
     free(pastOutputs);
+    free(pastValues);
     freeGameState(state);
-    printf("numPastStates: %d\n", numPastStates);
+
+    printf("numPastStates: %d, Final reward: %.4f\n", numPastStates, finalReward);
     return toReturn;
 }
-
 
 double pseudoReward(const GameState* state) {
     double toReturn = (__builtin_popcount(state->whiteControlled) 
@@ -190,8 +228,13 @@ void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
     bool agentPlaysWhite = true;
     for (int i = 1; i <= totalEpisodes; i++) {
         trainer->learningRate = trainer->learningRate * trainer->learningRateUpdate;
-        printf("Episode %d: Net Roads: %d, Net Flats: %d, Alpha Roads: %d, Alpha Flats: %d, Draws: %d\n",
-                i, netRoads, netFlats, alphaRoads, alphaFlats, draws);
+        if (trainer->learningRate < trainer->minLearningRate) {
+            trainer->learningRate = trainer->minLearningRate;
+        }
+
+        printf("Episode %d: Net Roads: %d, Net Flats: %d, Alpha Roads: %d, Alpha Flats: %d, Draws: %d, LR: %.6f\n",
+                i, netRoads, netFlats, alphaRoads, alphaFlats, draws, trainer->learningRate);
+        // reset t table
         free(transpositionTable);
         transpositionTable = NULL;
         int r = trainEpisodeAlphaBeta(trainer, i, agentPlaysWhite, alphaBetaTime);
@@ -217,7 +260,7 @@ void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
         }
 
         if (i % trainer->saveInterval == 0) {
-            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_large");
+            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_new");
         }
         agentPlaysWhite = !agentPlaysWhite;
     }
@@ -229,29 +272,50 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
 
     double** pastStates = (double**)malloc(1000 * sizeof(double*));
     double** pastOutputs = (double**)malloc(1000 * sizeof(double*));
+    double* pastValues = (double*)malloc(1000 * sizeof(double));
     int numPastStates = 0;
 
     int numMoves = 512;
     while (checkGameResult(state) == CONTINUE) {
         double* inputs = gameStateToVector(state);
         double* outputs = feedForwardDense(trainer->net, (7 * 36), inputs, 0.0, true);
+
         pastStates[numPastStates] = inputs;
         pastOutputs[numPastStates] = outputs;
-        numPastStates++;
-        double pReward = pseudoReward(state);
+        pastValues[numPastStates] = outputs[0];
 
-        /* pReward = meanSquaredError(outputs[0], pReward); */
-        backpropagateDense(trainer->net, inputs, outputs, &pReward, trainer->learningRate);
+        if (numPastStates > 0) {
+            double currentValue = pastValues[numPastStates];
+            double prevValue = pastValues[numPastStates - 1];
+            double immediateReward = pseudoReward(state) - 0.5;
+
+            // Calculate TD error: r + γV(s') - V(s)
+            double tdError = immediateReward + (trainer->discountFactor * currentValue) - prevValue;
+
+            double targetValue = prevValue + tdError;
+
+            // Convert back to 0-1 range
+            targetValue += 0.5;
+            if (targetValue < 0.0) targetValue = 0.0;
+            if (targetValue > 1.0) targetValue = 1.0;
+
+            backpropagateDense(trainer->net, pastStates[numPastStates - 1], 
+                    pastOutputs[numPastStates - 1], &targetValue, trainer->learningRate);
+        }
 
         GeneratedMoves* moves = generateAllMoves(state, numMoves);
-        Move move = moves->moves[rand() % moves->numMoves];
+        Move move = moves->moves[0];
+
         if ((state->turn == WHITE && !agentPlaysWhite) || (state->turn == BLACK && agentPlaysWhite)){
             move = iterativeDeepeningSearch(state, alphaBetaTime);
         } else {
+            /* move = iterativeDeepeningSearch(state, alphaBetaTime); */
             move = monteCarloTreeSearch(state, 100, trainer->net);
         }
-
         makeMoveNoChecks(state, &move, false);
+        freeGeneratedMoves(moves);
+
+        numPastStates++;
     }
 
     int gameResult = checkGameResult(state);
@@ -270,29 +334,43 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         toReturn = -toReturn;
     }
 
-    double reward = calculateTimeAdjustedReward(gameResult, numPastStates, 75);
+    double finalReward = calculateTimeAdjustedReward(gameResult, numPastStates, 75);
 
-    for (int i = 0; i < numPastStates; i++) {
+    // Final update for the last state
+    if (numPastStates > 0) {
+        backpropagateDense(trainer->net, pastStates[numPastStates - 1], 
+                pastOutputs[numPastStates - 1], &finalReward, trainer->learningRate);
+    }
 
-        double temp = reward;
-        temp -= 0.5;
-        double factor = 1.0 - ((double)i / numPastStates);
-        temp *= factor;
-        temp += 0.5;
-        feedForwardDense(trainer->net, (7 * 36), pastStates[i], 0.0, true);
-        backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &temp, trainer->learningRate);
+    // TD(λ) update for all previous states
+    double decayFactor = 0.9;  // Lambda for eligibility trace
+    for (int i = numPastStates - 2; i >= 0; i--) {
+        if (pastStates[i] == NULL || pastOutputs[i] == NULL) {
+            fprintf(stderr, "NULL pointer in eligibility trace at index %d\n", i);
+            continue;  // Skip this iteration
+        }
+
+        double decay = pow(decayFactor * trainer->discountFactor, numPastStates - 1 - i);
+        double targetValue = pastValues[i] + (decay * (finalReward - pastValues[i]));
+
+        // Ensure targetValue is in valid range [0, 1]
+        if (targetValue < 0.0) targetValue = 0.0;
+        if (targetValue > 1.0) targetValue = 1.0;
+
+        backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &targetValue, 
+                trainer->learningRate * decay);  // Decay learning rate by eligibility
     }
 
     for (int i = 0; i < numPastStates; i++) {
-        free(pastStates[i]);
-        free(pastOutputs[i]);
+        if (pastStates[i]) free(pastStates[i]);
+        if (pastOutputs[i]) free(pastOutputs[i]);
     }
     free(pastStates);
     free(pastOutputs);
+    free(pastValues);
     freeGameState(state);
-    printf("numPastStates: %d\n", numPastStates);
-    printf("Reward: %f\n", reward);
-    printf("To return: %d\n", toReturn);
+
+    printf("numPastStates: %d, Final reward: %.4f, Result: %d\n", numPastStates, finalReward, toReturn);
     return toReturn;
 }
 
@@ -310,9 +388,13 @@ void trainHybrid(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
 
     for (int i = 1; i <= totalEpisodes; i++) {
         trainer->learningRate = trainer->learningRate * trainer->learningRateUpdate;
-        printf("Episode %d: Regular: W.Road %d, W.Flat %d, B.Road %d, B.Flat %d, Draw %d | AlphaBeta: Net %d, Alpha %d, Draw %d\n",
-               i, regularWhiteRoads, regularWhiteFlats, regularBlackRoads, regularBlackFlats, regularDraws,
-               alphaBetaNetWins, alphaBetaAlphaWins, alphaBetaDraws);
+        if (trainer->learningRate < trainer->minLearningRate) {
+            trainer->learningRate = trainer->minLearningRate;
+        }
+
+        printf("Episode %d: Regular: W.Road %d, W.Flat %d, B.Road %d, B.Flat %d, Draw %d | AlphaBeta: Net %d, Alpha %d, Draw %d, LR: %.6f\n",
+                i, regularWhiteRoads, regularWhiteFlats, regularBlackRoads, regularBlackFlats, regularDraws,
+                alphaBetaNetWins, alphaBetaAlphaWins, alphaBetaDraws, trainer->learningRate);
 
         if (i % 2 == 1) {
             int r = trainEpisode(trainer, i);
@@ -348,7 +430,7 @@ void trainHybrid(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
         }
 
         if (i % trainer->saveInterval == 0) {
-            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_large");
+            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_new");
         }
     }
     printf("\n");

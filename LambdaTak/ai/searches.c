@@ -408,7 +408,9 @@ int scoreMove(const GameState* state, const Move* move, const Move* bestMove) {
 
         Position endPos = slidePosition(mv.startPos, mv.direction, mv.count);
 
-        score += 2 * historyHeuristic[state->turn][mv.startPos][endPos];
+        if (VALID_POSITION(endPos) && VALID_POSITION(mv.startPos)) {
+            score += 2 * historyHeuristic[state->turn][mv.startPos][endPos];
+        }
     }
 
     if (memcmp(move, &killerMoves[state->turnNumber][0], sizeof(Move)) == 0) {

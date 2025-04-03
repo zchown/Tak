@@ -6,13 +6,13 @@
 #include <time.h>
 #include <math.h>
 
-#define MAX_DEPTH 64
+#define MAX_DEPTH 500
 #define KILLER_MOVES 2
 #include <math.h>
 
 extern Move killerMoves[MAX_DEPTH][KILLER_MOVES];
 extern int historyHeuristic[NUM_COLORS][TOTAL_SQUARES][TOTAL_SQUARES];
-static const u32 TRANSPOSITION_TABLE_SIZE = (1 << 26);
+static const u32 TRANSPOSITION_TABLE_SIZE = (1 << 22);
 
 typedef enum {UNDER, OVER, EXACT} EstimationType;
 

@@ -858,14 +858,14 @@ double* gameStateToVector(const GameState* state) {
         for (int j = 0; j < (BOARD_SIZE + 1); j++) {
             if (curIndex >= 0) {
                 if (sq.pieces[curIndex].stone == FLAT) {
-                    vector[i * (BOARD_SIZE + 1) + j] = 0.8;
-                } else if (sq.pieces[curIndex].stone == STANDING) {
                     vector[i * (BOARD_SIZE + 1) + j] = 0.6;
+                } else if (sq.pieces[curIndex].stone == STANDING) {
+                    vector[i * (BOARD_SIZE + 1) + j] = 0.3;
                 } else {
-                    vector[i * (BOARD_SIZE + 1) + j] = 0.0;
+                    vector[i * (BOARD_SIZE + 1) + j] = 1.0;
                 }
                 if (sq.pieces[curIndex].color == BLACK) {
-                    vector[i * (BOARD_SIZE + 1) + j] = 1.0 - vector[i * (BOARD_SIZE + 1) + j];
+                    vector[i * (BOARD_SIZE + 1) + j] *= -1;
                 }
                 curIndex--;
             } else {

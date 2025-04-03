@@ -1,8 +1,7 @@
 #include "monteCarlo.h"
 
-Move monteCarloTreeSearch(GameState* state, int timeLimit, DenseNeuralNet* net) {
-    /* printf("Starting MCTS with Neural Net\n"); */
 
+Move monteCarloTreeSearch(GameState* state, int timeLimit, DenseNeuralNet* net) {
     double startTime = getTimeMs();
     double endTime = startTime + timeLimit;
 
@@ -13,21 +12,26 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit, DenseNeuralNet* net) 
 
     int curIteration = 0;
     Move bestMove = {0};
-    while (curIteration < MAX_MCTS_ITERATIONS && getTimeMs() < endTime) {
-        GameState* simState = copyGameState(state);
 
-        MCTSNode* selected = selectNode(root, simState, net);
+    while (curIteration < MAX_MCTS_ITERATIONS && getTimeMs() < endTime) {
+        Move moveStack[MAX_MCTS_DEPTH];
+        int moveCount = 0;
+
+        MCTSNode* selected = selectNode(root, state, net, moveStack, &moveCount);
+
         if (selected->numVisits < MIN_PLAYOUTS_PER_NODE) {
-            expand(selected, simState, 1.0, net);
+            expand(selected, state, 1.0, net);
         } 
 
-        double value = simulate(simState, net);
+        double value = simulate(state, net);
         if (rootColor == BLACK) {
             value = -value;
         }
         backup(selected, value);
 
-        freeGameState(simState);
+        for (int i = moveCount - 1; i >= 0; i--) {
+            undoMoveNoChecks(state, &moveStack[i], false);
+        }
         curIteration++;
     }
 
@@ -35,11 +39,6 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit, DenseNeuralNet* net) 
     int maxVisits = -1;
     for (u32 i = 0; i < root->numChildren; i++) {
         MCTSNode* child = root->children[i];
-        /* printf("Move: %s, Visits: %d, Value: %f\n",  */
-                /* moveToString(&child->move),  */
-                /* child->numVisits,  */
-                /* child->numVisits > 0 ? child->valueSum / child->numVisits : 0.0); */
-
         if (child->numVisits > maxVisits) {
             maxVisits = child->numVisits;
             bestChild = child;
@@ -52,29 +51,43 @@ Move monteCarloTreeSearch(GameState* state, int timeLimit, DenseNeuralNet* net) 
     /* printf("Score: %f\n", bestChild ? (bestChild->valueSum / bestChild->numVisits) : 0.0); */
 
     freeMCTSNode(root);
+    /* printf("MCTS time: %f ms\n", getTimeMs() - startTime); */
     return bestMove;
 }
 
-MCTSNode* selectNode(MCTSNode* node, GameState* state, DenseNeuralNet* net) {
+// Modified selection function that applies moves to the state and records them in a move stack.
+MCTSNode* selectNode(MCTSNode* node, GameState* state, DenseNeuralNet* net, Move* moveStack, int* moveCount) {
     MCTSNode* cur = node;
-
-    while (cur && cur->numChildren > 0) {
-        double maxScore = -INFINITY;
+    *moveCount = 0;
+    while (cur->numChildren > 0) {
         MCTSNode* bestChild = NULL;
-
+        // Prioritize any child that hasn't reached the minimum number of playouts.
         for (u32 i = 0; i < cur->numChildren; i++) {
-            MCTSNode* child = cur->children[i];
-            double score = ucbScore(cur, child);
-            if (score > maxScore) {
-                maxScore = score;
-                bestChild = child;
+            if (cur->children[i]->numVisits < MIN_PLAYOUTS_PER_NODE) {
+                bestChild = cur->children[i];
+                break;
             }
         }
+        // If all children have sufficient playouts, use UCB to choose.
+        if (!bestChild) {
+            double maxScore = -INFINITY;
+            for (u32 i = 0; i < cur->numChildren; i++) {
+                MCTSNode* child = cur->children[i];
+                double score = ucbScore(cur, child);
+                if (score > maxScore) {
+                    maxScore = score;
+                    bestChild = child;
+                }
+            }
+        }
+        if (!bestChild)
+            break;
 
+        // Apply the chosen move to the state and record it.
+        makeMoveNoChecks(state, &bestChild->move, false);
+        moveStack[(*moveCount)++] = bestChild->move;
         cur = bestChild;
-        makeMoveNoChecks(state, &cur->move, false);
     }
-
     return cur;
 }
 
@@ -92,13 +105,11 @@ MCTSNode* expand(MCTSNode* node, GameState* state, double prior, DenseNeuralNet*
         Move move = gm->moves[i];
         moveScores[i] = moveHeuristic(state, &move);
         moveTotal += moveScores[i];
-        makeMoveNoChecks(state, &move, false);
-        undoMoveNoChecks(state, &move, false);
-
-        // 0.5 is prior and is temporary
+        // Temporarily assign a prior probability of 0.5.
         node->children[i] = createMCTSNode(childColor, node, 0.5, move);
     }
 
+    // Normalize priors based on move heuristics.
     for (u32 i = 0; i < gm->numMoves; i++) {
         node->children[i]->prior = (double)moveScores[i] / (double)moveTotal;
     }
@@ -108,10 +119,7 @@ MCTSNode* expand(MCTSNode* node, GameState* state, double prior, DenseNeuralNet*
 }
 
 double simulate(GameState* state, DenseNeuralNet* net) {
-
-    // 1.0 for WHITE win, -1.0 for BLACK win
     Result result = checkGameResult(state);
-
     double* gv = gameStateToVector(state);
     double resultValue = 0;
     switch (result) {
@@ -124,7 +132,9 @@ double simulate(GameState* state, DenseNeuralNet* net) {
             resultValue = -100000000.0;
             break;
         default:
-            resultValue = feedForwardDense(net, 7 * 36, gv, 0.0, false)[0];
+            resultValue = feedForwardDense(net, 7 * 36, gv, 0.0, true)[0];
+            resultValue -= 0.5;
+            resultValue *= 2;
             break;
     }
     free(gv);
@@ -142,15 +152,8 @@ void backup(MCTSNode* node, double value) {
 }
 
 double ucbScore(MCTSNode* parent, MCTSNode* child) {
-    if (child->numVisits < MIN_PLAYOUTS_PER_NODE) {
-        return INFINITY;
-    }
-
-    double exploitation = child->valueSum / (double)child->numVisits;
-
-    double exploration = DEFAULT_UCT_CONSTANT * 
-        child->prior * sqrt(log(parent->numVisits + 1) / (1 + child->numVisits));
-
+    double exploitation = (child->numVisits > 0) ? (child->valueSum / (double)child->numVisits) : 0.0;
+    double exploration = DEFAULT_UCT_CONSTANT * child->prior * sqrt(log(parent->numVisits + 1) / (1 + child->numVisits));
     return exploitation + exploration;
 }
 
@@ -168,6 +171,9 @@ MCTSNode* createMCTSNode(Color toPlay, MCTSNode* parent, double prior, Move move
 }
 
 void freeMCTSNode(MCTSNode* node) {
+    if (node == NULL) {
+        return;
+    }
     if (node->children) {
         for (u32 i = 0; i < node->numChildren; i++) {
             freeMCTSNode(node->children[i]);
@@ -189,10 +195,10 @@ int moveHeuristic(const GameState* state, const Move* move) {
 
     Bitboard whiteControlled = state->whiteControlled;
     Bitboard blackControlled = state->blackControlled;
-    Bitboard whiteInterest = (whiteControlled >> 6) | (whiteControlled << 6) | 
-        (whiteControlled >> 1) | (whiteControlled << 1);
+    Bitboard whiteInterest = (whiteControlled >> 6) | (whiteControlled << 6) |
+                             (whiteControlled >> 1) | (whiteControlled << 1);
     Bitboard blackInterest = (blackControlled >> 6) | (blackControlled << 6) |
-        (blackControlled >> 1) | (blackControlled << 1);
+                             (blackControlled >> 1) | (blackControlled << 1);
     whiteInterest = whiteInterest & state->emptySquares;
     blackInterest = blackInterest & state->emptySquares;
 
@@ -202,7 +208,7 @@ int moveHeuristic(const GameState* state, const Move* move) {
 
     if (move->type == PLACE) {
         if (move->move.place.stone == CAP) {
-            score += 1000;  // Capstone placements are high priority
+            score += 1000;
             if (ourInterest & move->move.place.pos) {
                 score += 1000;
             }
@@ -223,13 +229,11 @@ int moveHeuristic(const GameState* state, const Move* move) {
             score += 500 * (11 - minStonesRemaining);
         }
 
-        // Favor central placements
+        // Favor central placements.
         score += 75 - (GET_X(abs(move->move.place.pos) - BOARD_SIZE / 2) +
-                GET_Y(abs(move->move.place.pos) - BOARD_SIZE / 2));
+                       GET_Y(abs(move->move.place.pos) - BOARD_SIZE / 2));
         score += historyHeuristic[state->turn][move->move.place.pos][move->move.place.pos];
-    } 
-
-    else if (move->type == SLIDE) {
+    } else if (move->type == SLIDE) {
         SlideMove mv = move->move.slide;
         score += 400;
 
@@ -240,12 +244,10 @@ int moveHeuristic(const GameState* state, const Move* move) {
         if (ofInterest & mvBitboard) {
             score += 1000;
         }
-
         Bitboard enemyControlled = (state->turn == WHITE) ? blackControlled : whiteControlled;
         if (enemyControlled & mvBitboard) {
             score += 1000;
         }
-
         score += mv.count * mv.count * 10;
     }
 

@@ -25,9 +25,9 @@ const char* generateMove(const char* gameStateJson, int time) {
         return NULL;
     }
     printf("Parsed TPS\n");
-    /* Move move = iterativeDeepeningSearch(state, time); */
+    Move move = iterativeDeepeningSearch(state, time);
 
-    Move move = monteCarloTreeSearch(state, time, &net);
+    /* Move move = monteCarloTreeSearch(state, time, &net); */
     char* moveStr = moveToString(&move);
     freeGameState(state);
     printf("Move: %s\n", moveStr);
@@ -47,11 +47,11 @@ void handleMessage(const char* msg) {
     if (curPlayer && json_is_string(curPlayer) && swap && json_is_boolean(swap)) {
         const char* player = json_string_value(curPlayer);
         int swapFlag = json_boolean_value(swap);
-        int ourTurn = 0;
+        int ourTurn = 1;
         int time = 1000;
         if ((!swapFlag && strcmp(player, "White") == 0) 
                 || (swapFlag && strcmp(player, "Black") == 0)) {
-            ourTurn = 1;
+            ourTurn = 0;
             time = 1000;
         }
         printf("Player: %s, Our turn: %d\n", player, ourTurn);

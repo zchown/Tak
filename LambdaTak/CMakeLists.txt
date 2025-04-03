@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(LambdaTak VERSION 1.0)
 
-# Enforce modern policy for *_ROOT variables
 cmake_policy(SET CMP0074 NEW)
 set(OpenMP_ROOT "/opt/homebrew/opt/libomp")
 
@@ -11,10 +10,11 @@ find_package(OpenMP REQUIRED)
 if(APPLE)
     # Apple Silicon optimizations
     set(CMAKE_C_FLAGS_RELEASE "-O3 -mcpu=apple-m1 -mtune=native -ffast-math -flto")
-    
+    set(CMAKE_C_FLAGS_DEBUG "-O3 -g -mcpu=apple-m1 -mtune=native -ffast-math -flto -fno-omit-frame-pointer -fno-optimize-sibling-calls -fsanitize=undefined -fsanitize=address")
+
     # Accelerate Framework
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -framework Accelerate")
-    
+
     # Explicit OpenMP paths
     set(OPENMP_INCLUDE_DIR "${OpenMP_ROOT}/include")
     set(OPENMP_LIB_DIR "${OpenMP_ROOT}/lib")

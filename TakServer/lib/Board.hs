@@ -114,7 +114,7 @@ data GameState = GameState
   } deriving (Show, Eq, Generic)
 
 komi :: Float
-komi = 0.5
+komi = 2.0
 
 instance Ord GameState where
   compare gs1 gs2 = compare (compute gs1) (compute gs2)

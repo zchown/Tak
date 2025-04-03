@@ -14,9 +14,10 @@ typedef struct {
     double minLearningRate;
     double learningRate;
     int saveInterval;
+    double discountFactor;
 } Trainer;
 
-Trainer* createTrainer(DenseNeuralNet* net, double learningRateUpdate, double minLearningRate, double learningRate, int saveInterval);
+Trainer* createTrainer(DenseNeuralNet* net, double learningRateUpdate, double minLearningRate, double learningRate, int saveInterval, double discountFactor);
 void freeTrainer(Trainer* trainer);
 
 double pseudoReward(const GameState* state);

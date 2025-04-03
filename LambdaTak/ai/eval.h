@@ -48,8 +48,6 @@ static const int centrality[TOTAL_SQUARES] = {
 
 #define CONTROL_CALCULATION(state) (__builtin_popcountll(state->whiteControlled) * CONTROL_BONUS - __builtin_popcountll(state->blackControlled) * CONTROL_BONUS)
 
-#define GET_NEIGHBORS(pos) (1ULL << (pos - 1) | 1ULL << (pos + 1) | 1ULL << (pos - 6) | 1ULL << (pos + 6))
-
 int evaluate(GameState* state);
 int evaluateWithNN(GameState* state);
 
@@ -61,5 +59,7 @@ int squareLoop(GameState* state);
 int calculateLongestDFS(GameState* state, Color player, Bitboard visited, int pos, int depth);
 int calculatePathScore(GameState* state);
 int connectivityIndex(GameState* state);
+
+Bitboard getNeighbors(int pos);
 
 #endif

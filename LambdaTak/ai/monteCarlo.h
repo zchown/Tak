@@ -4,7 +4,6 @@
 #include "../lib/moves.h"
 #include "searches.h"
 #include "neuralNetworks.h"
-/* #include "neuralNetTrainer.h" */
 
 typedef struct MCTSNode {
     int numVisits;
@@ -17,9 +16,10 @@ typedef struct MCTSNode {
     Move move;
 } MCTSNode;
 
-#define DEFAULT_UCT_CONSTANT 1.41421356237  // sqrt(2)
+#define DEFAULT_UCT_CONSTANT (2 * 1.41421356237) // sqrt(2) * 21.41421356237  // sqrt(2)
 #define MAX_MCTS_ITERATIONS 10000
 #define MIN_PLAYOUTS_PER_NODE 1
+#define MAX_MCTS_DEPTH 20
 #define MAX_TURNS 0
 
 #define MCTSNODE_VALUE(node) ((node)->valueSum / (double)(node)->numVisits)
@@ -27,7 +27,7 @@ typedef struct MCTSNode {
 
 Move monteCarloTreeSearch(GameState* state, int timeLimit, DenseNeuralNet* net);
 
-MCTSNode* selectNode(MCTSNode* node, GameState* state, DenseNeuralNet* net);
+MCTSNode* selectNode(MCTSNode* node, GameState* state, DenseNeuralNet* net, Move* moveStack, int* moveCount);
 
 MCTSNode* expand(MCTSNode* node, GameState* state, double prior, DenseNeuralNet* net);
 
