@@ -239,11 +239,14 @@ int moveHeuristic(const GameState* state, const Move* move) {
 
         Bitboard mvBitboard = 0;
         for (int i = 0; i < mv.count; i++) {
-            mvBitboard |= 1ULL << slidePosition(mv.startPos, mv.direction, i);
+            if (slidePosition(mv.startPos, mv.direction, i) <= TOTAL_SQUARES) {
+                mvBitboard |= 1ULL << slidePosition(mv.startPos, mv.direction, i);
+            }
         }
         if (ofInterest & mvBitboard) {
             score += 1000;
         }
+
         Bitboard enemyControlled = (state->turn == WHITE) ? blackControlled : whiteControlled;
         if (enemyControlled & mvBitboard) {
             score += 1000;

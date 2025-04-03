@@ -68,9 +68,11 @@ ZobristKey clearSlideHash(ZobristKey hash, const SlideMove* move, const GameStat
 
     Square* startSq = readSquare(state->board, pos);
     int j = (startSq->numPieces - ZOBRIST_STACK_DEPTH) < 0 ? 0 : startSq->numPieces - ZOBRIST_STACK_DEPTH;
+    int k = 0;
     for (; j < startSq->numPieces; j++) {
         const Piece* p = &startSq->pieces[j];
-        hash ^= zobristTable[pos][p->color][p->stone][j];
+        hash ^= zobristTable[pos][p->color][p->stone][k];
+        k++;
     }
 
     u8 slideLength = 0;
@@ -110,9 +112,11 @@ ZobristKey incrementalUpdateHash(ZobristKey hash, const Move* move, const GameSt
         Square* startSq = readSquare(state->board, mv->startPos);
 
         int j = (startSq->numPieces - ZOBRIST_STACK_DEPTH) < 0 ? 0 : startSq->numPieces - ZOBRIST_STACK_DEPTH;
+        int k = 0;
         for (; j < startSq->numPieces; j++) {
             const Piece* p = &startSq->pieces[j];
-            hash ^= zobristTable[mv->startPos][p->color][p->stone][j];
+            hash ^= zobristTable[mv->startPos][p->color][p->stone][k];
+            k++;
         }
 
 
