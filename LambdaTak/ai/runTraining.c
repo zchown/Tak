@@ -6,8 +6,9 @@ int main() {
     srand(time(NULL));
     initZobristTable();
 
-    int layerSizes[] = {(7 * TOTAL_SQUARES), (7 * TOTAL_SQUARES), (4 * 36), 36, 36, 6, 1};
-    int numLayers = 7;
+    int layerSizes[] = {(7 * TOTAL_SQUARES), (7 * TOTAL_SQUARES), 
+                        (7 * TOTAL_SQUARES), 72, 72, 72, 36, 36, 36, 18, 1};
+    int numLayers = 11;
 
     /* int layerSizes[] = {(7 * TOTAL_SQUARES), 64, 32, 8, 1}; */
     /* int numLayers = 5; */
@@ -29,19 +30,19 @@ int main() {
     // last layer is sigmoid hardcoded
     DenseNeuralNet net = createDenseNeuralNet(layerSizes, numLayers, Relu);
 
-    loadDenseNeuralNet(&net, "n_models/tak_model.weights_new");
-    Trainer* trainer = createTrainer(&net, 0.999, 0.005, 0.1, 50, 0.9);
+    loadDenseNeuralNet(&net, "n_models/tak_model.weights_bignew");
+    Trainer* trainer = createTrainer(&net, 0.9999, 0.005, 0.07, 50, 0.9);
 
     printf("Training\n");
     /* trainHybrid(trainer, 5000000, 50); */
-    trainAlphaBeta(trainer, 1000000, 25);
+    trainAlphaBeta(trainer, 1000000, 50);
     /* train(trainer, 5000000); */
 
     // fun to look at
     // and make sure no nan's or anything weird
     printDenseNeuralNet(&net);
 
-    saveDenseNeuralNet(&net, "n_models/tak_model.weights_new");
+    saveDenseNeuralNet(&net, "n_models/tak_model.weights_bignew");
 
     return 0;
 }

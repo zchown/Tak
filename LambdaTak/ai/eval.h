@@ -25,7 +25,7 @@ static const int centrality[TOTAL_SQUARES] = {
 #define ENCOURAGE_PLACEMENT 75
 #define DISCOURAGE_BIG_STACK 22
 #define PATH_BONUS 215
-#define WALL_BONUS 900
+#define WALL_BONUS 500
 #define PRISONER_BONUS 1
 #define RESERVE_BONUS 20
 #define CENTRALITY_BONUS 10

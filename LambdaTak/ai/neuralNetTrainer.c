@@ -19,16 +19,16 @@ double calculateTimeAdjustedReward(int result, int numMoves, int maxMoves) {
     double baseReward;
     switch (result) {
         case ROAD_WHITE:
-            baseReward = 0.9;
+            baseReward = 1.0;
             break;
         case FLAT_WHITE:
-            baseReward = 0.6;
+            baseReward = 0.8;
             break;
         case ROAD_BLACK:
-            baseReward = 0.1;
+            baseReward = 0.0;
             break;
         case FLAT_BLACK:
-            baseReward = 0.4;
+            baseReward = 0.2;
             break;
         case DRAW:
             baseReward = 0.5;
@@ -42,17 +42,17 @@ double calculateTimeAdjustedReward(int result, int numMoves, int maxMoves) {
     moveFactor *= moveFactor;
     double toReturn = baseReward;
 
-    if (baseReward > 0.5) {  // Win for White
-        toReturn = baseReward + (moveFactor * 0.1);
-        if (toReturn < 0.5) {
-            toReturn = 0.5;
-        }
-    } else if (baseReward < 0.5) {  
-        toReturn = baseReward - (moveFactor * 0.1);
-        if (toReturn > 0.5) {
-            toReturn = 0.5;
-        }
-    }
+    /* if (baseReward > 0.5) {  // Win for White */
+    /*     toReturn = baseReward + (moveFactor * 0.1); */
+    /*     if (toReturn < 0.5) { */
+    /*         toReturn = 0.5; */
+    /*     } */
+    /* } else if (baseReward < 0.5) {   */
+    /*     toReturn = baseReward - (moveFactor * 0.1); */
+    /*     if (toReturn > 0.5) { */
+    /*         toReturn = 0.5; */
+    /*     } */
+    /* } */
 
     if (toReturn < 0.0) {
         toReturn = 0.0;
@@ -99,7 +99,7 @@ void train(Trainer* trainer, int totalEpisodes) {
                 break;
         }
         if (i % trainer->saveInterval == 0) {
-            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_new");
+            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_bignew");
         }
     }
     printf("\n");
@@ -235,8 +235,8 @@ void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
         printf("Episode %d: Net Roads: %d, Net Flats: %d, Alpha Roads: %d, Alpha Flats: %d, Draws: %d, LR: %.6f\n",
                 i, netRoads, netFlats, alphaRoads, alphaFlats, draws, trainer->learningRate);
         // reset t table
-        free(transpositionTable);
-        transpositionTable = NULL;
+        /* free(transpositionTable); */
+        /* transpositionTable = NULL; */
         int r = trainEpisodeAlphaBeta(trainer, i, agentPlaysWhite, alphaBetaTime);
 
         switch (r) {
@@ -260,7 +260,7 @@ void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
         }
 
         if (i % trainer->saveInterval == 0) {
-            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_new");
+            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_bignew");
         }
         agentPlaysWhite = !agentPlaysWhite;
     }
@@ -310,7 +310,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
             move = iterativeDeepeningSearch(state, alphaBetaTime);
         } else {
             /* move = iterativeDeepeningSearch(state, alphaBetaTime); */
-            move = monteCarloTreeSearch(state, 100, trainer->net);
+            move = monteCarloTreeSearch(state, 50, trainer->net);
         }
         makeMoveNoChecks(state, &move, false);
         freeGeneratedMoves(moves);
@@ -430,7 +430,7 @@ void trainHybrid(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
         }
 
         if (i % trainer->saveInterval == 0) {
-            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_new");
+            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_bignew");
         }
     }
     printf("\n");

@@ -47,6 +47,7 @@ add_executable(lambdaTak
     lib/perft.c 
     lib/ptn.c 
     ai/eval.c 
+    ai/transposition.c
     ai/searches.c
     src/aiPlayer.c
     lib/zobrist.c
@@ -77,6 +78,7 @@ add_executable(trainTak
     lib/perft.c 
     lib/ptn.c 
     ai/eval.c 
+    ai/transposition.c
     ai/searches.c
     lib/zobrist.c
     ai/monteCarlo.c
