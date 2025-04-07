@@ -2,7 +2,7 @@
 
 TranspositionTable createTranspositionTable(void) {
     TranspositionTable table = {
-        .entries = malloc(sizeof(TranspositionEntry) * TRANSPOSITION_TABLE_SIZE),
+        .entries = calloc(TRANSPOSITION_TABLE_SIZE, sizeof(TranspositionEntry)),
         .stats = {
             .hits = 0,
             .misses = 0,

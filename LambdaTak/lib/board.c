@@ -1,7 +1,7 @@
 #include "board.h"
 
 GameState* createGameState(void) {
-    GameState* state = malloc(sizeof(GameState));
+    GameState* state = calloc(1, sizeof(GameState));
     if (!state) {
         printf("createGameState: Failed to allocate memory for game state\n");
         return NULL;
@@ -42,7 +42,7 @@ void freeGameState(GameState* state) {
 }
 
 GameState* copyGameState(const GameState* state) {
-    GameState* newState = malloc(sizeof(GameState));
+    GameState* newState = calloc(1, sizeof(GameState));
     if (!newState) {
         printf("copyGameState: Failed to allocate memory for new game state\n");
         return NULL;
@@ -70,7 +70,7 @@ GameState* copyGameState(const GameState* state) {
 }
 
 Board* createEmptyBoard(void) {
-    Board* board = malloc(sizeof(Board));
+    Board* board = calloc(1, sizeof(Board));
     if (!board) {
         printf("createEmptyBoard: Failed to allocate memory for board\n");
         return NULL;
@@ -90,7 +90,7 @@ void freeBoard(Board* board) {
 }
 
 Board* copyBoard(const Board* board) {
-    Board* newBoard = malloc(sizeof(Board));
+    Board* newBoard = calloc(1, sizeof(Board));
     if (!newBoard) {
         printf("copyBoard: Failed to allocate memory for new board\n");
         return NULL;
