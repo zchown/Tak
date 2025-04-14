@@ -10,15 +10,17 @@
 #include "../lib/moves.h"
 #include "neuralNetworks.h"
 
-#define PUCT_CONSTANT 1.0
+#define CPUCT = 1.0 // standard value from alphazero paper
+
 #define MONTECARLO_TABLE_SIZE (1 << 26)
 
 typedef struct MCGSNode {
     struct MCGSNode* parent;
     struct MCGSNode** children;
     int numChildren;
-    int numVisits;
-    double valueSum;
+    int numVisits; // N
+    double valueSum; // W
+    // Q == N / W
     bool expand;
 } MCGSNode;
 
@@ -36,24 +38,31 @@ typedef struct MonteCarloTable {
 
 static MonteCarloTable* monteCarloTable = NULL;
 
-typedef struct TrajectoryNode {
-    MonteCarloTableEntry* entry;
-    struct TrajectoryNode* parent;
-    struct TrajectoryNode* child;
-    int depth;
-} TrajectoryNode;
+typedef struct Trajectory {
+    MonteCarloTableEntry** entry;
+    int size;
+    int capacity;
+} Trajectory;
 
 typedef struct SelectExpandResult {
-    TrajectoryNode* trajectory;
+    Trajectory trajectory;
     double value;
 } SelectExpandResult;
+
+typedef struct MoveBuffer {
+    Move* moves;
+    int size;
+    int capacity;
+} MoveBuffer;
 
 Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net);
 
 SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseNeuralNet* net, MCGSNode* root, int depth);
 
-TrajectoryNode* appendTrajectoryNode(TrajectoryNode* parent, MonteCarloTableEntry* node);
-void freeTrajectoryNode(TrajectoryNode* node);
+Trajectory createTrajectory(int capacity);
+void freeTrajectory(Trajectory* trajectory);
+void addToTrajectory(Trajectory* trajectory, MonteCarloTableEntry* entry);
+void clearTrajectory(Trajectory* trajectory);
 
 MCGSNode* createMCGSNode(void);
 void freeMCGSNode(MCGSNode* node);
@@ -69,5 +78,10 @@ MonteCarloTableEntry* lookupAndCreate(MonteCarloTable* table, ZobristKey hash, M
 void updateMonteCarloTable(MonteCarloTable* table, ZobristKey hash, MCGSNode* node);
 
 u32 zobristToIndex(ZobristKey hash);
+
+MoveBuffer* createMoveBuffer(int capacity);
+void freeMoveBuffer(MoveBuffer* buffer);
+void addMoveToBuffer(MoveBuffer* buffer, Move move);
+void clearMoveBuffer(MoveBuffer* buffer);
 
 #endif // MONTECARLOGRAPHSEARCH_H

@@ -6,26 +6,54 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net) {
     }
 }
 
+SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseNeuralNet* net, MCGSNode* root, int depth) {
+    SelectExpandResult result;
+    /* result.trajectory =  */
+    result.value = 0.0;
 
+    MoveBuffer* moveBuffer = createMoveBuffer(64);
 
+    MCGSNode* currentNode = root;
 
-TrajectoryNode* appendTrajectoryNode(TrajectoryNode* parent, MonteCarloTableEntry* node) {
-    TrajectoryNode* newNode = malloc(sizeof(TrajectoryNode));
-    newNode->entry = node;
-    newNode->parent = parent;
-    newNode->child = NULL;
-    newNode->depth = parent ? parent->depth + 1 : 0;
-    if (parent) {
-        parent->child = newNode;
-    }
-    return newNode;
+    return result;
 }
 
-void freeTrajectoryNode(TrajectoryNode* node) {
-    if (node) {
-        freeTrajectoryNode(node->child);
-        free(node);
+Trajectory createTrajectory(int capacity) {
+    Trajectory trajectory;
+    trajectory.entry = malloc(capacity * sizeof(MonteCarloTableEntry*));
+    trajectory.size = 0;
+    trajectory.capacity = capacity;
+    return trajectory;
+}
+
+void freeTrajectory(Trajectory* trajectory) {
+    if (trajectory) {
+        for (int i = 0; i < trajectory->size; i++) {
+            freeMonteCarloTableEntry(trajectory->entry[i]);
+        }
+        free(trajectory->entry);
     }
+}
+
+void addToTrajectory(Trajectory* trajectory, MonteCarloTableEntry* entry) {
+    if (trajectory->size < trajectory->capacity) {
+        trajectory->entry[trajectory->size++] = entry;
+    } else {
+        trajectory->capacity *= 2;
+        trajectory->entry = realloc(trajectory->entry, trajectory->capacity * sizeof(MonteCarloTableEntry*));
+        if (trajectory->entry) {
+            trajectory->entry[trajectory->size++] = entry;
+        } else {
+            printf("Failed to resize trajectory\n");
+        }
+    }
+}
+
+void clearTrajectory(Trajectory* trajectory) {
+    for (int i = 0; i < trajectory->size; i++) {
+        freeMonteCarloTableEntry(trajectory->entry[i]);
+    }
+    trajectory->size = 0;
 }
 
 MCGSNode* createMCGSNode(void) {
@@ -140,3 +168,38 @@ void updateMonteCarloTable(MonteCarloTable* table, ZobristKey hash, MCGSNode* no
 u32 zobristToIndex(ZobristKey hash) {
     return (u32)(hash & (MONTECARLO_TABLE_SIZE - 1));
 }
+
+MoveBuffer* createMoveBuffer(int capacity) {
+    MoveBuffer* buffer = malloc(sizeof(MoveBuffer));
+    buffer->moves = malloc(capacity * sizeof(Move));
+    buffer->size = 0;
+    buffer->capacity = capacity;
+    return buffer;
+}
+
+void freeMoveBuffer(MoveBuffer* buffer) {
+    if (buffer) {
+        free(buffer->moves);
+        free(buffer);
+    }
+}
+
+#pragma inline
+void addMoveToBuffer(MoveBuffer* buffer, Move move) {
+    if (buffer->size < buffer->capacity) {
+        buffer->moves[buffer->size++] = move;
+    } else {
+        buffer->capacity *= 2;
+        buffer->moves = realloc(buffer->moves, buffer->capacity * sizeof(Move));
+        if (buffer->moves) {
+            buffer->moves[buffer->size++] = move;
+        } else {
+            printf("Failed to resize move buffer\n");
+        }
+    }
+}
+
+void clearMoveBuffer(MoveBuffer* buffer) {
+    buffer->size = 0;
+}
+
