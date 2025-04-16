@@ -4,37 +4,37 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net) {
     if (!monteCarloTable) {
         monteCarloTable = createMonteCarloTable();
     }
-    
+
     // Create root node
     MCGSNode* root = createMCGSNode();
-    
+
     // Add root to the table
     MonteCarloTableEntry* rootEntry = lookupAndCreate(monteCarloTable, state->hash, root);
-    
+
     // Run the search for a fixed number of iterations
     int numIterations = 1600; // Configurable
     for (int i = 0; i < numIterations; i++) {
         // Select and expand
         SelectExpandResult result = selectExpand(monteCarloTable, state, net, root);
-        
+
         // Backpropagate
         backPropagate(&result.trajectory, result.value);
-        
+
         // Clear trajectory
         freeTrajectory(&result.trajectory);
     }
-    
+
     // Select the best move based on visit count
     MCGSEdge* bestEdge = NULL;
     int maxVisits = -1;
-    
+
     for (int i = 0; i < root->numEdges; i++) {
         if (root->edges[i]->n > maxVisits) {
             maxVisits = root->edges[i]->n;
             bestEdge = root->edges[i];
         }
     }
-    
+
     if (bestEdge) {
         return bestEdge->move;
     } else {
@@ -54,64 +54,64 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseN
 
     MCGSNode* node = root;
     bool needsFree = false;
-    
+
     // Traverse the tree until we reach a leaf node
     while (node->isExpanded && !node->isTerminal) {
         // Select best edge using the selection policy
         MCGSEdge* edge = selectBestEdge(node);
         if (!edge) break;
-        
+
         // Append (node, edge) to trajectory
         addToTrajectory(&result.trajectory, node, edge);
-        
+
         // Check if the next node is a transposition
         if (edge->target->isTransposition) {
             double qDelta = edge->q - edge->target->value;
-            
+
             // Check if Q-delta exceeds threshold Q_epsilon
             if (qDelta > Q_EPSILON) {
                 // Calculate new Q-value using the formula from the pseudocode
                 double nFactor = node->numVisits;
                 double newQValue = nFactor * qDelta + edge->target->value;
-                
+
                 // Cap Q-value between V_MIN and V_MAX
                 newQValue = fmax(V_MIN, fmin(newQValue, V_MAX));
-                
+
                 result.value = newQValue;
                 return result;
             }
         }
-        
+
         // Check if the next node is terminal
         if (edge->target->isTerminal) {
             result.value = edge->target->value;
             return result;
         }
-        
+
         node = edge->target;
-        
+
         makeMoveNoChecks(state, &edge->move, false);
     }
-    
+
     // Expand the node
     if (!node->isExpanded && !node->isTerminal) {
         // Mark as expanded
         node->isExpanded = true;
-        
+
         // Generate all possible moves
         GeneratedMoves* moves = generateAllMoves(state, 0);
-        
+
         // Create edges for all possible actions
         node->numEdges = moves->numMoves;
         node->edges = malloc(moves->numMoves * sizeof(MCGSEdge*));
-        
+
         for (int i = 0; i < moves->numMoves; i++) {
             // Create new edge
             node->edges[i] = malloc(sizeof(MCGSEdge));
             node->edges[i]->move= moves->moves[i];
             node->edges[i]->q = 0.0;
             node->edges[i]->n = 0;
-            
+
             // Make the move to get the next state
             makeMoveNoChecks(state, &moves->moves[i], false);
             ZobristKey nextKey = state->hash;
@@ -124,7 +124,7 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseN
             } else {
                 // Create new node
                 MCGSNode* newNode = createMCGSNode();
-                
+
                 Result gameResult = checkGameResult(state);
                 if (gameResult != CONTINUE) {
                     newNode->isTerminal = true;
@@ -150,16 +150,16 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseN
                 node->edges[i]->target = newNode;
             }
         }
-        
+
         freeGeneratedMoves(moves);
-        
+
         // Evaluate the node with neural network
         double* input = gameStateToVector(state);
         double* output = feedForwardDense(net, 7*36, input, 0.0, true);
         node->value = output[0];
         free(input);
         free(output);
-        
+
         // Set result value to node value
         result.value = node->value;
     }
@@ -170,43 +170,43 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseN
         MCGSEdge* edge = result.trajectory.edges[i];
         undoMoveNoChecks(state, &edge->move, false);
     }
-    
+
     return result;
 }
 
 void backPropagate(Trajectory* trajectory, double value) {
     double qTarget = DBL_MAX;
-    
+
     // Process trajectory in reverse order
     for (int i = trajectory->size - 1; i >= 0; i--) {
         MCGSNode* node = trajectory->nodes[i];
         MCGSEdge* edge = trajectory->edges[i];
-        
+
         if (qTarget != DBL_MAX) {
             double qDelta = edge->q - qTarget;
-            
+
             // Calculate Q_phi
             double nFactor = node->numVisits;
             double qPhi = nFactor * qDelta + node->value;
-            
+
             // Calculate Q'_phi
             double qPhiPrime = fmax(V_MIN, fmin(qPhi, V_MAX));
-            
+
             // Set value to Q'_phi
             value = qPhiPrime;
         } else {
             // Negate value for alternating players
             value = -value;
         }
-        
+
         // Update edge statistics
         edge->q = (edge->q * edge->n + value) / (edge->n + 1);
         edge->n++;
-        
+
         // Update node statistics
         node->value = (node->value * node->numVisits + value) / (node->numVisits + 1);
         node->numVisits++;
-        
+
         // Set qTarget for next iteration
         if (node->isTransposition) {
             qTarget = -node->value;
@@ -219,21 +219,21 @@ void backPropagate(Trajectory* trajectory, double value) {
 MCGSEdge* selectBestEdge(MCGSNode* node) {
     double bestScore = -DBL_MAX;
     MCGSEdge* bestEdge = NULL;
-    
+
     for (int i = 0; i < node->numEdges; i++) {
         MCGSEdge* edge = node->edges[i];
-        
+
         // Using PUCT formula from AlphaZero
         double exploitation = edge->q;
         double exploration = CPUCT * sqrt(node->numVisits) / (1 + edge->n);
         double score = exploitation + exploration;
-        
+
         if (score > bestScore) {
             bestScore = score;
             bestEdge = edge;
         }
     }
-    
+
     return bestEdge;
 }
 
@@ -264,7 +264,7 @@ void addToTrajectory(Trajectory* trajectory, MCGSNode* node, MCGSEdge* edge) {
         trajectory->capacity *= 2;
         trajectory->nodes = realloc(trajectory->nodes, trajectory->capacity * sizeof(MCGSNode*));
         trajectory->edges = realloc(trajectory->edges, trajectory->capacity * sizeof(MCGSEdge*));
-        
+
         if (trajectory->nodes && trajectory->edges) {
             trajectory->nodes[trajectory->size] = node;
             trajectory->edges[trajectory->size] = edge;
@@ -393,39 +393,5 @@ void updateMonteCarloTable(MonteCarloTable* table, ZobristKey hash, MCGSNode* no
 
 u32 mcZobristToIndex(ZobristKey hash) {
     return (u32)(hash & (MONTECARLO_TABLE_SIZE - 1));
-}
-
-MoveBuffer* createMoveBuffer(int capacity) {
-    MoveBuffer* buffer = malloc(sizeof(MoveBuffer));
-    buffer->moves = malloc(capacity * sizeof(Move));
-    buffer->size = 0;
-    buffer->capacity = capacity;
-    return buffer;
-}
-
-void freeMoveBuffer(MoveBuffer* buffer) {
-    if (buffer) {
-        free(buffer->moves);
-        free(buffer);
-    }
-}
-
-#pragma inline
-void addMoveToBuffer(MoveBuffer* buffer, Move move) {
-    if (buffer->size < buffer->capacity) {
-        buffer->moves[buffer->size++] = move;
-    } else {
-        buffer->capacity *= 2;
-        buffer->moves = realloc(buffer->moves, buffer->capacity * sizeof(Move));
-        if (buffer->moves) {
-            buffer->moves[buffer->size++] = move;
-        } else {
-            printf("Failed to resize move buffer\n");
-        }
-    }
-}
-
-void clearMoveBuffer(MoveBuffer* buffer) {
-    buffer->size = 0;
 }
 

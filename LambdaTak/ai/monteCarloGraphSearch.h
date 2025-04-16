@@ -65,12 +65,6 @@ typedef struct SelectExpandResult {
     double value;
 } SelectExpandResult;
 
-typedef struct MoveBuffer {
-    Move* moves;
-    int size;
-    int capacity;
-} MoveBuffer;
-
 Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net);
 
 SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseNeuralNet* net, MCGSNode* root);
@@ -97,10 +91,5 @@ MonteCarloTableEntry* lookupAndCreate(MonteCarloTable* table, ZobristKey hash, M
 void updateMonteCarloTable(MonteCarloTable* table, ZobristKey hash, MCGSNode* node);
 
 u32 mcZobristToIndex(ZobristKey hash);
-
-MoveBuffer* createMoveBuffer(int capacity);
-void freeMoveBuffer(MoveBuffer* buffer);
-void addMoveToBuffer(MoveBuffer* buffer, Move move);
-void clearMoveBuffer(MoveBuffer* buffer);
 
 #endif // MONTECARLOGRAPHSEARCH_H
