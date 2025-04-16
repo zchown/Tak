@@ -163,6 +163,7 @@ int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* t
                 score = DRAW_SCORE;
                 break;
             default:
+                __builtin_unreachable();
                 return 0;
         }
         updateTranspositionTable(transpositionTable, state->hash, score, EXACT, (Move){0}, depth);

@@ -9,20 +9,35 @@
 #include "../lib/board.h"
 #include "../lib/moves.h"
 #include "neuralNetworks.h"
+#include <float.h>
+#include <math.h>
 
-#define CPUCT = 1.0 // standard value from alphazero paper
+#define CPUCT (1.0) // standard value 
 
 #define MONTECARLO_TABLE_SIZE (1 << 26)
 
+#define V_MIN (-1.0)
+#define V_MAX (1.0)
+#define Q_EPSILON (0.01)
+
 typedef struct MCGSNode {
     struct MCGSNode* parent;
-    struct MCGSNode** children;
-    int numChildren;
+    struct MCGSEdge** edges;
+    int numEdges;
     int numVisits; // N
-    double valueSum; // W
-    // Q == N / W
-    bool expand;
+    double value; 
+    bool isExpanded;
+    bool isTerminal;
+    bool isTransposition;
 } MCGSNode;
+
+typedef struct MCGSEdge {
+    Move move;
+    double q; // Q
+    int n; // N
+    MCGSNode* child;
+    struct MCGSNode* target;
+} MCGSEdge;
 
 typedef struct MonteCarloTableEntry {
     bool isUsed; //used to keep graph acyclic
@@ -39,7 +54,8 @@ typedef struct MonteCarloTable {
 static MonteCarloTable* monteCarloTable = NULL;
 
 typedef struct Trajectory {
-    MonteCarloTableEntry** entry;
+    MCGSNode** nodes;
+    MCGSEdge** edges;
     int size;
     int capacity;
 } Trajectory;
@@ -57,12 +73,15 @@ typedef struct MoveBuffer {
 
 Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net);
 
-SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseNeuralNet* net, MCGSNode* root, int depth);
+SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseNeuralNet* net, MCGSNode* root);
+
+void backPropagate(Trajectory* trajectory, double value);
+
+MCGSEdge* selectBestEdge(MCGSNode* node);
 
 Trajectory createTrajectory(int capacity);
 void freeTrajectory(Trajectory* trajectory);
-void addToTrajectory(Trajectory* trajectory, MonteCarloTableEntry* entry);
-void clearTrajectory(Trajectory* trajectory);
+void addToTrajectory(Trajectory* trajectory, MCGSNode* node, MCGSEdge* edge);
 
 MCGSNode* createMCGSNode(void);
 void freeMCGSNode(MCGSNode* node);
