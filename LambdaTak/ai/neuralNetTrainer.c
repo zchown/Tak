@@ -125,7 +125,7 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
 
         GeneratedMoves* moves = generateAllMoves(state, numMoves);
         numMoves = moves->numMoves;
-        Move move = monteCarloTreeSearch(state, 50, trainer->net);
+        Move move = monteCarloGraphSearch(state, trainer->net);
 
         makeMoveNoChecks(state, &move, false);
         freeGeneratedMoves(moves);
@@ -310,7 +310,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
             move = iterativeDeepeningSearch(state, alphaBetaTime);
         } else {
             /* move = iterativeDeepeningSearch(state, alphaBetaTime); */
-            move = monteCarloTreeSearch(state, 50, trainer->net);
+            move = monteCarloGraphSearch(state, trainer->net);
         }
         makeMoveNoChecks(state, &move, false);
         freeGeneratedMoves(moves);

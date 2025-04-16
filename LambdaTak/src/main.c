@@ -2,7 +2,7 @@
 #include "../lib/perft.h"
 #include "../lib/tps.h"
 #include "../lib/board.h"
-#include "../ai/monteCarlo.h"
+#include "../ai/monteCarloGraphSearch.h"
 
 int main() {
     /* GameState* state = parseTPS("[TPS x6/x6/x6/x6/x6/x6 0 1]"); */
