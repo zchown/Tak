@@ -42,18 +42,6 @@ double calculateTimeAdjustedReward(int result, int numMoves, int maxMoves) {
     moveFactor *= moveFactor;
     double toReturn = baseReward;
 
-    /* if (baseReward > 0.5) {  // Win for White */
-    /*     toReturn = baseReward + (moveFactor * 0.1); */
-    /*     if (toReturn < 0.5) { */
-    /*         toReturn = 0.5; */
-    /*     } */
-    /* } else if (baseReward < 0.5) {   */
-    /*     toReturn = baseReward - (moveFactor * 0.1); */
-    /*     if (toReturn > 0.5) { */
-    /*         toReturn = 0.5; */
-    /*     } */
-    /* } */
-
     if (toReturn < 0.0) {
         toReturn = 0.0;
     } else if (toReturn > 1.0) {
@@ -125,7 +113,7 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
 
         GeneratedMoves* moves = generateAllMoves(state, numMoves);
         numMoves = moves->numMoves;
-        Move move = monteCarloGraphSearch(state, trainer->net);
+        Move move = monteCarloGraphSearch(state, trainer->net, true);
 
         makeMoveNoChecks(state, &move, false);
         freeGeneratedMoves(moves);
@@ -310,7 +298,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
             move = iterativeDeepeningSearch(state, alphaBetaTime);
         } else {
             /* move = iterativeDeepeningSearch(state, alphaBetaTime); */
-            move = monteCarloGraphSearch(state, trainer->net);
+            move = monteCarloGraphSearch(state, trainer->net, true);
         }
         makeMoveNoChecks(state, &move, false);
         freeGeneratedMoves(moves);

@@ -65,7 +65,19 @@ typedef struct SelectExpandResult {
     double value;
 } SelectExpandResult;
 
-Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net);
+typedef struct {
+    int totalNodes;
+    int totalEdges;
+    int maxDepth;
+    int totalVisits;
+    int terminalNodesHit;
+    int transpositionsFound;
+    double averageValueEstimate;
+    double executionTimeMs;
+    int iterations;
+} MCGSStats;
+
+Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingMode);
 
 SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseNeuralNet* net, MCGSNode* root);
 
