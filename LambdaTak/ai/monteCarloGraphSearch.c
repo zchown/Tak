@@ -12,16 +12,15 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net) {
     MonteCarloTableEntry* rootEntry = lookupAndCreate(monteCarloTable, state->hash, root);
 
     // Run the search for a fixed number of iterations
-    int numIterations = 1600; // Configurable
+    int numIterations = 1600; 
     for (int i = 0; i < numIterations; i++) {
         // Select and expand
+        /* GameState* stateCopy = copyGameState(state); */
         SelectExpandResult result = selectExpand(monteCarloTable, state, net, root);
 
         // Backpropagate
         backPropagate(&result.trajectory, result.value);
-
-        // Clear trajectory
-        freeTrajectory(&result.trajectory);
+        /* freeGameState(stateCopy); */
     }
 
     // Select the best move based on visit count
@@ -36,10 +35,12 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net) {
     }
 
     if (bestEdge) {
+        printf("Best move selected: %s\n", moveToString(&bestEdge->move));
         return bestEdge->move;
     } else {
+        printf("No valid moves found, falling back to random move\n");
         // Fallback to a random move if no edges
-        GeneratedMoves* moves = generateAllMoves(state, 0);
+        GeneratedMoves* moves = generateAllMoves(state, 512);
         Move move = moves->numMoves > 0 ? moves->moves[0] : (Move){0};
         freeGeneratedMoves(moves);
         return move;
@@ -90,7 +91,9 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseN
 
         node = edge->target;
 
+        /* printf("making move %s\n", moveToString(&edge->move)); */
         makeMoveNoChecks(state, &edge->move, false);
+        /* makeMoveChecks(state, &edge->move); */
     }
 
     // Expand the node
@@ -99,7 +102,7 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseN
         node->isExpanded = true;
 
         // Generate all possible moves
-        GeneratedMoves* moves = generateAllMoves(state, 0);
+        GeneratedMoves* moves = generateAllMoves(state, 512);
 
         // Create edges for all possible actions
         node->numEdges = moves->numMoves;
@@ -108,12 +111,14 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseN
         for (int i = 0; i < moves->numMoves; i++) {
             // Create new edge
             node->edges[i] = malloc(sizeof(MCGSEdge));
-            node->edges[i]->move= moves->moves[i];
+            node->edges[i]->move = moves->moves[i];
             node->edges[i]->q = 0.0;
             node->edges[i]->n = 0;
 
             // Make the move to get the next state
+            /* printf("making move %s\n", moveToString(&moves->moves[i])); */
             makeMoveNoChecks(state, &moves->moves[i], false);
+            /* makeMoveChecks(state, &moves->moves[i]); */
             ZobristKey nextKey = state->hash;
 
             // Check if this is a transposition (existing node)
@@ -149,6 +154,8 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseN
                 MonteCarloTableEntry* newEntry = lookupAndCreate(table, nextKey, newNode);
                 node->edges[i]->target = newNode;
             }
+
+            undoMoveNoChecks(state, &moves->moves[i], false);
         }
 
         freeGeneratedMoves(moves);

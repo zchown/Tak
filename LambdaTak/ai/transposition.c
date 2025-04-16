@@ -1,19 +1,8 @@
 #include "transposition.h"
 
-TranspositionTable createTranspositionTable(void) {
-    TranspositionTable table = {
-        .entries = calloc(TRANSPOSITION_TABLE_SIZE, sizeof(TranspositionEntry)),
-        .stats = {
-            .hits = 0,
-            .misses = 0,
-            .depthRewrites = 0,
-            .collisions = 0,
-            .updates = 0,
-            .lookups = 0,
-            .fill = 0.0,
-        },
-        .size = TRANSPOSITION_TABLE_SIZE,
-    };
+TranspositionTable* createTranspositionTable(void) {
+    TranspositionTable* table = calloc(1, sizeof(TranspositionTable));
+    table->entries = calloc(TRANSPOSITION_TABLE_SIZE, sizeof(TranspositionEntry));
     return table;
 }
 

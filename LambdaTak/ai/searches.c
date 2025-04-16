@@ -6,7 +6,8 @@ TranspositionTable* transpositionTable = NULL;
 
 Move iterativeDeepeningSearch(GameState* state, int timeLimit) {
     if (!transpositionTable) {
-        transpositionTable = malloc(sizeof(TranspositionEntry) * TRANSPOSITION_TABLE_SIZE);
+        /* transpositionTable = malloc(sizeof(TranspositionEntry) * TRANSPOSITION_TABLE_SIZE); */
+        transpositionTable = createTranspositionTable();
         setupNN();
     }
 
@@ -392,11 +393,10 @@ void quickSortMoves(GameState* state, Move* moves, int low, int high, Move* best
 void sortMoves(GameState* state, Move* moves, int numMoves) {
     u32 index = zobristToIndex(state->hash);
     TranspositionEntry* te = lookupTranspositionTable(transpositionTable, state->hash);
-    Move* bestMove = &te->move;
-    if (movesEqual(bestMove, &(Move){0})) {
-        bestMove = NULL;
+    Move* bestMove = NULL;
+    if (te) {
+        bestMove = &te->move;
     }
-
     quickSortMoves(state, moves, 0, numMoves - 1, bestMove);
 }
 

@@ -31,7 +31,7 @@ typedef struct {
     int size;
 } TranspositionTable;
 
-TranspositionTable createTranspositionTable(void);
+TranspositionTable* createTranspositionTable(void);
 void freeTranspositionTable(TranspositionTable* table);
 
 TranspositionEntry* lookupTranspositionTable(TranspositionTable* table, ZobristKey hash);
