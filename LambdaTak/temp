@@ -1,0 +1,58 @@
+=================================================================
+==95310==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x618000186fc8 at pc 0x0001003ca9e0 bp 0x00016fa72310 sp 0x00016fa72308
+READ of size 8 at 0x618000186fc8 thread T0
+    #0 0x1003ca9dc in monteCarloGraphSearch+0x513c (trainTak:arm64+0x10003e9dc)
+    #1 0x1003d9608 in trainEpisodeAlphaBeta+0x32fc (trainTak:arm64+0x10004d608)
+    #2 0x10038fd30 in main+0xd84 (trainTak:arm64+0x100003d30)
+    #3 0x19c044270  (<unknown module>)
+
+0x618000186fc8 is located 0 bytes after 840-byte region [0x618000186c80,0x618000186fc8)
+allocated by thread T0 here:
+    #0 0x100bdcc04 in malloc+0x94 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x54c04)
+    #1 0x1003ccc2c in selectExpand+0x159c (trainTak:arm64+0x100040c2c)
+    #2 0x1003c6278 in monteCarloGraphSearch+0x9d8 (trainTak:arm64+0x10003a278)
+    #3 0x1003d9608 in trainEpisodeAlphaBeta+0x32fc (trainTak:arm64+0x10004d608)
+    #4 0x10038fd30 in main+0xd84 (trainTak:arm64+0x100003d30)
+    #5 0x19c044270  (<unknown module>)
+
+SUMMARY: AddressSanitizer: heap-buffer-overflow (trainTak:arm64+0x10003e9dc) in monteCarloGraphSearch+0x513c
+Shadow bytes around the buggy address:
+  0x618000186d00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x618000186d80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x618000186e00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x618000186e80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x618000186f00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+=>0x618000186f80: 00 00 00 00 00 00 00 00 00[fa]fa fa fa fa fa fa
+  0x618000187000: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x618000187080: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x618000187100: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x618000187180: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x618000187200: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==95310==ABORTING
+Initializing Zobrist table
+Number of weights: 162469
+Number of nodes: 1099
+Creating neural net
+Training
+Training for 1000000 episodes
+Episode 1: Net Roads: 0, Net Flats: 0, Alpha Roads: 0, Alpha Flats: 0, Draws: 0, LR: 0.069993
+Move selected: e3
