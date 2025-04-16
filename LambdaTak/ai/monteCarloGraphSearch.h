@@ -96,7 +96,7 @@ MonteCarloTableEntry* lookupMonteCarloTable(MonteCarloTable* table, ZobristKey h
 MonteCarloTableEntry* lookupAndCreate(MonteCarloTable* table, ZobristKey hash, MCGSNode* node);
 void updateMonteCarloTable(MonteCarloTable* table, ZobristKey hash, MCGSNode* node);
 
-u32 zobristToIndex(ZobristKey hash);
+u32 mcZobristToIndex(ZobristKey hash);
 
 MoveBuffer* createMoveBuffer(int capacity);
 void freeMoveBuffer(MoveBuffer* buffer);

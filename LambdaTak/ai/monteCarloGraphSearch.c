@@ -338,7 +338,7 @@ void freeMonteCarloTableEntry(MonteCarloTableEntry* entry) {
 }
 
 MonteCarloTableEntry* lookupMonteCarloTable(MonteCarloTable* table, ZobristKey hash) {
-    u32 index = zobristToIndex(hash);
+    u32 index = mcZobristToIndex(hash);
     MonteCarloTableEntry* entry = &table->entries[index];
 
     while (entry) {
@@ -351,7 +351,7 @@ MonteCarloTableEntry* lookupMonteCarloTable(MonteCarloTable* table, ZobristKey h
 }
 
 MonteCarloTableEntry* lookupAndCreate(MonteCarloTable* table, ZobristKey hash, MCGSNode* node) {
-    u32 index = zobristToIndex(hash);
+    u32 index = mcZobristToIndex(hash);
     MonteCarloTableEntry* entry = &table->entries[index];
 
     if (entry->hash == 0) {
@@ -377,7 +377,7 @@ MonteCarloTableEntry* lookupAndCreate(MonteCarloTable* table, ZobristKey hash, M
 }
 
 void updateMonteCarloTable(MonteCarloTable* table, ZobristKey hash, MCGSNode* node) {
-    u32 index = zobristToIndex(hash);
+    u32 index = mcZobristToIndex(hash);
     MonteCarloTableEntry* entry = &table->entries[index];
 
     if (entry->hash == 0) {
@@ -391,7 +391,7 @@ void updateMonteCarloTable(MonteCarloTable* table, ZobristKey hash, MCGSNode* no
     }
 }
 
-u32 zobristToIndex(ZobristKey hash) {
+u32 mcZobristToIndex(ZobristKey hash) {
     return (u32)(hash & (MONTECARLO_TABLE_SIZE - 1));
 }
 
