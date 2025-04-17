@@ -66,6 +66,11 @@ void train(Trainer* trainer, int totalEpisodes) {
         printf("Episode %d: White Roads: %d, White Flats: %d, Black Roads: %d, Black Flats: %d, Draws: %d, LR: %.6f\n", 
                 i, whiteRoads, whiteFlats, blackRoads, blackFlats, draws, trainer->learningRate);
 
+        if (monteCarloTable) {
+            freeMonteCarloTable(monteCarloTable);
+            monteCarloTable = NULL;
+        }
+
         int r = trainEpisode(trainer, i);
         switch (r) {
             case 2:
@@ -113,8 +118,14 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
 
         GeneratedMoves* moves = generateAllMoves(state, numMoves);
         numMoves = moves->numMoves;
-        // sometimes turning training mode off is better
-        Move move = monteCarloGraphSearch(state, trainer->net, false);
+
+        int random = rand() % 10;
+        Move move;
+        if (random < 5) {
+            move = monteCarloGraphSearch(state, trainer->net, false);
+        } else {
+            move = monteCarloGraphSearch(state, trainer->net, true);
+        }
 
         makeMoveNoChecks(state, &move, false);
         freeGeneratedMoves(moves);
@@ -224,8 +235,14 @@ void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
         printf("Episode %d: Net Roads: %d, Net Flats: %d, Alpha Roads: %d, Alpha Flats: %d, Draws: %d, LR: %.6f\n",
                 i, netRoads, netFlats, alphaRoads, alphaFlats, draws, trainer->learningRate);
         // reset t table
-        /* free(transpositionTable); */
-        /* transpositionTable = NULL; */
+        if (transpositionTable) {
+            freeTranspositionTable(transpositionTable);
+            transpositionTable = NULL;
+        }
+        if (monteCarloTable) {
+            freeMonteCarloTable(monteCarloTable);
+            monteCarloTable = NULL;
+        }
         int r = trainEpisodeAlphaBeta(trainer, i, agentPlaysWhite, alphaBetaTime);
 
         switch (r) {
@@ -296,10 +313,21 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         Move move = moves->moves[0];
 
         if ((state->turn == WHITE && !agentPlaysWhite) || (state->turn == BLACK && agentPlaysWhite)){
-            move = iterativeDeepeningSearch(state, alphaBetaTime);
+            int random = rand() % 10;
+            if (random < 5) {
+                move = monteCarloGraphSearch(state, trainer->net, false);
+            } else {
+                move = iterativeDeepeningSearch(state, alphaBetaTime);
+            }
         } else {
             /* move = iterativeDeepeningSearch(state, alphaBetaTime); */
-            move = monteCarloGraphSearch(state, trainer->net, true);
+            int random = rand() % 10;
+            if (random < 5) {
+                move = monteCarloGraphSearch(state, trainer->net, false);
+            } else {
+                move = monteCarloGraphSearch(state, trainer->net, true);
+            }
+
         }
         makeMoveNoChecks(state, &move, false);
         freeGeneratedMoves(moves);

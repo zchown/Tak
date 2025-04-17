@@ -327,7 +327,6 @@ MCGSEdge* selectBestEdge(MCGSNode* node) {
 }
 
 // Function to print detailed information about the top moves
-void printTopMoves(MCGSNode* root, int numMoves) {
     // Check if node has edges
     if (root->numEdges == 0) {
         printf("No moves available.\n");

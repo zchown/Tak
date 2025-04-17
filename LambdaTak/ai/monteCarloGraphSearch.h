@@ -5,6 +5,7 @@
 // https://arxiv.org/pdf/2012.11045
 // https://proceedings.mlr.press/v129/leurent20a/leurent20a.pdf
 // https://github.com/lightvector/KataGo/blob/master/docs/GraphSearch.md
+// https://medium.com/applied-data-science/alphago-zero-explained-in-one-diagram-365f5abf67e0
 
 #include "../lib/board.h"
 #include "../lib/moves.h"
@@ -12,19 +13,29 @@
 #include <float.h>
 #include <math.h>
 
-#define CPUCT (1.0) // standard value 
+#define CPUCT (2.5) // exploration constant
 
-#define MONTECARLO_TABLE_SIZE (1 << 26)
+#define MONTECARLO_TABLE_SIZE (1 << 24)
 
 #define V_MIN (-1.0)
 #define V_MAX (1.0)
-#define Q_EPSILON (0.01)
+#define Q_EPSILON (0.025)
+
+typedef enum {
+    MC_WIN,
+    MC_LOSS,
+    MC_DRAW,
+    MC_UNKNOWN
+} NodeState;
 
 typedef struct MCGSNode {
     struct MCGSNode* parent;
     struct MCGSEdge** edges;
     ZobristKey hash;
+    NodeState state;
     int numEdges;
+    int unknownChildren;
+    int endInPly;
     int numVisits; // N
     double value; 
     bool isExpanded;
@@ -90,7 +101,7 @@ Trajectory createTrajectory(int capacity);
 void freeTrajectory(Trajectory* trajectory);
 void addToTrajectory(Trajectory* trajectory, MCGSNode* node, MCGSEdge* edge);
 
-MCGSNode* createMCGSNode(ZobristKey hash);
+MCGSNode* createMCGSNode(ZobristKey hash, MCGSNode* parent);
 void freeMCGSNode(MCGSNode* node);
 
 MonteCarloTable* createMonteCarloTable(void);

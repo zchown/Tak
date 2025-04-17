@@ -34,8 +34,8 @@ int main() {
     Trainer* trainer = createTrainer(&net, 0.9999, 0.005, 0.1, 50, 0.9);
 
     printf("Training\n");
-    trainHybrid(trainer, 10000, 50);
-    /* trainAlphaBeta(trainer, 1000000, 50); */
+    /* trainHybrid(trainer, 10000, 50); */
+    trainAlphaBeta(trainer, 1000000, 50);
     /* train(trainer, 5000000); */
 
     // fun to look at
