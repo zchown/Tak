@@ -121,4 +121,6 @@ MCGSStats createMonteCarloStats(void);
 void printMCGSStats(MCGSStats* stats);
 void printTopMoves(MCGSNode* root, int numMoves);
 
+int mcScoreMove(const GameState* state, const Move* move);
+
 #endif // MONTECARLOGRAPHSEARCH_H

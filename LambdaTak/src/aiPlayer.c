@@ -1,6 +1,7 @@
 #include "aiPlayer.h"
 
 static DenseNeuralNet net;
+static bool prevSwap = false;
 
 void sendConnectionMessage(void) {
     char msg[256];
@@ -25,6 +26,7 @@ const char* generateMove(const char* gameStateJson, int time) {
         return NULL;
     }
     printf("Parsed TPS\n");
+    
     /* Move move = iterativeDeepeningSearch(state, time); */
 
     Move move = monteCarloGraphSearch(state, &net, false);
@@ -44,14 +46,30 @@ void handleMessage(const char* msg) {
 
     json_t* curPlayer = json_object_get(root, "currentPlayer");
     json_t* swap = json_object_get(root, "swap");
+
     if (curPlayer && json_is_string(curPlayer) && swap && json_is_boolean(swap)) {
         const char* player = json_string_value(curPlayer);
         int swapFlag = json_boolean_value(swap);
-        int ourTurn = 1;
+
+        if (prevSwap != swapFlag) {
+            printf("Swap flag changed: %d\n", swapFlag);
+            prevSwap = swapFlag;
+
+            if(transpositionTable) {
+                freeTranspositionTable(transpositionTable);
+                transpositionTable = NULL;
+            }
+            if (monteCarloTable) {
+                freeMonteCarloTable(monteCarloTable);
+                monteCarloTable = NULL;
+            }
+        }
+
+        int ourTurn = 0;
         int time = 500;
         if ((!swapFlag && strcmp(player, "White") == 0) 
                 || (swapFlag && strcmp(player, "Black") == 0)) {
-            ourTurn = 0;
+            ourTurn = 1;
             time = 500;
         }
         printf("Player: %s, Our turn: %d\n", player, ourTurn);

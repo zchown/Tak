@@ -314,15 +314,14 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
 
         if ((state->turn == WHITE && !agentPlaysWhite) || (state->turn == BLACK && agentPlaysWhite)){
             int random = rand() % 10;
-            if (random < 5) {
-                move = monteCarloGraphSearch(state, trainer->net, false);
+            if (random < 3) {
+                move = monteCarloGraphSearch(state, trainer->net, true);
             } else {
                 move = iterativeDeepeningSearch(state, alphaBetaTime);
             }
         } else {
-            /* move = iterativeDeepeningSearch(state, alphaBetaTime); */
             int random = rand() % 10;
-            if (random < 5) {
+            if (random < 3) {
                 move = monteCarloGraphSearch(state, trainer->net, false);
             } else {
                 move = monteCarloGraphSearch(state, trainer->net, true);
