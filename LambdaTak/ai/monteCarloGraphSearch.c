@@ -5,16 +5,28 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
         monteCarloTable = createMonteCarloTable();
     }
 
-    MCGSNode* root = createMCGSNode();
+    MCGSStats stats = createMonteCarloStats();
+    clock_t startTime = clock();
+
+    MCGSNode* root = createMCGSNode(state->hash);
     MonteCarloTableEntry* rootEntry = lookupAndCreate(monteCarloTable, state->hash, root);
 
-    int numIterations = 800; 
+    int numIterations = 1600; 
     for (int i = 0; i < numIterations; i++) {
         GameState* stateCopy = copyGameState(state);
-        SelectExpandResult result = selectExpand(monteCarloTable, stateCopy, net, root);
-        backPropagate(&result.trajectory, result.value);
+        SelectExpandResult result = selectExpand(monteCarloTable, stateCopy, net, root, &stats);
+        if (result.trajectory.size > stats.maxDepth) {
+            stats.maxDepth = result.trajectory.size;
+        }
+        backPropagate(&result.trajectory, result.value, &stats);
         freeGameState(stateCopy);
     }
+
+    stats.averageValueEstimate = root->value;
+    stats.totalVisits = root->numVisits;
+    clock_t endTime = clock();
+    stats.executionTimeMs = ((double)(endTime - startTime) / CLOCKS_PER_SEC) * 1000;
+    printMCGSStats(&stats);
 
     if (trainingMode) {
         if (root->numEdges == 0) {
@@ -26,12 +38,16 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
             return move;
         }
 
-        int total = 0;
+        double total = 0;
         if (root->numEdges == 0) {
             printf("No edges in root node\n");
         }
         for (int i = 0; i < root->numEdges; i++) {
-            total += (root->edges[i]->n * root->edges[i]->n);
+            double temp = (root->edges[i]->n * root->edges[i]->n) * root->edges[i]->q;
+            if (temp < 1.0) {
+                temp = 1.0;
+            }
+            total += temp;
         }
 
         if (total <= 0) { // No visits
@@ -40,10 +56,14 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
             return root->edges[selected]->move;
         }
 
-        int randomIndex = rand() % total;
+        int randomIndex = rand() % (int)total;
         int i = 0;
         while (randomIndex >= 0 && i < root->numEdges) {
-            randomIndex -= (root->edges[i]->n * root->edges[i]->n);
+            int temp = (root->edges[i]->n * root->edges[i]->n) * root->edges[i]->q;
+            if (temp < 1.0) {
+                temp = 1.0;
+            }
+            randomIndex -= temp;
             i++;
         }
         i = i > 0 ? i - 1 : 0;
@@ -79,7 +99,7 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     }
 }
 
-SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseNeuralNet* net, MCGSNode* root) {
+SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseNeuralNet* net, MCGSNode* root, MCGSStats* stats) {
     SelectExpandResult result;
     // Initialize trajectory
     result.trajectory = createTrajectory(64);
@@ -99,6 +119,7 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseN
 
         // Check if the next node is a transposition
         if (edge->target->isTransposition) {
+            stats->transpositionsFound++;
             double qDelta = edge->q - edge->target->value;
 
             // Check if Q-delta exceeds threshold Q_epsilon
@@ -138,6 +159,7 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseN
 
         // Create edges for all possible actions
         node->numEdges = moves->numMoves;
+        stats->totalEdges += moves->numMoves;
         node->edges = calloc(moves->numMoves, sizeof(MCGSEdge*));
 
         for (int i = 0; i < moves->numMoves; i++) {
@@ -158,13 +180,16 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseN
             if (entry) {
                 node->edges[i]->target = entry->node;
                 node->edges[i]->target->isTransposition = true;
+                stats->transpositionsFound++;
             } else {
                 // Create new node
-                MCGSNode* newNode = createMCGSNode();
+                MCGSNode* newNode = createMCGSNode(state->hash);
+                stats->totalNodes++;
 
                 Result gameResult = checkGameResult(state);
                 if (gameResult != CONTINUE) {
                     newNode->isTerminal = true;
+                    stats->terminalNodesHit++;
                     switch (gameResult) {
                         case FLAT_WHITE:
                         case ROAD_WHITE:
@@ -203,8 +228,7 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseN
         result.value = node->value;
     }
 
-    //TODO not sure if this belongs here or at callsite
-    //undo moves
+    // undo all moves in the trajectory to get back to original state
     for (int i = result.trajectory.size - 1; i >= 0; i--) {
         MCGSEdge* edge = result.trajectory.edges[i];
         undoMoveNoChecks(state, &edge->move, false);
@@ -213,7 +237,7 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseN
     return result;
 }
 
-void backPropagate(Trajectory* trajectory, double value) {
+void backPropagate(Trajectory* trajectory, double value, MCGSStats* stats) {
     double qTarget = DBL_MAX;
 
     // Process trajectory in reverse order
@@ -288,6 +312,11 @@ Trajectory createTrajectory(int capacity) {
 
 void freeTrajectory(Trajectory* trajectory) {
     if (trajectory) {
+        for (int i = 0; i < trajectory->size; i++) {
+            if (trajectory->nodes[i]) {
+                markAllAsUnused(monteCarloTable, trajectory->nodes[i]->hash);
+            }
+        }
         free(trajectory->nodes);
         free(trajectory->edges);
         free(trajectory);
@@ -314,7 +343,7 @@ void addToTrajectory(Trajectory* trajectory, MCGSNode* node, MCGSEdge* edge) {
     }
 }
 
-MCGSNode* createMCGSNode(void) {
+MCGSNode* createMCGSNode(ZobristKey hash) {
     MCGSNode* node = malloc(sizeof(MCGSNode));
     if (!node) {
         printf("Failed to allocate memory for MCGSNode\n");
@@ -326,6 +355,7 @@ MCGSNode* createMCGSNode(void) {
     node->isTerminal = false;
     node->isTransposition = false;
     node->numEdges = 0;
+    node->hash = hash;
     return node;
 }
 
@@ -362,7 +392,7 @@ void freeMonteCarloTable(MonteCarloTable* table) {
 
 MonteCarloTableEntry* createMonteCarloTableEntry(ZobristKey hash, MCGSNode* node) {
     MonteCarloTableEntry* entry = calloc(1, sizeof(MonteCarloTableEntry));
-    entry->isUsed = false;
+    entry->isUsed = true;
     entry->hash = hash;
     entry->node = node;
     entry->next = NULL;
@@ -430,7 +460,81 @@ void updateMonteCarloTable(MonteCarloTable* table, ZobristKey hash, MCGSNode* no
     }
 }
 
+void markAllAsUnused(MonteCarloTable* table, ZobristKey hash) {
+    u32 index = mcZobristToIndex(hash);
+    MonteCarloTableEntry* entry = &table->entries[index];
+
+    while (entry) {
+        if (entry->hash == hash) {
+            entry->isUsed = false;
+        }
+        entry = entry->next;
+    }
+}
+
 u32 mcZobristToIndex(ZobristKey hash) {
     return (u32)(hash & (MONTECARLO_TABLE_SIZE - 1));
+}
+
+MCGSStats createMonteCarloStats(void) {
+    return (MCGSStats){0};
+}
+
+void printMCGSStats(MCGSStats* stats) {
+    printf("=== Monte Carlo Graph Search Stats ===\n");
+    printf("Total Nodes: %d\n", stats->totalNodes);
+    printf("Total Edges: %d\n", stats->totalEdges);
+    printf("Max Depth: %d\n", stats->maxDepth);
+    printf("Total Visits: %d\n", stats->totalVisits);
+    printf("Terminal Nodes Hit: %d\n", stats->terminalNodesHit);
+    printf("Transpositions Found: %d\n", stats->transpositionsFound);
+    printf("Average Value Estimate: %.4f\n", stats->averageValueEstimate);
+    printf("Execution Time (ms): %.2f\n", stats->executionTimeMs);
+    printf("Iterations: %d\n", stats->iterations);
+    printf("=====================================\n");
+}
+
+void printTopMoves(MCGSNode* root, int numMoves) {
+    // Check if node has edges
+    if (root->numEdges == 0) {
+        printf("No moves available.\n");
+        return;
+    }
+
+    // Create a copy of edges for sorting
+    MCGSEdge** sortedEdges = malloc(root->numEdges * sizeof(MCGSEdge*));
+    for (int i = 0; i < root->numEdges; i++) {
+        sortedEdges[i] = root->edges[i];
+    }
+
+    // Sort edges by visit count (simple bubble sort)
+    for (int i = 0; i < root->numEdges - 1; i++) {
+        for (int j = 0; j < root->numEdges - i - 1; j++) {
+            if (sortedEdges[j]->n < sortedEdges[j + 1]->n) {
+                MCGSEdge* temp = sortedEdges[j];
+                sortedEdges[j] = sortedEdges[j + 1];
+                sortedEdges[j + 1] = temp;
+            }
+        }
+    }
+
+    // Limit number of moves to print
+    int movesToPrint = numMoves < root->numEdges ? numMoves : root->numEdges;
+    
+    printf("\n=== Top %d Moves ===\n", movesToPrint);
+    printf("Rank | Move | Visits | %% of Total | Q-Value \n");
+    printf("-----|------|--------|-----------|--------\n");
+    
+    for (int i = 0; i < movesToPrint; i++) {
+        printf("%4d | %4s | %6d | %9.2f%% | %+.4f\n", 
+               i + 1,
+               moveToString(&sortedEdges[i]->move),
+               sortedEdges[i]->n,
+               (float)sortedEdges[i]->n * 100 / root->numVisits,
+               sortedEdges[i]->q);
+    }
+    printf("========================\n\n");
+    
+    free(sortedEdges);
 }
 

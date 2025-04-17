@@ -23,6 +23,7 @@
 typedef struct MCGSNode {
     struct MCGSNode* parent;
     struct MCGSEdge** edges;
+    ZobristKey hash;
     int numEdges;
     int numVisits; // N
     double value; 
@@ -79,9 +80,9 @@ typedef struct {
 
 Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingMode);
 
-SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseNeuralNet* net, MCGSNode* root);
+SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseNeuralNet* net, MCGSNode* root, MCGSStats* stats);
 
-void backPropagate(Trajectory* trajectory, double value);
+void backPropagate(Trajectory* trajectory, double value, MCGSStats* stats);
 
 MCGSEdge* selectBestEdge(MCGSNode* node);
 
@@ -89,7 +90,7 @@ Trajectory createTrajectory(int capacity);
 void freeTrajectory(Trajectory* trajectory);
 void addToTrajectory(Trajectory* trajectory, MCGSNode* node, MCGSEdge* edge);
 
-MCGSNode* createMCGSNode(void);
+MCGSNode* createMCGSNode(ZobristKey hash);
 void freeMCGSNode(MCGSNode* node);
 
 MonteCarloTable* createMonteCarloTable(void);
@@ -101,7 +102,12 @@ void freeMonteCarloTableEntry(MonteCarloTableEntry* entry);
 MonteCarloTableEntry* lookupMonteCarloTable(MonteCarloTable* table, ZobristKey hash);
 MonteCarloTableEntry* lookupAndCreate(MonteCarloTable* table, ZobristKey hash, MCGSNode* node);
 void updateMonteCarloTable(MonteCarloTable* table, ZobristKey hash, MCGSNode* node);
+void markAllAsUnused(MonteCarloTable* table, ZobristKey hash);
 
 u32 mcZobristToIndex(ZobristKey hash);
+
+MCGSStats createMonteCarloStats(void);
+void printMCGSStats(MCGSStats* stats);
+void printTopMoves(MCGSNode* root, int numMoves);
 
 #endif // MONTECARLOGRAPHSEARCH_H

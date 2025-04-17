@@ -113,7 +113,8 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
 
         GeneratedMoves* moves = generateAllMoves(state, numMoves);
         numMoves = moves->numMoves;
-        Move move = monteCarloGraphSearch(state, trainer->net, true);
+        // sometimes turning training mode off is better
+        Move move = monteCarloGraphSearch(state, trainer->net, false);
 
         makeMoveNoChecks(state, &move, false);
         freeGeneratedMoves(moves);
