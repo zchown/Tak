@@ -92,7 +92,7 @@ void train(Trainer* trainer, int totalEpisodes) {
                 break;
         }
         if (i % trainer->saveInterval == 0) {
-            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_bignew");
+            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_verysmall");
         }
     }
     printf("\n");
@@ -266,7 +266,7 @@ void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
         }
 
         if (i % trainer->saveInterval == 0) {
-            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_bignew");
+            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_verysmall");
         }
         agentPlaysWhite = !agentPlaysWhite;
     }
@@ -313,20 +313,9 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         Move move = moves->moves[0];
 
         if ((state->turn == WHITE && !agentPlaysWhite) || (state->turn == BLACK && agentPlaysWhite)){
-            int random = rand() % 10;
-            if (random < 3) {
-                move = monteCarloGraphSearch(state, trainer->net, true);
-            } else {
-                move = iterativeDeepeningSearch(state, alphaBetaTime);
-            }
+            move = iterativeDeepeningSearch(state, alphaBetaTime);
         } else {
-            int random = rand() % 10;
-            if (random < 3) {
-                move = monteCarloGraphSearch(state, trainer->net, false);
-            } else {
-                move = monteCarloGraphSearch(state, trainer->net, true);
-            }
-
+            move = monteCarloGraphSearch(state, trainer->net, true);
         }
         makeMoveNoChecks(state, &move, false);
         freeGeneratedMoves(moves);
@@ -446,7 +435,7 @@ void trainHybrid(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
         }
 
         if (i % trainer->saveInterval == 0) {
-            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_bignew");
+            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_verysmall");
         }
     }
     printf("\n");

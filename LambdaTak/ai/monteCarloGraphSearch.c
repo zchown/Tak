@@ -13,7 +13,10 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net,
     MonteCarloTableEntry* rootEntry =
         lookupAndCreate(monteCarloTable, state->hash, root);
 
-    int numIterations = 1 << 11;
+    int numIterations = 1 << 10;
+    if (trainingMode) {
+        numIterations = 1 << 10;
+    }
     for (int i = 0; i < numIterations; i++) {
         GameState* stateCopy = copyGameState(state);
         SelectExpandResult result =
@@ -31,8 +34,8 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net,
     clock_t endTime = clock();
     stats.executionTimeMs =
         ((double)(endTime - startTime) / CLOCKS_PER_SEC) * 1000;
-    /* printMCGSStats( & stats); */
-    /* printTopMoves(root, 5); */
+    /* printMCGSStats(&stats); */
+    /* printTopMoves(root, 10); */
 
     if (trainingMode) {
         if (root->numEdges == 0) {
@@ -128,7 +131,7 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net,
         if (root->edges[i]->target->state == MC_LOSS && !allLosing) {
             continue;
         }
-        
+
         if (root->edges[i]->n > maxVisits) {
             maxVisits = root->edges[i]->n;
             bestEdge = root->edges[i];
@@ -162,13 +165,13 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
         addToTrajectory(&result.trajectory, node, e);
 
         makeMoveNoChecks(state, &e->move, false);
-        
+
         // Add early terminal check
         Result gameResult = checkGameResult(state);
         if (gameResult != CONTINUE) {
             e->target->isTerminal = true;
             stats->terminalNodesHit++;
-            
+
             switch (gameResult) {
                 case FLAT_WHITE:
                 case ROAD_WHITE:
@@ -185,12 +188,12 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
                     __builtin_unreachable();
                     break;
             }
-            
+
             result.value = e->target->value;
-            
+
             // Update node state
             if ((state->turn == WHITE && (gameResult == FLAT_WHITE || gameResult == ROAD_WHITE)) ||
-                (state->turn == BLACK && (gameResult == FLAT_BLACK || gameResult == ROAD_BLACK))) {
+                    (state->turn == BLACK && (gameResult == FLAT_BLACK || gameResult == ROAD_BLACK))) {
                 e->target->state = MC_WIN;
                 e->target->endInPly = 0;
             } else if (gameResult == DRAW) {
@@ -200,7 +203,7 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
                 e->target->state = MC_LOSS;
                 e->target->endInPly = 0;
             }
-            
+
             // Undo move before returning
             undoMoveNoChecks(state, &e->move, false);
             return result;
@@ -223,8 +226,8 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
 
         // Evaluate with single‑head network
         double* in = gameStateToVector(state);
-        double* out = feedForwardDense(net, 7 * 36, in, 0.0, true);
-        node->value = out[0];
+        double* out = feedForwardDense(net, 7 * 36 * 3, in, 0.0, true);
+        node->value = 2*out[0] - 1;
         free(in);
         free(out);
 
@@ -233,25 +236,34 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
         node->edges = calloc(moveNum, sizeof(MCGSEdge*));
         stats->totalNodes++;
 
+        int totalMoveScore = 0;
+        for (int i = 0; i < moveNum; i++) {
+            int temp = mcScoreMove(state, &moves->moves[i]);
+            if (temp <= 0) {
+                temp = 500;
+            }
+            totalMoveScore += temp;
+        }
+
         for (int i = 0; i < moveNum; i++) {
             node->edges[i] = calloc(1, sizeof(MCGSEdge));
             node->edges[i]->move = moves->moves[i];
-            
+
             // Use scoreMove to calculate priority instead of uniform prior
             int moveScore = mcScoreMove(state, &moves->moves[i]);
-            // Normalize to range [0.1, 0.9]
-            double normalizedScore = 0.1 + (0.8 * (double)(moveScore + 2000) / 4000.0);
-            if (normalizedScore < 0.1) normalizedScore = 0.1;
-            if (normalizedScore > 0.9) normalizedScore = 0.9;
+            if (moveScore <= 0) {
+                moveScore = 500;
+            }
+            double normalizedScore = (double)moveScore / totalMoveScore;
             node->edges[i]->q = normalizedScore;
             node->edges[i]->n = 0;
 
             makeMoveNoChecks(state, &moves->moves[i], false);
             ZobristKey hash = state->hash;
-            
+
             // Check for immediate terminal state
             Result gameResult = checkGameResult(state);
-            
+
             MonteCarloTableEntry* entry = lookupMonteCarloTable(table, hash);
             if (entry) {
                 node->edges[i]->target = entry->node;
@@ -261,11 +273,11 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
                 entry->node->endInPly = 0;
             } else {
                 MCGSNode* newNode = createMCGSNode(hash, node);
-                
+
                 if (gameResult != CONTINUE) {
                     newNode->isTerminal = true;
                     stats->terminalNodesHit++;
-                    
+
                     switch (gameResult) {
                         case FLAT_WHITE:
                         case ROAD_WHITE:
@@ -282,10 +294,10 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
                             __builtin_unreachable();
                             break;
                     }
-                    
+
                     // Update node state
                     if ((state->turn == WHITE && (gameResult == FLAT_WHITE || gameResult == ROAD_WHITE)) ||
-                        (state->turn == BLACK && (gameResult == FLAT_BLACK || gameResult == ROAD_BLACK))) {
+                            (state->turn == BLACK && (gameResult == FLAT_BLACK || gameResult == ROAD_BLACK))) {
                         newNode->state = MC_WIN;
                         newNode->endInPly = 0;
                     } else if (gameResult == DRAW) {
@@ -380,7 +392,7 @@ MCGSEdge* selectBestEdge(MCGSNode* node) {
 
     for (int i = 0; i < node->numEdges; i++) {
         MCGSEdge* edge = node->edges[i];
-        
+
         // Skip losing moves if we have alternatives
         if (edge->target->state == MC_LOSS && !allLosing) {
             continue;
@@ -389,10 +401,10 @@ MCGSEdge* selectBestEdge(MCGSNode* node) {
         // Using PUCT formula from AlphaZero
         double exploitation = edge->q;
         double exploration = CPUCT * sqrt(node->numVisits) / (1 + edge->n);
-        
+
         // Add progressive bias that decreases with visits
-        double progressiveBias = 5.0 / (1.0 + edge->n);
-        
+        double progressiveBias = 0.05 / (1.0 + edge->n);
+
         double score = exploitation + exploration + progressiveBias;
 
         if (score > bestScore) {
@@ -701,9 +713,8 @@ int mcScoreMove(const GameState* state, const Move* move) {
 
     else if (move->type == SLIDE) {
         SlideMove mv = move->move.slide;
-        score += 400;
-
         Bitboard mvBitboard = 0;
+
         for (int i = 0; i < mv.count; i++) {
             if (slidePosition(mv.startPos, mv.direction, i) <= TOTAL_SQUARES) {
                 mvBitboard |= 1ULL << slidePosition(mv.startPos, mv.direction, i);

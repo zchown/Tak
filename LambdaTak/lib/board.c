@@ -850,30 +850,27 @@ void printBitboard(Bitboard board) {
 // 0-1 normalized
 // -1-1 was giving me issues previously
 double* gameStateToVector(const GameState* state) {
-    // top 7 pieces for each square
-    double* vector = (double*)malloc(TOTAL_SQUARES * (BOARD_SIZE + 1) * sizeof(double));
-    for (int i = 0; i < TOTAL_SQUARES; i++) {
-        Square sq = state->board->squares[i];
-        int curIndex = sq.numPieces - 1;
-        for (int j = 0; j < (BOARD_SIZE + 1); j++) {
-            if (curIndex >= 0) {
-                if (sq.pieces[curIndex].stone == FLAT) {
-                    vector[i * (BOARD_SIZE + 1) + j] = 0.6;
-                } else if (sq.pieces[curIndex].stone == STANDING) {
-                    vector[i * (BOARD_SIZE + 1) + j] = 0.3;
-                } else {
-                    vector[i * (BOARD_SIZE + 1) + j] = 1.0;
-                }
-                if (sq.pieces[curIndex].color == BLACK) {
-                    vector[i * (BOARD_SIZE + 1) + j] *= -1;
-                }
-                curIndex--;
-            } else {
-                vector[i * (BOARD_SIZE + 1) + j] = 0.0;
-            }
-        }
+    const int vecSize = TOTAL_SQUARES * (BOARD_SIZE + 1) * 3;
 
+    double* vector = (double*)calloc(vecSize, sizeof(double));
+    if (!vector) return NULL; 
+
+    for (int i = 0; i < TOTAL_SQUARES; i++) {
+        const Square* sq = &state->board->squares[i];
+        const int baseIdx = i * (BOARD_SIZE + 1) * 3;
+
+        for (int j = 0; j < sq->numPieces && j < (BOARD_SIZE + 1); j++) {
+            const int pieceIdx = sq->numPieces - j - 1;
+            const Piece* piece = &sq->pieces[pieceIdx];
+
+            const int typeOffset = piece->stone; 
+
+            const double value = (piece->color == BLACK) ? -1.0 : 1.0;
+
+            vector[baseIdx + j*3 + typeOffset] = value;
+        }
     }
+
     return vector;
 }
 
