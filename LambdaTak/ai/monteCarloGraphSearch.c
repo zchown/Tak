@@ -13,9 +13,9 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net,
     MonteCarloTableEntry* rootEntry =
         lookupAndCreate(monteCarloTable, state->hash, root);
 
-    int numIterations = 1 << 10;
+    int numIterations = 1 << 11;
     if (trainingMode) {
-        numIterations = 1 << 10;
+        numIterations = 1 << 11;
     }
     for (int i = 0; i < numIterations; i++) {
         GameState* stateCopy = copyGameState(state);

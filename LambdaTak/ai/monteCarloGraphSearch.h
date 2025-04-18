@@ -13,13 +13,13 @@
 #include <float.h>
 #include <math.h>
 
-#define CPUCT (2.5) // exploration constant
+#define CPUCT (0.1) // exploration constant
 
-#define MONTECARLO_TABLE_SIZE (1 << 24)
+#define MONTECARLO_TABLE_SIZE (1 << 25)
 
 #define V_MIN (-1.0)
 #define V_MAX (1.0)
-#define Q_EPSILON (0.025)
+#define Q_EPSILON (0.5)
 
 typedef enum {
     MC_WIN,

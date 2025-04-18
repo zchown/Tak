@@ -7,8 +7,9 @@ int main() {
     initZobristTable();
 
     int layerSizes[] = {(7 * TOTAL_SQUARES * 3),
-                        36, 36, 1};
-    int numLayers = 4;
+                        (7 * TOTAL_SQUARES), 
+                        144, 144, 36, 36, 1};
+    int numLayers = 7;
 
     /* int layerSizes[] = {(7 * TOTAL_SQUARES), 64, 32, 8, 1}; */
     /* int numLayers = 5; */
@@ -35,7 +36,7 @@ int main() {
 
     printf("Training\n");
     /* trainHybrid(trainer, 10000, 50); */
-    trainAlphaBeta(trainer, 5000, 50);
+    trainAlphaBeta(trainer, 5000, 250);
     /* train(trainer, 5000000); */
 
     // fun to look at
