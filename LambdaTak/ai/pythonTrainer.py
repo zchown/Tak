@@ -3,16 +3,16 @@ import struct
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D, Reshape, Input
+from tensorflow.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D, Reshape, Input, Conv3D, MaxPooling3D
 
 # Model configuration
-TOTAL_INPUT = 36 * 7 * 3
+TOTAL_INPUT = 6 * 6* 7 * 3
 INPUT_SQUARES = 36
+ROW_SIZE = 6
 INPUT_SQUARE_DEPTH = 7
 INPUT_PIECE_TYPES = 3
 
 def recv_all(conn, n):
-    """Receive exactly n bytes or return None if EOF."""
     data = b''
     while len(data) < n:
         print(f"Received {len(data)} bytes, waiting for {n} bytes")
@@ -24,30 +24,24 @@ def recv_all(conn, n):
 
 
 def receive_data(conn):
-    """Receive a 4‑byte big‑endian length prefix, then exactly that many bytes."""
-    # Read the length prefix
     size_data = recv_all(conn, 4)
     if size_data is None:
         return None
     size = struct.unpack('!I', size_data)[0]
-    # Read the payload
     return recv_all(conn, size)
 
 def send_data(conn, data):
-    """Send data with a 4-byte big-endian length prefix."""
     size = len(data)
     conn.sendall(struct.pack('!I', size))
     conn.sendall(data)
 
 
 def send_ack(conn):
-    """Send an acknowledgment."""
     conn.sendall(b'ACK\0')
     print("Sent ACK")
 
 
 def wait_for_ack(conn):
-    """Wait for an acknowledgment."""
     ack = recv_all(conn, 4)
     if ack is None:
         print("Connection closed while waiting for ACK")
@@ -62,10 +56,10 @@ def wait_for_ack(conn):
 def create_model():
     model = Sequential([
         Input(shape=(TOTAL_INPUT,), name='input'),
-        Reshape((INPUT_SQUARES, INPUT_SQUARE_DEPTH, INPUT_PIECE_TYPES)),
-        Conv2D(64, (3, 3), activation='relu', padding='same'),
-        Conv2D(128, (3, 3), activation='relu', padding='same'),
-        MaxPooling2D(pool_size=(2, 2)),
+        Reshape((ROW_SIZE, ROW_SIZE, INPUT_SQUARE_DEPTH, INPUT_PIECE_TYPES)),
+        Conv3D(64, (3, 3, 7), activation='relu', padding='same'),
+        MaxPooling3D(pool_size=(2, 2, 1)),
+        Conv3D(128, (3, 3, 7), activation='relu', padding='same'),
         Flatten(),
         Dense(128, activation='relu'),
         Dense(64, activation='relu'),
@@ -95,15 +89,12 @@ def main():
                         print("Client closed connection or partial header read")
                         break
 
-                    # ACK the header
                     send_ack(conn)
 
                     request_type = header.decode('utf-8', errors='ignore').rstrip('\x00')
                     print(f"Received request type: {request_type}")
 
-                    # --- PREDICTION ---
                     if request_type == 'predict':
-                        # Read input_size (with its 4‑byte prefix)
                         size_bytes = receive_data(conn)
                         if size_bytes is None:
                             print("Failed to read input_size prefix")
@@ -116,7 +107,6 @@ def main():
                             conn.sendall(struct.pack('i', 0))
                             continue
 
-                        # Read the actual input data (with its own prefix)
                         raw = receive_data(conn)
                         if raw is None:
                             print("Incomplete input data")
@@ -124,8 +114,6 @@ def main():
                         send_ack(conn)
 
                         inputs = np.frombuffer(raw, dtype=np.float64).reshape(1, -1)
-                        # outputs = model.predict(inputs, verbose=0)
-                        # print(f"Prediction: {outputs}")
                         outputs = model.predict(inputs, verbose=0)
                         print(f"Prediction raw value: {outputs[0][0]}")
 
@@ -153,14 +141,12 @@ def main():
 
                         inputs = np.frombuffer(raw_inputs, dtype=np.float64).reshape(batch, TOTAL_INPUT)
 
-                        # Read old outputs
                         raw_outputs = receive_data(conn)
                         if raw_outputs is None:
                             print("Incomplete training outputs")
                             break
                         send_ack(conn)
 
-                        # Read targets
                         raw_targets = receive_data(conn)
                         if raw_targets is None:
                             print("Incomplete training targets")

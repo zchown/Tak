@@ -26,7 +26,7 @@ int connect_to_python() {
 void sendData(int sock, const void* data, size_t len) {
     uint32_t size = htonl((uint32_t)len);
     send(sock, &size, sizeof(size), 0);
-    printf("Sent size indicator: %u bytes\n", (uint32_t)len);
+    /* printf("Sent size indicator: %u bytes\n", (uint32_t)len); */
 
     size_t sent = 0;
     while (sent < len) {
@@ -37,7 +37,7 @@ void sendData(int sock, const void* data, size_t len) {
         }
         sent += s;
     }
-    printf("Sent data: %zu bytes\n", sent);
+    /* printf("Sent data: %zu bytes\n", sent); */
 
     // Wait for acknowledgment
     waitForAck(sock);
@@ -49,12 +49,12 @@ void receiveData(int sock, void* buf, size_t len) {
         ssize_t received = recv(sock, (char*)buf + total, len - total, 0);
         if (received <= 0) {
             if (received < 0) perror("Receive failed");
-            else printf("Connection closed by peer\n");
+            /* else printf("Connection closed by peer\n"); */
             break;
         }
         total += received;
     }
-    printf("Received %zu bytes\n", total);
+    /* printf("Received %zu bytes\n", total); */
 }
 
 void sendAck(int sock) {
@@ -69,7 +69,7 @@ void sendAck(int sock) {
         sent += s;
     }
 
-    printf("Sent ACK: 'A', 'C', 'K', '\\0'\n");
+    /* printf("Sent ACK: 'A', 'C', 'K', '\\0'\n"); */
 }
 
 int waitForAck(int sock) {
@@ -77,22 +77,22 @@ int waitForAck(int sock) {
     receiveData(sock, ack, 4);
 
     // Debug what we actually received
-    printf("Received ACK bytes: [%02x %02x %02x %02x]\n", 
-            ack[0], ack[1], ack[2], ack[3]);
+    /* printf("Received ACK bytes: [%02x %02x %02x %02x]\n",  */
+            /* ack[0], ack[1], ack[2], ack[3]); */
 
     // Check if it matches 'ACK\0'
     if (ack[0] != 'A' || ack[1] != 'C' || ack[2] != 'K' || ack[3] != '\0') {
-        printf("Invalid ACK received\n");
+        /* printf("Invalid ACK received\n"); */
         return 0;
     }
 
-    printf("Valid ACK received\n");
+    /* printf("Valid ACK received\n"); */
     return 1;
 }
 
 double* pythonPredict(int sock, double* inputs, int input_size) {
-    printf("\n--- STARTING PREDICTION REQUEST ---\n");
-    printf("Sending prediction request with input size %d\n", input_size);
+    /* printf("\n--- STARTING PREDICTION REQUEST ---\n"); */
+    /* printf("Sending prediction request with input size %d\n", input_size); */
 
     // Send prediction request header
     char header[] = "predict";
@@ -114,7 +114,7 @@ double* pythonPredict(int sock, double* inputs, int input_size) {
     *as_int = ntohl(*as_int);
     float prediction_value = *(float*)as_int;
 
-    printf("Received prediction value: %f\n", prediction_value);
+    /* printf("Received prediction value: %f\n", prediction_value); */
 
     // Send acknowledgment
     sendAck(sock);
@@ -127,13 +127,13 @@ double* pythonPredict(int sock, double* inputs, int input_size) {
     }
     *result = (double)prediction_value;
 
-    printf("--- PREDICTION REQUEST COMPLETED ---\n\n");
+    /* printf("--- PREDICTION REQUEST COMPLETED ---\n\n"); */
     return result;
 }
 
 void pythonTrain(int sock, double* inputs, double* outputs, int target_count, double* targets, int data_size) {
-    printf("\n--- STARTING TRAINING REQUEST ---\n");
-    printf("Sending training request with data size %d\n", data_size);
+    /* printf("\n--- STARTING TRAINING REQUEST ---\n"); */
+    /* printf("Sending training request with data size %d\n", data_size); */
 
     // Send request type
     char header[] = "train";
@@ -148,7 +148,7 @@ void pythonTrain(int sock, double* inputs, double* outputs, int target_count, do
     // Send target values
     sendData(sock, targets, target_count * sizeof(double));
 
-    printf("--- TRAINING REQUEST COMPLETED ---\n\n");
+    /* printf("--- TRAINING REQUEST COMPLETED ---\n\n"); */
 }
 
 void closeConnection(int sock) {
