@@ -294,36 +294,13 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         pastOutputs[numPastStates] = outputs;
         pastValues[numPastStates] = outputs[0];
 
-        if (numPastStates > 0) {
-            double currentValue = pastValues[numPastStates];
-            double prevValue = pastValues[numPastStates - 1];
-            double immediateReward = pseudoReward(state) - 0.5;
-
-            // Calculate TD error: r + γV(s') - V(s)
-            double tdError = immediateReward + (trainer->discountFactor * currentValue) - prevValue;
-
-            double targetValue = prevValue + tdError;
-
-            // Convert back to 0-1 range
-            targetValue += 0.5;
-            if (targetValue < 0.0) targetValue = 0.0;
-            if (targetValue > 1.0) targetValue = 1.0;
-
-            /* backpropagateDense(trainer->net, pastStates[numPastStates - 1],  */
-                    /* pastOutputs[numPastStates - 1], &targetValue, trainer->learningRate); */
-            /* pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, &targetValue, 7 * 36 * 3); */
-        }
-
         GeneratedMoves* moves = generateAllMoves(state, numMoves);
         Move move = moves->moves[0];
 
         if ((state->turn == WHITE && !agentPlaysWhite) || (state->turn == BLACK && agentPlaysWhite)){
             move = iterativeDeepeningSearch(state, alphaBetaTime);
         } else {
-            /* int random = rand() % moves->numMoves; */
-            /* move = moves->moves[random]; */
             move = monteCarloGraphSearch(state, trainer->net, true, sock);
-            /* move = iterativeDeepeningSearch(state, alphaBetaTime * 10); */
         }
         makeMoveNoChecks(state, &move, false);
         freeGeneratedMoves(moves);
@@ -356,26 +333,15 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, &finalReward, 7 * 36 * 3);
     }
 
-    // TD(λ) update for all previous states
-    double decayFactor = 0.9;  // Lambda for eligibility trace
     for (int i = numPastStates - 2; i >= 0; i--) {
         if (pastStates[i] == NULL || pastOutputs[i] == NULL) {
             fprintf(stderr, "NULL pointer in eligibility trace at index %d\n", i);
             continue;  // Skip this iteration
         }
 
-        double decay = pow(decayFactor * trainer->discountFactor, numPastStates - 1 - i);
-        double targetValue = pastValues[i] + (decay * (finalReward - pastValues[i]));
-        targetValue = finalReward;
 
-        // Ensure targetValue is in valid range [0, 1]
-        if (targetValue < 0.0) targetValue = 0.0;
-        if (targetValue > 1.0) targetValue = 1.0;
-        printf("targetValue: %.4f\n", targetValue);
-
-        /* backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &targetValue,  */
-                /* trainer->learningRate * decay);  // Decay learning rate by eligibility */
-        pythonTrain(sock, pastStates[i], pastOutputs[i], 1, &targetValue, 7 * 36 * 3);
+        /* backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &targetValue, trainer->learningRate * decay); */
+        pythonTrain(sock, pastStates[i], pastOutputs[i], 1, &finalReward, 7 * 36 * 3);
     }
 
     for (int i = 0; i < numPastStates; i++) {

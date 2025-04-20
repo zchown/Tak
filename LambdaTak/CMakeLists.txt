@@ -55,6 +55,7 @@ add_executable(lambdaTak
     ai/monteCarloGraphSearch.c
     ai/neuralNetworks.c
     ai/neuralNetTrainer.c
+    ai/accelerateNeuralNet.c
 )
 
 target_include_directories(lambdaTak PRIVATE
@@ -86,6 +87,7 @@ add_executable(trainTak
     ai/monteCarloGraphSearch.c
     ai/neuralNetworks.c
     ai/neuralNetTrainer.c
+    ai/accelerateNeuralNet.c
 )
 
 # Test suite configuration

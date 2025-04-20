@@ -32,8 +32,8 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     clock_t endTime = clock();
     stats.executionTimeMs =
         ((double)(endTime - startTime) / CLOCKS_PER_SEC) * 1000;
-    /* printMCGSStats(&stats); */
-    /* printTopMoves(root, 10); */
+    printMCGSStats(&stats);
+    printTopMoves(root, 10);
 
     if (trainingMode) {
         if (root->numEdges == 0) {

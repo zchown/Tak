@@ -14,7 +14,7 @@
 #include <math.h>
 #include "pythonTrainer.h"
 
-#define CPUCT (0.1) // exploration constant
+#define CPUCT (0.25) // exploration constant
 
 #define MONTECARLO_TABLE_SIZE (1 << 25)
 
