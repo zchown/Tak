@@ -46,6 +46,7 @@ add_executable(lambdaTak
     lib/moves.c 
     lib/perft.c 
     lib/ptn.c 
+    ai/accelerateNeuralNet.c
     ai/eval.c 
     ai/transposition.c
     ai/searches.c
@@ -55,7 +56,6 @@ add_executable(lambdaTak
     ai/monteCarloGraphSearch.c
     ai/neuralNetworks.c
     ai/neuralNetTrainer.c
-    ai/accelerateNeuralNet.c
 )
 
 target_include_directories(lambdaTak PRIVATE
@@ -73,6 +73,7 @@ target_link_libraries(lambdaTak PRIVATE
 
 # training executable
 add_executable(trainTak
+    ai/accelerateNeuralNet.c
     ai/runTraining.c
     ai/pythonTrainer.c
     lib/board.c 
@@ -87,7 +88,6 @@ add_executable(trainTak
     ai/monteCarloGraphSearch.c
     ai/neuralNetworks.c
     ai/neuralNetTrainer.c
-    ai/accelerateNeuralNet.c
 )
 
 # Test suite configuration

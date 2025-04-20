@@ -1,8 +1,25 @@
 #include "monteCarloGraphSearch.h"
 
+GraphNN* graphNN = NULL;
+
 Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingMode, int sock) {
     if (!monteCarloTable) {
         monteCarloTable = createMonteCarloTable();
+    }
+    if (!graphNN) {
+        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlpackage/Data/com.apple.CoreML/model.mlmodel", 7 * 36 * 3, 1);
+        if (!graphNN) {
+            fprintf(stderr, "Failed to load graph neural network\n");
+            return (Move){0};
+        }
+    } else if (trainingMode) {
+        // Reset the graphNN for training mode
+        freeGraphNN(graphNN);
+        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlpackage/Data/com.apple.CoreML/model.mlmodel", 7 * 36 * 3, 1);
+        if (!graphNN) {
+            fprintf(stderr, "Failed to load graph neural network\n");
+            return (Move){0};
+        }
     }
 
     MCGSStats stats = createMonteCarloStats();
@@ -12,9 +29,9 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     MonteCarloTableEntry* rootEntry =
         lookupAndCreate(monteCarloTable, state->hash, root);
 
-    int numIterations = 1 << 8;
+    int numIterations = 1 << 12;
     if (trainingMode) {
-        numIterations = 1 << 8;
+        numIterations = 1 << 12;
     }
     for (int i = 0; i < numIterations; i++) {
         GameState* stateCopy = copyGameState(state);
@@ -225,10 +242,11 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
         // Evaluate with single‑head network
         double* in = gameStateToVector(state);
         /* double* out = feedForwardDense(net, 7 * 36 * 3, in, 0.0, true); */
-        double* out = pythonPredict(sock, in, 7 * 36 * 3);
-        node->value = 2*out[0] - 1;
+        /* double* out = pythonPredict(sock, in, 7 * 36 * 3); */
+        double out = 0.0;
+        predictGraphNN(graphNN, in, &out);
+        node->value = 2*out - 1;
         free(in);
-        free(out);
 
         node->numEdges = moveNum;
         node->unknownChildren = moveNum;

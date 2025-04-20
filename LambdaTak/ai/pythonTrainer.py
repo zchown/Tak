@@ -1,9 +1,11 @@
 import socket
 import struct
+import coremltools as ct
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D, Reshape, Input, Conv3D, MaxPooling3D, Dropout, BatchNormalization
+from tensorflow.keras.layers import Dense, Flatten, Reshape, Input, Conv3D
+from tensorflow.keras.layers import MaxPooling3D, Dropout, BatchNormalization
 import random
 from collections import deque
 
@@ -108,16 +110,25 @@ def main():
     print("Model ready, listening for connections...")
 
     experience_buffer = ExperienceBuffer(max_size=10000)
-    replay_batch_size = 32
+    replay_batch_size = 64 
     train_counter = 0
     replay_frequency = 1
 
     try:
         model = tf.keras.models.load_model('neurelnet.h5')
         print("Loaded existing model")
-    except:
+        coreml_model = ct.convert(
+            "neurelnet.h5",
+            source='tensorflow',
+            inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))],
+        )
+        coreml_model.save('neurelnet.mlpackage')
+        print("Converted and saved CoreML model")
+    except (FileNotFoundError, OSError):
         print("No existing model found, using new model")
-
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        return
     HOST, PORT = 'localhost', 65432
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -210,6 +221,12 @@ def main():
                             #save model
                             try:
                                 model.save('neurelnet.h5')
+                                coreml_model = ct.convert(
+                                    "neurelnet.h5",
+                                    source='tensorflow',
+                                    inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))],
+                                )
+                                coreml_model.save('neurelnet.mlpackage')
                             except Exception as e:
                                 print(f"Error saving model: {e}")
                         if train_counter % 10 == 0:
@@ -240,6 +257,12 @@ def main():
                 print("Connection closed, saving model...")
                 try:
                     model.save('neurelnet.h5')
+                    coreml_model = ct.convert(
+                        "neurelnet.h5",
+                        source='tensorflow',
+                        inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))],
+                    )
+                    coreml_model.save('neurelnet.mlpackage')
                 except Exception as e:
                     print(f"Error saving model: {e}")
                 print("Waiting for next client...")

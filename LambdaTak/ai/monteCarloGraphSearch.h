@@ -12,15 +12,18 @@
 #include "neuralNetworks.h"
 #include <float.h>
 #include <math.h>
-#include "pythonTrainer.h"
+/* #include "pythonTrainer.h" */
+#include "accelerateNeuralNet.h"
 
-#define CPUCT (0.25) // exploration constant
+#define CPUCT (1.0) // exploration constant
 
 #define MONTECARLO_TABLE_SIZE (1 << 25)
 
 #define V_MIN (-1.0)
 #define V_MAX (1.0)
-#define Q_EPSILON (0.5)
+#define Q_EPSILON (0.01)
+
+extern GraphNN* graphN;
 
 typedef enum {
     MC_WIN,
