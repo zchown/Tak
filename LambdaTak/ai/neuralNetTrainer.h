@@ -7,6 +7,7 @@
 #include "eval.h"
 #include "searches.h"
 #include "monteCarloGraphSearch.h"
+#include "pythonTrainer.h"
 
 typedef struct {
     DenseNeuralNet* net;
@@ -26,7 +27,7 @@ void train(Trainer* trainer, int totalEpisodes);
 int trainEpisode(Trainer* trainer, int episodeNum);
 
 void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime);
-int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite, int alphaBetaTime);
+int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite, int alphaBetaTime, int sock);
 
 void trainHybrid(Trainer* trainer, int totalEpisodes, int alphaBetaTime);
 

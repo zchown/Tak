@@ -220,6 +220,9 @@ double pseudoReward(const GameState* state) {
 
 void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
     printf("Training for %d episodes\n", totalEpisodes);
+
+    int sock = connect_to_python();
+
     int netRoads = 0;
     int netFlats = 0;
     int alphaRoads = 0;
@@ -243,7 +246,7 @@ void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
             freeMonteCarloTable(monteCarloTable);
             monteCarloTable = NULL;
         }
-        int r = trainEpisodeAlphaBeta(trainer, i, agentPlaysWhite, alphaBetaTime);
+        int r = trainEpisodeAlphaBeta(trainer, i, agentPlaysWhite, alphaBetaTime, sock);
 
         switch (r) {
             case 2:
@@ -273,7 +276,7 @@ void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
     printf("\n");
 }
 
-int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite, int alphaBetaTime) {
+int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite, int alphaBetaTime, int sock) {
     GameState* state = createGameState();
 
     double** pastStates = (double**)malloc(1000 * sizeof(double*));
@@ -284,7 +287,8 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
     int numMoves = 512;
     while (checkGameResult(state) == CONTINUE) {
         double* inputs = gameStateToVector(state);
-        double* outputs = feedForwardDense(trainer->net, (7 * 36), inputs, 0.0, true);
+        double* outputs = pythonPredict(sock, inputs, (7 * 36 * 3));
+        /* double* outputs = feedForwardDense(trainer->net, (7 * 36 * 3), inputs, 0.0, true); */
 
         pastStates[numPastStates] = inputs;
         pastOutputs[numPastStates] = outputs;
@@ -305,8 +309,9 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
             if (targetValue < 0.0) targetValue = 0.0;
             if (targetValue > 1.0) targetValue = 1.0;
 
-            backpropagateDense(trainer->net, pastStates[numPastStates - 1], 
-                    pastOutputs[numPastStates - 1], &targetValue, trainer->learningRate);
+            /* backpropagateDense(trainer->net, pastStates[numPastStates - 1],  */
+                    /* pastOutputs[numPastStates - 1], &targetValue, trainer->learningRate); */
+            pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, &targetValue, 7 * 36 * 3);
         }
 
         GeneratedMoves* moves = generateAllMoves(state, numMoves);
@@ -381,6 +386,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
 
 void trainHybrid(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
     printf("Hybrid training for %d episodes\n", totalEpisodes);
+    int sock = connect_to_python();
     int regularWhiteRoads = 0;
     int regularWhiteFlats = 0;
     int regularBlackRoads = 0;
@@ -423,7 +429,7 @@ void trainHybrid(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
                     break;
             }
         } else {
-            int r = trainEpisodeAlphaBeta(trainer, i, agentPlaysWhite, alphaBetaTime);
+            int r = trainEpisodeAlphaBeta(trainer, i, agentPlaysWhite, alphaBetaTime, sock);
             if (r > 0) {
                 alphaBetaNetWins++;
             } else if (r < 0) {

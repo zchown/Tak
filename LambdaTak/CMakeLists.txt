@@ -50,6 +50,7 @@ add_executable(lambdaTak
     ai/transposition.c
     ai/searches.c
     src/aiPlayer.c
+    ai/pythonTrainer.c
     lib/zobrist.c
     ai/monteCarloGraphSearch.c
     ai/neuralNetworks.c
@@ -72,6 +73,7 @@ target_link_libraries(lambdaTak PRIVATE
 # training executable
 add_executable(trainTak
     ai/runTraining.c
+    ai/pythonTrainer.c
     lib/board.c 
     lib/tps.c 
     lib/moves.c 
