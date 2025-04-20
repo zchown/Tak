@@ -12,6 +12,7 @@
 #include "neuralNetworks.h"
 #include <float.h>
 #include <math.h>
+#include "pythonTrainer.h"
 
 #define CPUCT (0.1) // exploration constant
 
@@ -89,9 +90,9 @@ typedef struct {
     int iterations;
 } MCGSStats;
 
-Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingMode);
+Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingMode, int sock);
 
-SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseNeuralNet* net, MCGSNode* root, MCGSStats* stats);
+SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseNeuralNet* net, MCGSNode* root, MCGSStats* stats, int sock);
 
 void backPropagate(Trajectory* trajectory, double value, MCGSStats* stats);
 

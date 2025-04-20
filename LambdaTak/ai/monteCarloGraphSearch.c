@@ -1,7 +1,6 @@
 #include "monteCarloGraphSearch.h"
 
-Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net,
-        bool trainingMode) {
+Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingMode, int sock) {
     if (!monteCarloTable) {
         monteCarloTable = createMonteCarloTable();
     }
@@ -13,14 +12,13 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net,
     MonteCarloTableEntry* rootEntry =
         lookupAndCreate(monteCarloTable, state->hash, root);
 
-    int numIterations = 1 << 11;
+    int numIterations = 1 << 8;
     if (trainingMode) {
-        numIterations = 1 << 11;
+        numIterations = 1 << 8;
     }
     for (int i = 0; i < numIterations; i++) {
         GameState* stateCopy = copyGameState(state);
-        SelectExpandResult result =
-            selectExpand(monteCarloTable, stateCopy, net, root, &stats);
+        SelectExpandResult result = selectExpand(monteCarloTable, stateCopy, net, root, &stats, sock);
         if (result.trajectory.size > stats.maxDepth) {
             stats.maxDepth = result.trajectory.size;
         }
@@ -153,7 +151,7 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net,
 
 SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
         DenseNeuralNet* net, MCGSNode* root,
-        MCGSStats* stats) {
+        MCGSStats* stats, int sock) {
     SelectExpandResult result;
     result.trajectory = createTrajectory(64);
     result.value = 0.0;
@@ -226,7 +224,8 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
 
         // Evaluate with single‑head network
         double* in = gameStateToVector(state);
-        double* out = feedForwardDense(net, 7 * 36 * 3, in, 0.0, true);
+        /* double* out = feedForwardDense(net, 7 * 36 * 3, in, 0.0, true); */
+        double* out = pythonPredict(sock, in, 7 * 36 * 3);
         node->value = 2*out[0] - 1;
         free(in);
         free(out);

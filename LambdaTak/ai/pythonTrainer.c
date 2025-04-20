@@ -1,6 +1,6 @@
 #include "pythonTrainer.h"
 
-int connect_to_python() {
+int connectToPython() {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) {
         perror("Socket creation failed");
@@ -90,29 +90,29 @@ int waitForAck(int sock) {
     return 1;
 }
 
-double* pythonPredict(int sock, double* inputs, int input_size) {
+double* pythonPredict(int sock, double* inputs, int inputSize) {
     /* printf("\n--- STARTING PREDICTION REQUEST ---\n"); */
-    /* printf("Sending prediction request with input size %d\n", input_size); */
+    /* printf("Sending prediction request with input size %d\n", inputSize); */
 
     // Send prediction request header
     char header[] = "predict";
     sendData(sock, header, strlen(header) + 1);
 
     // Send input size
-    sendData(sock, &input_size, sizeof(int));
+    sendData(sock, &inputSize, sizeof(int));
 
     // Send input data
-    sendData(sock, inputs, input_size * sizeof(double));
+    sendData(sock, inputs, inputSize * sizeof(double));
 
     // Receive prediction response (4-byte float in network byte order)
-    float prediction_value_network;
-    receiveData(sock, &prediction_value_network, sizeof(float));
+    float predictionValueNetwork;
+    receiveData(sock, &predictionValueNetwork, sizeof(float));
 
     // Convert network byte order to host byte order if needed
     // (handling the float representation)
-    uint32_t* as_int = (uint32_t*)&prediction_value_network;
-    *as_int = ntohl(*as_int);
-    float prediction_value = *(float*)as_int;
+    uint32_t* asInt = (uint32_t*)&predictionValueNetwork;
+    *asInt = ntohl(*asInt);
+    float predictionValue = *(float*)asInt;
 
     /* printf("Received prediction value: %f\n", prediction_value); */
 
@@ -125,28 +125,28 @@ double* pythonPredict(int sock, double* inputs, int input_size) {
         perror("Memory allocation failed");
         return NULL;
     }
-    *result = (double)prediction_value;
+    *result = (double)predictionValue;
 
     /* printf("--- PREDICTION REQUEST COMPLETED ---\n\n"); */
     return result;
 }
 
-void pythonTrain(int sock, double* inputs, double* outputs, int target_count, double* targets, int data_size) {
+void pythonTrain(int sock, double* inputs, double* outputs, int targetCount, double* targets, int dataSize) {
     /* printf("\n--- STARTING TRAINING REQUEST ---\n"); */
-    /* printf("Sending training request with data size %d\n", data_size); */
+    /* printf("Sending training request with data size %d\n", dataSize); */
 
     // Send request type
     char header[] = "train";
     sendData(sock, header, strlen(header) + 1);
 
     // Send input data
-    sendData(sock, inputs, data_size * sizeof(double));
+    sendData(sock, inputs, dataSize * sizeof(double));
 
     // Send current outputs
-    sendData(sock, outputs, target_count * sizeof(double));
+    sendData(sock, outputs, targetCount * sizeof(double));
 
     // Send target values
-    sendData(sock, targets, target_count * sizeof(double));
+    sendData(sock, targets, targetCount * sizeof(double));
 
     /* printf("--- TRAINING REQUEST COMPLETED ---\n\n"); */
 }

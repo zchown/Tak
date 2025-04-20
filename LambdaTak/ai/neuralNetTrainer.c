@@ -122,9 +122,9 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
         int random = rand() % 10;
         Move move;
         if (random < 5) {
-            move = monteCarloGraphSearch(state, trainer->net, false);
+            move = monteCarloGraphSearch(state, trainer->net, false, 0);
         } else {
-            move = monteCarloGraphSearch(state, trainer->net, true);
+            move = monteCarloGraphSearch(state, trainer->net, true, 0);
         }
 
         makeMoveNoChecks(state, &move, false);
@@ -221,7 +221,7 @@ double pseudoReward(const GameState* state) {
 void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
     printf("Training for %d episodes\n", totalEpisodes);
 
-    int sock = connect_to_python();
+    int sock = connectToPython();
 
     int netRoads = 0;
     int netFlats = 0;
@@ -311,7 +311,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
 
             /* backpropagateDense(trainer->net, pastStates[numPastStates - 1],  */
                     /* pastOutputs[numPastStates - 1], &targetValue, trainer->learningRate); */
-            pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, &targetValue, 7 * 36 * 3);
+            /* pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, &targetValue, 7 * 36 * 3); */
         }
 
         GeneratedMoves* moves = generateAllMoves(state, numMoves);
@@ -320,7 +320,10 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         if ((state->turn == WHITE && !agentPlaysWhite) || (state->turn == BLACK && agentPlaysWhite)){
             move = iterativeDeepeningSearch(state, alphaBetaTime);
         } else {
-            move = monteCarloGraphSearch(state, trainer->net, true);
+            /* int random = rand() % moves->numMoves; */
+            /* move = moves->moves[random]; */
+            move = monteCarloGraphSearch(state, trainer->net, true, sock);
+            /* move = iterativeDeepeningSearch(state, alphaBetaTime * 10); */
         }
         makeMoveNoChecks(state, &move, false);
         freeGeneratedMoves(moves);
@@ -348,8 +351,9 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
 
     // Final update for the last state
     if (numPastStates > 0) {
-        backpropagateDense(trainer->net, pastStates[numPastStates - 1], 
-                pastOutputs[numPastStates - 1], &finalReward, trainer->learningRate);
+        /* backpropagateDense(trainer->net, pastStates[numPastStates - 1],  */
+                /* pastOutputs[numPastStates - 1], &finalReward, trainer->learningRate); */
+        pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, &finalReward, 7 * 36 * 3);
     }
 
     // TD(λ) update for all previous states
@@ -362,13 +366,16 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
 
         double decay = pow(decayFactor * trainer->discountFactor, numPastStates - 1 - i);
         double targetValue = pastValues[i] + (decay * (finalReward - pastValues[i]));
+        targetValue = finalReward;
 
         // Ensure targetValue is in valid range [0, 1]
         if (targetValue < 0.0) targetValue = 0.0;
         if (targetValue > 1.0) targetValue = 1.0;
+        printf("targetValue: %.4f\n", targetValue);
 
-        backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &targetValue, 
-                trainer->learningRate * decay);  // Decay learning rate by eligibility
+        /* backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &targetValue,  */
+                /* trainer->learningRate * decay);  // Decay learning rate by eligibility */
+        pythonTrain(sock, pastStates[i], pastOutputs[i], 1, &targetValue, 7 * 36 * 3);
     }
 
     for (int i = 0; i < numPastStates; i++) {
@@ -386,7 +393,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
 
 void trainHybrid(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
     printf("Hybrid training for %d episodes\n", totalEpisodes);
-    int sock = connect_to_python();
+    int sock = connectToPython();
     int regularWhiteRoads = 0;
     int regularWhiteFlats = 0;
     int regularBlackRoads = 0;

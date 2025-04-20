@@ -3,14 +3,38 @@ import struct
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D, Reshape, Input, Conv3D, MaxPooling3D
+from tensorflow.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D, Reshape, Input, Conv3D, MaxPooling3D, Dropout, BatchNormalization
+import random
+from collections import deque
 
 # Model configuration
-TOTAL_INPUT = 6 * 6* 7 * 3
+TOTAL_INPUT = 6 * 6 * 7 * 3
 INPUT_SQUARES = 36
 ROW_SIZE = 6
 INPUT_SQUARE_DEPTH = 7
 INPUT_PIECE_TYPES = 3
+
+# Experience replay buffer
+class ExperienceBuffer:
+    def __init__(self, max_size=1000):
+        self.buffer = deque(maxlen=max_size)
+
+    def add(self, inputs, targets):
+        self.buffer.append((inputs, targets))
+
+        # Add inverse example 
+        inverse_inputs = -inputs
+        inverse_targets = 1 - targets
+        self.buffer.append((inverse_inputs, inverse_targets))
+
+    def sample(self, batch_size):
+        if batch_size > len(self.buffer):
+            batch_size = len(self.buffer)
+
+        batch = random.sample(self.buffer, batch_size)
+        inputs = np.vstack([item[0] for item in batch])
+        targets = np.vstack([item[1] for item in batch])
+        return inputs, targets
 
 def recv_all(conn, n):
     data = b''
@@ -57,21 +81,42 @@ def create_model():
     model = Sequential([
         Input(shape=(TOTAL_INPUT,), name='input'),
         Reshape((ROW_SIZE, ROW_SIZE, INPUT_SQUARE_DEPTH, INPUT_PIECE_TYPES)),
-        Conv3D(64, (3, 3, 7), activation='relu', padding='same'),
+        Conv3D(64, (3, 3, 7), activation='relu', padding='same', kernel_regularizer='l2'),
+        Dropout(0.5),
         MaxPooling3D(pool_size=(2, 2, 1)),
-        Conv3D(128, (3, 3, 7), activation='relu', padding='same'),
+        Dropout(0.5),
+        Conv3D(128, (3, 3, 7), activation='relu', padding='same', kernel_regularizer='l2'),
+        Dropout(0.5),
+        MaxPooling3D(pool_size=(2, 2, 1)),
+        Dropout(0.5),
+        Conv3D(256, (3, 3, 7), activation='relu', padding='same'),
         Flatten(),
+        BatchNormalization(),
         Dense(128, activation='relu'),
+        Dropout(0.5),
         Dense(64, activation='relu'),
+        BatchNormalization(),
         Dense(1, activation='sigmoid', name='output')
         ])
-    model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    model.optimizer.learning_rate = 0.0001
     return model
 
 
 def main():
     model = create_model()
     print("Model ready, listening for connections...")
+
+    experience_buffer = ExperienceBuffer(max_size=10000)
+    replay_batch_size = 32
+    train_counter = 0
+    replay_frequency = 1
+
+    try:
+        model = tf.keras.models.load_model('neurelnet.h5')
+        print("Loaded existing model")
+    except:
+        print("No existing model found, using new model")
 
     HOST, PORT = 'localhost', 65432
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
@@ -132,7 +177,6 @@ def main():
                     elif request_type == 'train':
                         batch = 1
 
-                        # Read raw inputs
                         raw_inputs = receive_data(conn)
                         if raw_inputs is None:
                             print("Incomplete training inputs")
@@ -153,7 +197,37 @@ def main():
                             break
 
                         targets = np.frombuffer(raw_targets, dtype=np.float64).reshape(batch, 1)
+
+                        experience_buffer.add(inputs, targets)
+
                         model.train_on_batch(inputs, targets)
+                        inputsInverse = -inputs
+                        targetsInverse = 1 - targets
+                        model.train_on_batch(inputsInverse, targetsInverse)
+
+                        train_counter += 1
+                        if train_counter % 100 == 0:
+                            #save model
+                            try:
+                                model.save('neurelnet.h5')
+                            except Exception as e:
+                                print(f"Error saving model: {e}")
+                        if train_counter % 10 == 0:
+                            # Print distribution of predictions and targets
+                            print(f"Target distribution: min={targets.min()}, max={targets.max()}, mean={targets.mean()}")
+                            test_preds = model.predict(inputs)
+                            print(f"Prediction distribution: min={test_preds.min()}, max={test_preds.max()}, mean={test_preds.mean()}")
+
+                            # Check model weights for extreme values
+                            for layer in model.layers:
+                                if hasattr(layer, 'weights') and layer.weights:
+                                    weights = layer.weights[0].numpy()
+                                    print(f"Layer {layer.name} weights - min: {weights.min()}, max: {weights.max()}, mean: {weights.mean()}")
+
+                        if train_counter % replay_frequency == 0 and len(experience_buffer.buffer) >= replay_batch_size:
+                            replay_inputs, replay_targets = experience_buffer.sample(replay_batch_size)
+                            print(f"Training on {replay_batch_size} samples from experience buffer")
+                            model.train_on_batch(replay_inputs, replay_targets)
 
                         send_ack(conn)
 
