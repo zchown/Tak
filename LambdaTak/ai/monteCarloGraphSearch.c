@@ -542,6 +542,9 @@ MCGSNode* createMCGSNode(ZobristKey hash, MCGSNode* parent) {
 
 void freeMCGSNode(MCGSNode* node) {
     if (node) {
+        if (node->parent) {
+            freeMCGSNode(node->parent);
+        }
         for (int i = 0; i < node->numEdges; i++) {
             if (node->edges[i]) {
                 freeMCGSNode(node->edges[i]->target);
@@ -562,13 +565,10 @@ MonteCarloTable* createMonteCarloTable(void) {
 }
 
 void freeMonteCarloTable(MonteCarloTable* table) {
+    printf("Freeing Monte Carlo table\n");
     for (int i = 0; i < table->size; i++) {
         MonteCarloTableEntry* entry = &table->entries[i];
-        while (entry) {
-            MonteCarloTableEntry* next = entry->next;
-            freeMonteCarloTableEntry(entry);
-            entry = next;
-        }
+        freeMonteCarloTableEntry(entry);
     }
     free(table->entries);
     free(table);
@@ -586,6 +586,7 @@ MonteCarloTableEntry* createMonteCarloTableEntry(ZobristKey hash,
 
 void freeMonteCarloTableEntry(MonteCarloTableEntry* entry) {
     if (entry) {
+        freeMonteCarloTableEntry(entry->next);
         freeMCGSNode(entry->node);
         free(entry);
     }

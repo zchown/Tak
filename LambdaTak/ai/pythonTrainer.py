@@ -70,6 +70,7 @@ def send_ack(conn):
 
 
 def wait_for_ack(conn):
+    print("Waiting for ACK...")
     ack = recv_all(conn, 4)
     if ack is None:
         print("Connection closed while waiting for ACK")

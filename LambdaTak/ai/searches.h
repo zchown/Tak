@@ -42,7 +42,6 @@ int compareMoves(const GameState* state, const Move* a, const Move* b, const Mov
 void sortMoves(GameState* state, Move* moves, int numMoves);
 void clearKillerMoves(void);
 void clearHistoryHeuristic(void);
-void clearTranspositionTable(void);
 
 void printSearchStats(const SearchStatistics* stats);
 

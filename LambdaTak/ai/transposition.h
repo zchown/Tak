@@ -38,6 +38,8 @@ TranspositionEntry* lookupTranspositionTable(TranspositionTable* table, ZobristK
 
 void updateTranspositionTable(TranspositionTable* table, ZobristKey hash, int score, EstimationType type, Move move, int depth);
 
+void clearTranspositionTable(TranspositionTable* table);
+
 u32 zobristToIndex(ZobristKey hash);
 
 # endif // TRANSPOSITION_H

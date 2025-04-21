@@ -408,10 +408,6 @@ void clearHistoryHeuristic(void) {
     memset(historyHeuristic, 0, sizeof(historyHeuristic));
 }
 
-void clearTranspositionTable(void) {
-    memset(transpositionTable, 0, sizeof (TranspositionEntry) * TRANSPOSITION_TABLE_SIZE);
-}
-
 void printSearchStats(const SearchStatistics* stats) {
 
     printf("Max depth: %d\n", stats->maxDepth);

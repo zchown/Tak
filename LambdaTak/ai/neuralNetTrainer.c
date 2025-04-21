@@ -109,7 +109,7 @@ int trainEpisode(Trainer* trainer, int episodeNum, int sock) {
     int numMoves = 512;
     while (checkGameResult(state) == CONTINUE) {
         double* inputs = gameStateToVector(state);
-        double* outputs = feedForwardDense(trainer->net, (7 * 36), inputs, 0.0, true);
+        double* outputs = pythonPredict(sock, inputs, (7 * 36 * 3));
 
         pastStates[numPastStates] = inputs;
         pastOutputs[numPastStates] = outputs;
@@ -205,8 +205,7 @@ void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
                 i, netRoads, netFlats, alphaRoads, alphaFlats, draws, trainer->learningRate);
         // reset t table
         if (transpositionTable) {
-            freeTranspositionTable(transpositionTable);
-            transpositionTable = NULL;
+            clearTranspositionTable(transpositionTable);
         }
         if (monteCarloTable) {
             freeMonteCarloTable(monteCarloTable);

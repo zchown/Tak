@@ -77,6 +77,21 @@ void updateTranspositionTable(TranspositionTable* table, ZobristKey hash, int sc
     } 
 }
 
+void clearTranspositionTable(TranspositionTable* table) {
+    printf("Clearing transposition table\n");
+    for (int i = 0; i < table->size; i++) {
+        TranspositionEntry* te = &table->entries[i];
+        te->hash = 0;
+        te->depth = 0;
+    }
+    table->stats.hits = 0;
+    table->stats.misses = 0;
+    table->stats.depthRewrites = 0;
+    table->stats.collisions = 0;
+    table->stats.updates = 0;
+    table->stats.lookups = 0;
+}
+
 #pragma inline 
 u32 zobristToIndex(ZobristKey hash) {
     return (u32)(hash & (TRANSPOSITION_TABLE_SIZE - 1));

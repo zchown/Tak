@@ -46,6 +46,7 @@ void sendData(int sock, const void* data, size_t len) {
 void receiveData(int sock, void* buf, size_t len) {
     size_t total = 0;
     while (total < len) {
+        /* printf("Waiting for %zu bytes\n", len - total); */
         ssize_t received = recv(sock, (char*)buf + total, len - total, 0);
         if (received <= 0) {
             if (received < 0) perror("Receive failed");
@@ -93,12 +94,16 @@ int waitForAck(int sock) {
 double* pythonPredict(int sock, double* inputs, int inputSize) {
     char header[] = "predict";
     sendData(sock, header, strlen(header) + 1);
+    /* printf("Sent header: %s\n", header); */
 
     sendData(sock, &inputSize, sizeof(int));
+    /* printf("Sent input size: %d\n", inputSize); */
     sendData(sock, inputs, inputSize * sizeof(double));
+    /* printf("Sent input data\n"); */
 
     float netbuf[OUTPUT_SIZE];
     receiveData(sock, netbuf, OUTPUT_SIZE * sizeof(float));
+    printf("Received output data\n");
 
     double* result = malloc(OUTPUT_SIZE * sizeof(double));
     for (int i = 0; i < OUTPUT_SIZE; i++) {
@@ -109,8 +114,10 @@ double* pythonPredict(int sock, double* inputs, int inputSize) {
         memcpy(&f, &tmp, sizeof(f));
         result[i] = (double)f;
     }
+    /* printf("Converted output data to double\n"); */
 
     sendAck(sock);
+    /* printf("Sent ACK after receiving data\n"); */
     return result;
 }
 
