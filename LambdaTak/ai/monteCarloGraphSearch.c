@@ -59,6 +59,22 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
         }
         backPropagate(&result.trajectory, result.value, &stats);
         freeGameState(stateCopy);
+
+        // Free trajectory
+        freeTrajectory(&result.trajectory);
+        /* for (int j = 0; j < result.trajectory.size; j++) { */
+        /*     if (result.trajectory.nodes[j]) { */
+        /*         markAllAsUnused(monteCarloTable, result.trajectory.nodes[j]->hash); */
+        /*     } */
+        /* } */
+        /* free(result.trajectory.nodes); */
+        /* for (int j = 0; j < result.trajectory.size; j++) { */
+        /*     if (result.trajectory.edges[j]) { */
+        /*         free(result.trajectory.edges[j]); */
+        /*     } */
+        /* } */
+        /* free(result.trajectory.edges); */
+
         stats.iterations++;
     }
 
@@ -366,7 +382,6 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
     for (int i = result.trajectory.size - 1; i >= 0; i--) {
         undoMoveNoChecks(state, &result.trajectory.edges[i]->move, false);
     }
-    freeTrajectory(&result.trajectory);
     return result;
 }
 
@@ -479,13 +494,7 @@ void freeTrajectory(Trajectory* trajectory) {
             }
         }
         free(trajectory->nodes);
-        for (int i = 0; i < trajectory->size; i++) {
-            if (trajectory->edges[i]) {
-                free(trajectory->edges[i]);
-            }
-        }
         free(trajectory->edges);
-        free(trajectory);
     }
 }
 
