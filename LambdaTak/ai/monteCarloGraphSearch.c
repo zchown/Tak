@@ -1,6 +1,6 @@
 #include "monteCarloGraphSearch.h"
 
-Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingMode, int sock) {
+Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingMode, int sock, double* probs) {
     if (!monteCarloTable) {
         monteCarloTable = createMonteCarloTable();
     }
@@ -49,6 +49,9 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
         if (root->numEdges == 0) {
             printf("No edges in root node\n");
         }
+
+        SearchProb prob = {0};
+
         for (int i = 0; i < root->numEdges; i++) {
             double temp =
                 (root->edges[i]->n * root->edges[i]->n) * root->edges[i]->q;
@@ -56,7 +59,13 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
                 temp = 1.0;
             }
             total += temp;
+
+            // Add to search probability
+            addToSearchProb(&prob, root->edges[i]->move, (float)root->edges[i]->n);
         }
+        GeneratedMoves* moves = generateAllMoves(state, 1024);
+        probsFromSearchProb(&prob, moves, probs);
+        freeGeneratedMoves(moves);
 
         if (total <= 0) {  // No visits
             int selected = rand() % root->numEdges;

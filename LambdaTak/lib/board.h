@@ -116,7 +116,7 @@ typedef struct {
     u16 drops;
     u8 count;
     Position startPos;
-    } SlideMove;
+} SlideMove;
 
 typedef struct {
     MoveType type;

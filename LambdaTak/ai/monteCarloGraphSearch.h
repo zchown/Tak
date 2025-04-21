@@ -13,6 +13,7 @@
 #include <float.h>
 #include <math.h>
 #include "pythonTrainer.h"
+#include "policyNetwork.h"
 
 #define CPUCT (0.25) // exploration constant
 
@@ -90,7 +91,7 @@ typedef struct {
     int iterations;
 } MCGSStats;
 
-Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingMode, int sock);
+Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingMode, int sock, double* probs);
 
 SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseNeuralNet* net, MCGSNode* root, MCGSStats* stats, int sock);
 
