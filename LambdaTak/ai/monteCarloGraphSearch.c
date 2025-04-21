@@ -1,28 +1,13 @@
 #include "monteCarloGraphSearch.h"
 
 GraphNN* graphNN = NULL;
+MonteCarloTable* monteCarloTable = NULL;
 
 Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingMode, int sock, double* probs) {
     /* printf("Monte Carlo Graph Search\n"); */
     if (!monteCarloTable) {
         monteCarloTable = createMonteCarloTable();
     }
-    if (!graphNN) {
-        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlpackage/Data/com.apple.CoreML/model.mlmodel", 7 * 36 * 3, 1);
-        if (!graphNN) {
-            fprintf(stderr, "Failed to load graph neural network\n");
-            return (Move){0};
-        }
-    } else if (trainingMode) {
-        // Reset the graphNN for training mode
-        freeGraphNN(graphNN);
-        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlpackage/Data/com.apple.CoreML/model.mlmodel", 7 * 36 * 3, 1);
-        if (!graphNN) {
-            fprintf(stderr, "Failed to load graph neural network\n");
-            return (Move){0};
-        }
-    }
-
 
     if (!graphNN) {
         graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlpackage/Data/com.apple.CoreML/model.mlmodel", 7 * 36 * 3, 1);
@@ -43,15 +28,19 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     MCGSStats stats = createMonteCarloStats();
     clock_t startTime = clock();
 
-    MCGSNode* root = createMCGSNode(state->hash, NULL);
-    MonteCarloTableEntry* rootEntry =
-        lookupAndCreate(monteCarloTable, state->hash, root);
+    MonteCarloTableEntry* entry = lookupAndCreate(monteCarloTable, state->hash);
+    MCGSNode* root = entry->node;
+    /* MCGSNode* root = createMCGSNode(state->hash, NULL); */
+    /* MonteCarloTableEntry* rootEntry = */
+        /* lookupAndCreate(monteCarloTable, state->hash, root); */
+
 
     int numIterations = 1 << 12;
     if (trainingMode) {
         numIterations = 1 << 12;
     }
     for (int i = 0; i < numIterations; i++) {
+        /* printf("Iteration %d\n", i); */
         GameState* stateCopy = copyGameState(state);
         SelectExpandResult result = selectExpand(monteCarloTable, stateCopy, net, root, &stats, sock, trainingMode);
         if (result.trajectory.size > stats.maxDepth) {
@@ -62,18 +51,6 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
 
         // Free trajectory
         freeTrajectory(&result.trajectory);
-        /* for (int j = 0; j < result.trajectory.size; j++) { */
-        /*     if (result.trajectory.nodes[j]) { */
-        /*         markAllAsUnused(monteCarloTable, result.trajectory.nodes[j]->hash); */
-        /*     } */
-        /* } */
-        /* free(result.trajectory.nodes); */
-        /* for (int j = 0; j < result.trajectory.size; j++) { */
-        /*     if (result.trajectory.edges[j]) { */
-        /*         free(result.trajectory.edges[j]); */
-        /*     } */
-        /* } */
-        /* free(result.trajectory.edges); */
 
         stats.iterations++;
     }
@@ -83,7 +60,7 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     clock_t endTime = clock();
     stats.executionTimeMs =
         ((double)(endTime - startTime) / CLOCKS_PER_SEC) * 1000;
-    printMCGSStats(&stats);
+    /* printMCGSStats(&stats); */
     /* printTopMoves(root, 10); */
 
     if (trainingMode) {
@@ -219,7 +196,14 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
     result.value = 0.0;
     MCGSNode* node = root;
 
+    int i = 0;
     while (node->isExpanded && !node->isTerminal) {
+        i++;
+        if (i > 100) {
+            printf("Infinite loop detected\n");
+            break;
+        }
+        /* printf("Node: %p, Value: %f, Visits: %d\n", node, node->value, node->numVisits); */
         MCGSEdge* e = selectBestEdge(node);
         if (!e) break;
         addToTrajectory(&result.trajectory, node, e);
@@ -336,8 +320,8 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
                 node->unknownChildren--;
                 entry->node->endInPly = 0;
             } else {
-                MCGSNode* newNode = createMCGSNode(hash, node);
-
+                MonteCarloTableEntry* newEntry = lookupAndCreate(table, hash);
+                MCGSNode* newNode =newEntry->node;
                 if (gameResult != CONTINUE) {
                     newNode->isTerminal = true;
                     stats->terminalNodesHit++;
@@ -373,7 +357,6 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
                     }
                 }
 
-                lookupAndCreate(table, hash, newNode);
                 node->edges[i]->target = newNode;
             }
             undoMoveNoChecks(state, &moves->moves[i], false);
@@ -568,7 +551,7 @@ MonteCarloTable* createMonteCarloTable(void) {
         free(table);
         return NULL;
     }
-    table->allocator = createArenaAllocator(4ULL * 1024 * 1024 * 1024);
+    table->allocator = createArenaAllocator(10ULL * 1024 * 1024 * 1024);
     if (!table->allocator.memory) {
         printf("Failed to allocate memory for Monte Carlo table allocator\n");
         free(table->entries);
@@ -587,7 +570,7 @@ void clearMonteCarloTable(MonteCarloTable* table) {
         entry->node = NULL;
         entry->next = NULL;
     }
-    freeArena(&table->allocator);
+    resetArena(&table->allocator);
 }
 
 void freeMonteCarloTable(MonteCarloTable* table) {
@@ -632,14 +615,13 @@ MonteCarloTableEntry* lookupMonteCarloTable(MonteCarloTable* table,
     return NULL;
 }
 
-MonteCarloTableEntry* lookupAndCreate(MonteCarloTable* table, ZobristKey hash,
-        MCGSNode* node) {
+MonteCarloTableEntry* lookupAndCreate(MonteCarloTable* table, ZobristKey hash) {
     u32 index = mcZobristToIndex(hash);
     MonteCarloTableEntry* entry = &table->entries[index];
 
     if (entry->hash == 0) {
         entry->hash = hash;
-        entry->node = node;
+        entry->node = createMCGSNode(hash, NULL);
         return entry;
     }
 
@@ -654,6 +636,7 @@ MonteCarloTableEntry* lookupAndCreate(MonteCarloTable* table, ZobristKey hash,
         return entry;
     }
 
+    MCGSNode* node = createMCGSNode(hash, NULL);
     MonteCarloTableEntry* newEntry = createMonteCarloTableEntry(hash, node);
     entry->next = newEntry;
     return newEntry;

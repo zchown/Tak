@@ -23,7 +23,7 @@
 
 #define V_MIN (-1.0)
 #define V_MAX (1.0)
-#define Q_EPSILON (0.01)
+#define Q_EPSILON (0.5)
 
 extern GraphNN* graphN;
 
@@ -72,7 +72,7 @@ typedef struct MonteCarloTable {
     ArenaAllocator allocator;
 } MonteCarloTable;
 
-static MonteCarloTable* monteCarloTable = NULL;
+extern MonteCarloTable* monteCarloTable;
 
 typedef struct Trajectory {
     MCGSNode** nodes;
@@ -121,7 +121,7 @@ MonteCarloTableEntry* createMonteCarloTableEntry(ZobristKey hash, MCGSNode* node
 void freeMonteCarloTableEntry(MonteCarloTableEntry* entry);
 
 MonteCarloTableEntry* lookupMonteCarloTable(MonteCarloTable* table, ZobristKey hash);
-MonteCarloTableEntry* lookupAndCreate(MonteCarloTable* table, ZobristKey hash, MCGSNode* node);
+MonteCarloTableEntry* lookupAndCreate(MonteCarloTable* table, ZobristKey hash);
 void updateMonteCarloTable(MonteCarloTable* table, ZobristKey hash, MCGSNode* node);
 void markAllAsUnused(MonteCarloTable* table, ZobristKey hash);
 

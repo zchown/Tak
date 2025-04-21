@@ -83,7 +83,7 @@ int waitForAck(int sock) {
 
     // Check if it matches 'ACK\0'
     if (ack[0] != 'A' || ack[1] != 'C' || ack[2] != 'K' || ack[3] != '\0') {
-        /* printf("Invalid ACK received\n"); */
+        printf("Invalid ACK received\n");
         return 0;
     }
 
@@ -103,7 +103,7 @@ double* pythonPredict(int sock, double* inputs, int inputSize) {
 
     float netbuf[OUTPUT_SIZE];
     receiveData(sock, netbuf, OUTPUT_SIZE * sizeof(float));
-    printf("Received output data\n");
+    /* printf("Received output data\n"); */
 
     double* result = malloc(OUTPUT_SIZE * sizeof(double));
     for (int i = 0; i < OUTPUT_SIZE; i++) {

@@ -252,13 +252,14 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
     while (checkGameResult(state) == CONTINUE) {
         double* inputs = gameStateToVector(state);
         double* outputs = pythonPredict(sock, inputs, (7 * 36 * 3));
-        /* double* outputs = feedForwardDense(trainer->net, (7 * 36 * 3), inputs, 0.0, true); */
+        /* printf("Got outputs\n"); */
 
         pastStates[numPastStates] = inputs;
         pastOutputs[numPastStates] = outputs;
         pastValues[numPastStates] = malloc(OUTPUT_SIZE * sizeof(double));
 
         GeneratedMoves* moves = generateAllMoves(state, numMoves);
+        /* printf("Got moves\n"); */
         Move move = moves->moves[0];
 
         if ((state->turn == WHITE && !agentPlaysWhite) || (state->turn == BLACK && agentPlaysWhite)){
