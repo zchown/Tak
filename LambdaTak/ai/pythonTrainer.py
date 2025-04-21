@@ -1,4 +1,5 @@
 import socket
+import coremltools as ct
 import struct
 import numpy as np
 import tensorflow as tf
@@ -24,7 +25,8 @@ class ExperienceBuffer:
 
         # Add inverse example 
         inverse_inputs = -inputs
-        inverse_targets = 1 - targets
+        inverse_targets = targets.copy()
+        inverse_targets[0][0] = 1 - targets[0][0]
         self.buffer.append((inverse_inputs, inverse_targets))
 
     def sample(self, batch_size):
@@ -83,20 +85,23 @@ def create_model():
         Reshape((ROW_SIZE, ROW_SIZE, INPUT_SQUARE_DEPTH, INPUT_PIECE_TYPES)),
         Conv3D(64, (3, 3, 7), activation='relu', padding='same', kernel_regularizer='l2'),
         Dropout(0.5),
-        MaxPooling3D(pool_size=(2, 2, 1)),
         Dropout(0.5),
         Conv3D(128, (3, 3, 7), activation='relu', padding='same', kernel_regularizer='l2'),
         Dropout(0.5),
+        MaxPooling3D(pool_size=(2, 2, 1)),
+        Conv3D(128, (3, 3, 7), activation='relu', padding='same'),
         MaxPooling3D(pool_size=(2, 2, 1)),
         Dropout(0.5),
         Conv3D(256, (3, 3, 7), activation='relu', padding='same'),
         Flatten(),
         BatchNormalization(),
+        Dense(512, activation='relu'),
+        Dropout(0.25),
+        Dense(256, activation='relu'),
+        Dropout(0.25),
         Dense(128, activation='relu'),
-        Dropout(0.5),
-        Dense(64, activation='relu'),
         BatchNormalization(),
-        Dense(1, activation='sigmoid', name='output')
+        Dense(66, activation='sigmoid', name='output')
         ])
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     model.optimizer.learning_rate = 0.0001
@@ -117,6 +122,8 @@ def main():
         print("Loaded existing model")
     except:
         print("No existing model found, using new model")
+    coreml_model = ct.converters.convert(model, inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))])
+    coreml_model.save('neurelnet.mlpackage')
 
     HOST, PORT = 'localhost', 65432
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
@@ -162,7 +169,8 @@ def main():
                         outputs = model.predict(inputs, verbose=0)
                         print(f"Prediction raw value: {outputs[0][0]}")
 
-                        prediction_bytes = struct.pack('!f', float(outputs[0][0]))
+                        # send all 66 outputs
+                        prediction_bytes = struct.pack('!66f', *outputs[0])
 
                         print(f"Sending bytes: {' '.join(f'{b:02x}' for b in prediction_bytes)}")
 
@@ -196,13 +204,14 @@ def main():
                             print("Incomplete training targets")
                             break
 
-                        targets = np.frombuffer(raw_targets, dtype=np.float64).reshape(batch, 1)
+                        targets = np.frombuffer(raw_targets, dtype=np.float64).reshape(batch, 66)
 
                         experience_buffer.add(inputs, targets)
 
                         model.train_on_batch(inputs, targets)
                         inputsInverse = -inputs
-                        targetsInverse = 1 - targets
+                        targetsInverse = targets.copy()
+                        targetsInverse[0][0] = 1 - targets[0][0]
                         model.train_on_batch(inputsInverse, targetsInverse)
 
                         train_counter += 1
@@ -210,6 +219,8 @@ def main():
                             #save model
                             try:
                                 model.save('neurelnet.h5')
+                                coreml_model = ct.converters.convert(model, inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))])
+                                coreml_model.save('neurelnet.mlpackage')
                             except Exception as e:
                                 print(f"Error saving model: {e}")
                         if train_counter % 10 == 0:

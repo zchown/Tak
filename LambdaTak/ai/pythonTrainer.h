@@ -9,6 +9,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#define OUTPUT_SIZE 66
+
 int connectToPython();
 void closeConnection(int sock);
 

@@ -10,7 +10,7 @@ typedef struct {
     float slide;
     float pieceType [NUM_PIECE_TYPES];
     float squares[TOTAL_SQUARES];
-    float drops [MAX_DROPS][4]; // count, direction
+    float drops [6][4]; // count, direction
 } SearchProb;
 
 void addToSearchProb(SearchProb* prob, Move move, float weight);

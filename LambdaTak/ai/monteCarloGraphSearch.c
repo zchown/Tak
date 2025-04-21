@@ -1,8 +1,28 @@
 #include "monteCarloGraphSearch.h"
 
+GraphNN* graphNN = NULL;
+
 Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingMode, int sock, double* probs) {
+    /* printf("Monte Carlo Graph Search\n"); */
     if (!monteCarloTable) {
         monteCarloTable = createMonteCarloTable();
+    }
+
+
+    if (!graphNN) {
+        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlpackage/Data/com.apple.CoreML/model.mlmodel", 7 * 36 * 3, 1);
+        if (!graphNN) {
+            fprintf(stderr, "Failed to load graph neural network\n");
+            return (Move){0};
+        }
+    } else if (trainingMode) {
+        // Reset the graphNN for training mode
+        freeGraphNN(graphNN);
+        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlpackage/Data/com.apple.CoreML/model.mlmodel", 7 * 36 * 3, 1);
+        if (!graphNN) {
+            fprintf(stderr, "Failed to load graph neural network\n");
+            return (Move){0};
+        }
     }
 
     MCGSStats stats = createMonteCarloStats();
@@ -12,13 +32,13 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     MonteCarloTableEntry* rootEntry =
         lookupAndCreate(monteCarloTable, state->hash, root);
 
-    int numIterations = 1 << 8;
+    int numIterations = 1 << 14;
     if (trainingMode) {
-        numIterations = 1 << 8;
+        numIterations = 1 << 14;
     }
     for (int i = 0; i < numIterations; i++) {
         GameState* stateCopy = copyGameState(state);
-        SelectExpandResult result = selectExpand(monteCarloTable, stateCopy, net, root, &stats, sock);
+        SelectExpandResult result = selectExpand(monteCarloTable, stateCopy, net, root, &stats, sock, trainingMode);
         if (result.trajectory.size > stats.maxDepth) {
             stats.maxDepth = result.trajectory.size;
         }
@@ -33,7 +53,7 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     stats.executionTimeMs =
         ((double)(endTime - startTime) / CLOCKS_PER_SEC) * 1000;
     printMCGSStats(&stats);
-    printTopMoves(root, 10);
+    /* printTopMoves(root, 10); */
 
     if (trainingMode) {
         if (root->numEdges == 0) {
@@ -53,32 +73,34 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
         SearchProb prob = {0};
 
         for (int i = 0; i < root->numEdges; i++) {
-            double temp =
-                (root->edges[i]->n * root->edges[i]->n) * root->edges[i]->q;
+            double temp = (root->edges[i]->n * root->edges[i]->n);
             if (temp < 1.0) {
                 temp = 1.0;
             }
             total += temp;
 
             // Add to search probability
+            /* printf("Adding to search probability: %s, %f\n", */
+                    /* moveToString(&root->edges[i]->move), (float)root->edges[i]->n); */
             addToSearchProb(&prob, root->edges[i]->move, (float)root->edges[i]->n);
         }
         GeneratedMoves* moves = generateAllMoves(state, 1024);
-        probsFromSearchProb(&prob, moves, probs);
+        /* printf("Total: %f\n", total); */
+        toOutput(&prob, root->value, probs);
+        /* printf("Probs: "); */
         freeGeneratedMoves(moves);
 
         if (total <= 0) {  // No visits
             int selected = rand() % root->numEdges;
-            printf("Move selected (uniform): %s\n",
-                    moveToString(&root->edges[selected]->move));
+            /* printf("Move selected (uniform): %s\n", */
+                    /* moveToString(&root->edges[selected]->move)); */
             return root->edges[selected]->move;
         }
 
         int randomIndex = rand() % (int)total;
         int i = 0;
         while (randomIndex >= 0 && i < root->numEdges) {
-            int temp =
-                (root->edges[i]->n * root->edges[i]->n) * root->edges[i]->q;
+            int temp = (root->edges[i]->n * root->edges[i]->n);
             if (temp < 1.0) {
                 temp = 1.0;
             }
@@ -146,8 +168,8 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     }
 
     if (bestEdge) {
-        /* printf("Best move selected: %s\n", moveToString( &bestEdge ->
-         * move)); */
+        /* printf("Best move selected: %s\n", moveToString( &bestEdge -> */
+         /* * move)); */ 
         return bestEdge->move;
     } else {
         GeneratedMoves* moves = generateAllMoves(state, 1024);
@@ -160,7 +182,7 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
 
 SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
         DenseNeuralNet* net, MCGSNode* root,
-        MCGSStats* stats, int sock) {
+        MCGSStats* stats, int sock, bool trainingMode) {
     SelectExpandResult result;
     result.trajectory = createTrajectory(64);
     result.value = 0.0;
@@ -226,6 +248,7 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
     }
 
     if (!node->isExpanded && !node->isTerminal) {
+        /* printf("Expanding node\n"); */
         node->isExpanded = true;
         GeneratedMoves* moves = generateAllMoves(state, 1024);
         int moveNum = moves->numMoves;
@@ -234,8 +257,20 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
         // Evaluate with single‑head network
         double* in = gameStateToVector(state);
         /* double* out = feedForwardDense(net, 7 * 36 * 3, in, 0.0, true); */
-        double* out = pythonPredict(sock, in, 7 * 36 * 3);
-        node->value = 2*out[0] - 1;
+        double* out = malloc(66 * sizeof(double));
+        predictGraphNN(graphNN, in, out);
+        node->value = 2 * (out[0] - 1);
+        if (trainingMode) {
+            // apply noise
+            for (int i = 0; i < 61; i++) {
+                double noise = ((double)rand() / RAND_MAX) * 0.1;
+                out[i + 1] = fmax(0.0, fmin(1.0, out[i + 1] + noise));
+            }
+        }
+        /* printf("Value: %f\n", node->value); */
+        /* printf("Value: %f\n", node->value); */
+        SearchProb probs = outputToSearchProb(out);
+        /* printf("Value: %f\n", node->value); */
         free(in);
         free(out);
 
@@ -244,26 +279,13 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
         node->edges = calloc(moveNum, sizeof(MCGSEdge*));
         stats->totalNodes++;
 
-        int totalMoveScore = 0;
-        for (int i = 0; i < moveNum; i++) {
-            int temp = mcScoreMove(state, &moves->moves[i]);
-            if (temp <= 0) {
-                temp = 500;
-            }
-            totalMoveScore += temp;
-        }
-
         for (int i = 0; i < moveNum; i++) {
             node->edges[i] = calloc(1, sizeof(MCGSEdge));
             node->edges[i]->move = moves->moves[i];
 
-            // Use scoreMove to calculate priority instead of uniform prior
-            int moveScore = mcScoreMove(state, &moves->moves[i]);
-            if (moveScore <= 0) {
-                moveScore = 500;
-            }
-            double normalizedScore = (double)moveScore / totalMoveScore;
-            node->edges[i]->q = normalizedScore;
+            /* printf("Move: %s\n", moveToString(&node->edges[i]->move)); */
+            node->edges[i]->q = probFromSearchProb(&probs, &moves->moves[i]);
+            /* printf("Move: %s, Q: %f\n", moveToString(&node->edges[i]->move), node->edges[i]->q); */
             node->edges[i]->n = 0;
 
             makeMoveNoChecks(state, &moves->moves[i], false);
@@ -674,76 +696,3 @@ void printTopMoves(MCGSNode* root, int numMoves) {
 
     free(sortedEdges);
 }
-
-int mcScoreMove(const GameState* state, const Move* move) {
-    int score = 0;
-
-    Bitboard whiteControlled = state->whiteControlled;
-    Bitboard blackControlled = state->blackControlled;
-    Bitboard whiteInterest = (whiteControlled >> 6) | (whiteControlled << 6) | 
-        (whiteControlled >> 1) | (whiteControlled << 1);
-    Bitboard blackInterest = (blackControlled >> 6) | (blackControlled << 6) |
-        (blackControlled >> 1) | (blackControlled << 1);
-    whiteInterest = whiteInterest & state->emptySquares;
-    blackInterest = blackInterest & state->emptySquares;
-
-    Bitboard ourInterest = (state->turn == WHITE) ? whiteInterest : blackInterest;
-    Bitboard theirInterest = (state->turn == WHITE) ? blackInterest : whiteInterest;
-    Bitboard ofInterest = blackInterest | whiteInterest;
-
-    if (move->type == PLACE) {
-        if (move->move.place.stone == CAP) {
-            score += 1000;  // Capstone placements are high priority
-            if (ourInterest & move->move.place.pos) {
-                score += 1000;
-            }
-        } else if (move->move.place.stone == FLAT) {
-            score += 600;
-            if (ourInterest & move->move.place.pos) {
-                score += 1000;
-            }
-        } else {
-            score += 500;
-            if (theirInterest & move->move.place.pos) {
-                score += 1000;
-            }
-        }
-
-        int minStonesRemaining = (state->player1.stones < state->player2.stones) ? state->player1.stones : state->player2.stones;
-        if (minStonesRemaining < 10) {
-            score += 500 * (11 - minStonesRemaining);
-        }
-
-        // Favor central placements
-        score += 75 - (GET_X(abs(move->move.place.pos) - BOARD_SIZE / 2) +
-                GET_Y(abs(move->move.place.pos) - BOARD_SIZE / 2));
-    } 
-
-    else if (move->type == SLIDE) {
-        SlideMove mv = move->move.slide;
-        Bitboard mvBitboard = 0;
-
-        for (int i = 0; i < mv.count; i++) {
-            if (slidePosition(mv.startPos, mv.direction, i) <= TOTAL_SQUARES) {
-                mvBitboard |= 1ULL << slidePosition(mv.startPos, mv.direction, i);
-            }
-        }
-        if (ofInterest & mvBitboard) {
-            score += 1000;
-        }
-
-        Bitboard enemyControlled = (state->turn == WHITE) ? blackControlled : whiteControlled;
-        if (enemyControlled & mvBitboard) {
-            score += 1000;
-        }
-
-        score += mv.count * mv.count * 10;
-    }
-
-    if (state->turnNumber < 3) {
-        score = 0 - score;
-    }
-
-    return score;
-}
-

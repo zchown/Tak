@@ -24,7 +24,7 @@ void freeTrainer(Trainer* trainer);
 double pseudoReward(const GameState* state);
 
 void train(Trainer* trainer, int totalEpisodes);
-int trainEpisode(Trainer* trainer, int episodeNum);
+int trainEpisode(Trainer* trainer, int episodeNum, int sock);
 
 void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime);
 int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite, int alphaBetaTime, int sock);

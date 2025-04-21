@@ -9,7 +9,7 @@ void addToSearchProb(SearchProb* prob, Move move, float weight) {
     } else if (move.type == SLIDE) {
         prob->slide += weight;
         prob->squares[move.move.slide.startPos] += weight;
-        prob->drops[move.move.slide.count][move.move.slide.direction] += weight;
+        prob->drops[(move.move.slide.count)-1][move.move.slide.direction] += weight;
     }
 }
 
@@ -26,9 +26,9 @@ void toOutput(const SearchProb* prob, double value, double* output) {
         output[3 + NUM_PIECE_TYPES + i] = (double) prob->squares[i];
     }
 
-    for (int i = 0; i < MAX_DROPS; i++) {
+    for (int i = 0; i < 5; i++) {
         for (int j = 0; j < 4; j++) {
-            output[3 + NUM_PIECE_TYPES + TOTAL_SQUARES + i * 4 + j] = (double) prob->drops[i][j];
+            output[3 + NUM_PIECE_TYPES + TOTAL_SQUARES + i * 5 + j] = (double) prob->drops[i][j];
         }
     }
 }
@@ -39,8 +39,11 @@ double probFromSearchProb(const SearchProb* prob, const Move* move) {
         double pieceProb = prob->pieceType[move->move.place.stone] / prob->place;
         return squareProb * pieceProb;
     } else if (move->type == SLIDE) {
+        /* printf("direction: %d\n", move->move.slide.direction); */
+        /* printf("count: %d\n", move->move.slide.count); */
         double squareProb = prob->squares[move->move.slide.startPos] / prob->slide;
-        double dropProb = prob->drops[move->move.slide.count][move->move.slide.direction] / prob->slide;
+        double dropProb = prob->drops[(move->move.slide.count) - 1][move->move.slide.direction] / prob->slide;
+        /* printf("squareProb: %f, dropProb: %f\n", squareProb, dropProb); */
         return squareProb * dropProb;
     }
     return 0.0;
@@ -69,12 +72,12 @@ SearchProb outputToSearchProb(const double* probs) {
     prob.pieceType[STANDING] = probs[5];
 
     for (int i = 0; i < TOTAL_SQUARES; i++) {
-        prob.squares[i] = probs[3 + NUM_PIECE_TYPES + i];
+        prob.squares[i] = probs[2 + NUM_PIECE_TYPES + i];
     }
 
     for (int i = 0; i < MAX_DROPS; i++) {
         for (int j = 0; j < 4; j++) {
-            prob.drops[i][j] = probs[3 + NUM_PIECE_TYPES + TOTAL_SQUARES + i * 4 + j];
+            prob.drops[i][j] = probs[5 + TOTAL_SQUARES + i * 4 + j];
         }
     }
     return prob;

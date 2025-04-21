@@ -22,13 +22,13 @@ double calculateTimeAdjustedReward(int result, int numMoves, int maxMoves) {
             baseReward = 1.0;
             break;
         case FLAT_WHITE:
-            baseReward = 0.8;
+            baseReward = 0.9;
             break;
         case ROAD_BLACK:
             baseReward = 0.0;
             break;
         case FLAT_BLACK:
-            baseReward = 0.2;
+            baseReward = 0.1;
             break;
         case DRAW:
             baseReward = 0.5;
@@ -38,7 +38,7 @@ double calculateTimeAdjustedReward(int result, int numMoves, int maxMoves) {
             break;
     }
 
-    double moveFactor = 1.0 - ((double)numMoves / maxMoves);
+    double moveFactor = 1.01- ((double)numMoves / maxMoves);
     moveFactor *= moveFactor;
     double toReturn = baseReward;
 
@@ -51,7 +51,7 @@ double calculateTimeAdjustedReward(int result, int numMoves, int maxMoves) {
 }
 
 void train(Trainer* trainer, int totalEpisodes) {
-    printf("Training for %d episodes\n", totalEpisodes);
+    int sock = connectToPython();
     int whiteRoads = 0;
     int whiteFlats = 0;
     int blackRoads = 0;
@@ -71,7 +71,7 @@ void train(Trainer* trainer, int totalEpisodes) {
             monteCarloTable = NULL;
         }
 
-        int r = trainEpisode(trainer, i);
+        int r = trainEpisode(trainer, i, sock);
         switch (r) {
             case 2:
                 whiteRoads++;
@@ -98,13 +98,12 @@ void train(Trainer* trainer, int totalEpisodes) {
     printf("\n");
 }
 
-int trainEpisode(Trainer* trainer, int episodeNum) {
+int trainEpisode(Trainer* trainer, int episodeNum, int sock) {
     GameState* state = createGameState();
-
     // Store the entire sequence of states, actions, and rewards
     double** pastStates = (double**)malloc(1000 * sizeof(double*));
     double** pastOutputs = (double**)malloc(1000 * sizeof(double*));
-    double* pastValues = (double*)malloc(1000 * sizeof(double));
+    double** pastValues = (double**)malloc(1000 * sizeof(double*));
     int numPastStates = 0;
 
     int numMoves = 512;
@@ -114,42 +113,17 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
 
         pastStates[numPastStates] = inputs;
         pastOutputs[numPastStates] = outputs;
-        pastValues[numPastStates] = outputs[0];
+        pastValues[numPastStates] = malloc(OUTPUT_SIZE * sizeof(double));
 
         GeneratedMoves* moves = generateAllMoves(state, numMoves);
         numMoves = moves->numMoves;
 
         int random = rand() % 10;
         Move move;
-        if (random < 5) {
-            move = monteCarloGraphSearch(state, trainer->net, false, 0);
-        } else {
-            move = monteCarloGraphSearch(state, trainer->net, true, 0);
-        }
+        move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
 
         makeMoveNoChecks(state, &move, false);
         freeGeneratedMoves(moves);
-
-        if (numPastStates > 0) {
-            // TD(0) update: V(s) = V(s) + α[r + γV(s') - V(s)]
-            double currentValue = pastValues[numPastStates];
-            double prevValue = pastValues[numPastStates - 1];
-            double immediateReward = pseudoReward(state) - 0.5; // Adjust to be centered around 0
-
-            // Calculate TD error: r + γV(s') - V(s)
-            double tdError = immediateReward + (trainer->discountFactor * currentValue) - prevValue;
-
-            double targetValue = prevValue + tdError;
-
-            // Convert back to 0-1 range for the network
-            targetValue += 0.5;
-            if (targetValue < 0.0) targetValue = 0.0;
-            if (targetValue > 1.0) targetValue = 1.0;
-
-            // Backpropagate the TD error for the previous state
-            backpropagateDense(trainer->net, pastStates[numPastStates - 1], 
-                    pastOutputs[numPastStates - 1], &targetValue, trainer->learningRate);
-        }
 
         numPastStates++;
     }
@@ -169,21 +143,13 @@ int trainEpisode(Trainer* trainer, int episodeNum) {
     double finalReward = calculateTimeAdjustedReward(gameResult, numPastStates, 225);
 
     if (numPastStates > 0) {
-        backpropagateDense(trainer->net, pastStates[numPastStates - 1], 
-                pastOutputs[numPastStates - 1], &finalReward, trainer->learningRate);
+        pastValues[numPastStates - 1][0] = finalReward;
+        pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, pastValues[numPastStates - 1], 7 * 36 * 3);
     }
 
-    double decayFactor = 0.9;
     for (int i = numPastStates - 2; i >= 0; i--) {
-        double decay = pow(decayFactor * trainer->discountFactor, numPastStates - 1 - i);
-        double targetValue = pastValues[i] + (decay * (finalReward - pastValues[i]));
-
-        // Ensure targetValue is in valid range [0, 1]
-        if (targetValue < 0.0) targetValue = 0.0;
-        if (targetValue > 1.0) targetValue = 1.0;
-
-        backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &targetValue, 
-                trainer->learningRate * decay);
+        pastValues[i][0] = finalReward;
+        pythonTrain(sock, pastStates[i], pastOutputs[i], 1, pastValues[i], 7 * 36 * 3);
     }
 
     for (int i = 0; i < numPastStates; i++) {
@@ -281,7 +247,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
 
     double** pastStates = (double**)malloc(1000 * sizeof(double*));
     double** pastOutputs = (double**)malloc(1000 * sizeof(double*));
-    double* pastValues = (double*)malloc(1000 * sizeof(double));
+    double** pastValues = (double**)malloc(1000 * sizeof(double*));
     int numPastStates = 0;
 
     int numMoves = 512;
@@ -292,15 +258,17 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
 
         pastStates[numPastStates] = inputs;
         pastOutputs[numPastStates] = outputs;
-        pastValues[numPastStates] = outputs[0];
+        pastValues[numPastStates] = malloc(OUTPUT_SIZE * sizeof(double));
 
         GeneratedMoves* moves = generateAllMoves(state, numMoves);
         Move move = moves->moves[0];
 
         if ((state->turn == WHITE && !agentPlaysWhite) || (state->turn == BLACK && agentPlaysWhite)){
+            // run monte carlo anyway so we can get the policy values
+            move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
             move = iterativeDeepeningSearch(state, alphaBetaTime);
         } else {
-            move = monteCarloGraphSearch(state, trainer->net, true, sock);
+            move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
         }
         makeMoveNoChecks(state, &move, false);
         freeGeneratedMoves(moves);
@@ -330,7 +298,8 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
     if (numPastStates > 0) {
         /* backpropagateDense(trainer->net, pastStates[numPastStates - 1],  */
                 /* pastOutputs[numPastStates - 1], &finalReward, trainer->learningRate); */
-        pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, &finalReward, 7 * 36 * 3);
+        pastValues[numPastStates - 1][0] = finalReward;
+        pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, pastValues[numPastStates - 1], 7 * 36 * 3);
     }
 
     for (int i = numPastStates - 2; i >= 0; i--) {
@@ -341,12 +310,14 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
 
 
         /* backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &targetValue, trainer->learningRate * decay); */
-        pythonTrain(sock, pastStates[i], pastOutputs[i], 1, &finalReward, 7 * 36 * 3);
+        pastValues[i][0] = finalReward;
+        pythonTrain(sock, pastStates[i], pastOutputs[i], 1, pastValues[i], 7 * 36 * 3);
     }
 
     for (int i = 0; i < numPastStates; i++) {
         if (pastStates[i]) free(pastStates[i]);
         if (pastOutputs[i]) free(pastOutputs[i]);
+        if (pastValues[i]) free(pastValues[i]);
     }
     free(pastStates);
     free(pastOutputs);
@@ -381,7 +352,7 @@ void trainHybrid(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
                 alphaBetaNetWins, alphaBetaAlphaWins, alphaBetaDraws, trainer->learningRate);
 
         if (i % 2 == 1) {
-            int r = trainEpisode(trainer, i);
+            int r = trainEpisode(trainer, i, sock);
             switch (r) {
                 case 2:
                     regularWhiteRoads++;

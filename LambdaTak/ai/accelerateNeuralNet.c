@@ -67,3 +67,11 @@ int predictGraphNN(GraphNN* nn, const double* input, double* output) {
     return 0;
 }
 
+void freeGraphNN(GraphNN* nn) {
+    if (nn) {
+        if (nn->inputBuffer) free(nn->inputBuffer);
+        if (nn->outputBuffer) free(nn->outputBuffer);
+        BNNSGraphContextDestroy(nn->context);
+        free(nn);
+    }
+}

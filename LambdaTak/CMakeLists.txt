@@ -51,6 +51,7 @@ add_executable(lambdaTak
     ai/searches.c
     src/aiPlayer.c
     ai/pythonTrainer.c
+    ai/policyNetwork.c
     lib/zobrist.c
     ai/monteCarloGraphSearch.c
     ai/neuralNetworks.c
@@ -84,6 +85,7 @@ add_executable(trainTak
     ai/transposition.c
     ai/searches.c
     lib/zobrist.c
+    ai/policyNetwork.c
     ai/monteCarloGraphSearch.c
     ai/neuralNetworks.c
     ai/neuralNetTrainer.c
