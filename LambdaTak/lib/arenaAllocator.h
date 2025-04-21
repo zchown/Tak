@@ -7,11 +7,11 @@
 
 typedef struct {
     void* memory;
-    size_t size;
-    size_t used;
+    uint_fast64_t size;
+    uint_fast64_t used;
 } ArenaAllocator;
 
-ArenaAllocator createArenaAllocator(size_t size);
+ArenaAllocator createArenaAllocator(uint_fast64_t size);
 
 void* allocate(ArenaAllocator* allocator, size_t size);
 

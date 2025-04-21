@@ -41,6 +41,7 @@ find_path(JANSSON_INCLUDE_DIR NAMES jansson.h
 # Main executable
 add_executable(lambdaTak 
     src/main.c 
+    lib/arenaAllocator.c
     lib/board.c 
     lib/tps.c 
     lib/moves.c 
@@ -76,6 +77,7 @@ target_link_libraries(lambdaTak PRIVATE
 add_executable(trainTak
     ai/accelerateNeuralNet.c
     ai/runTraining.c
+    lib/arenaAllocator.c
     ai/pythonTrainer.c
     lib/board.c 
     lib/tps.c 

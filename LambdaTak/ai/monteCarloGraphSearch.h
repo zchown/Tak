@@ -15,6 +15,7 @@
 #include "pythonTrainer.h"
 #include "policyNetwork.h"
 #include  "accelerateNeuralNet.h"
+#include "../lib/arenaAllocator.h"
 
 #define CPUCT (1.0) // exploration constant
 
@@ -68,6 +69,7 @@ typedef struct MonteCarloTableEntry {
 typedef struct MonteCarloTable {
     MonteCarloTableEntry* entries;
     int size;
+    ArenaAllocator allocator;
 } MonteCarloTable;
 
 static MonteCarloTable* monteCarloTable = NULL;
@@ -113,6 +115,7 @@ void freeMCGSNode(MCGSNode* node);
 
 MonteCarloTable* createMonteCarloTable(void);
 void freeMonteCarloTable(MonteCarloTable* table);
+void clearMonteCarloTable(MonteCarloTable* table);
 
 MonteCarloTableEntry* createMonteCarloTableEntry(ZobristKey hash, MCGSNode* node);
 void freeMonteCarloTableEntry(MonteCarloTableEntry* entry);

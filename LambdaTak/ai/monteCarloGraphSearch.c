@@ -47,9 +47,9 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     MonteCarloTableEntry* rootEntry =
         lookupAndCreate(monteCarloTable, state->hash, root);
 
-    int numIterations = 1 << 14;
+    int numIterations = 1 << 12;
     if (trainingMode) {
-        numIterations = 1 << 14;
+        numIterations = 1 << 12;
     }
     for (int i = 0; i < numIterations; i++) {
         GameState* stateCopy = copyGameState(state);
@@ -307,11 +307,14 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
 
         node->numEdges = moveNum;
         node->unknownChildren = moveNum;
-        node->edges = calloc(moveNum, sizeof(MCGSEdge*));
+        /* node->edges = calloc(moveNum, sizeof(MCGSEdge*)); */
+        node->edges = allocate(&monteCarloTable->allocator, moveNum * sizeof(MCGSEdge*));
+
         stats->totalNodes++;
 
         for (int i = 0; i < moveNum; i++) {
-            node->edges[i] = calloc(1, sizeof(MCGSEdge));
+            /* node->edges[i] = calloc(1, sizeof(MCGSEdge)); */
+            node->edges[i] = allocate(&monteCarloTable->allocator, sizeof(MCGSEdge));
             node->edges[i]->move = moves->moves[i];
 
             /* printf("Move: %s\n", moveToString(&node->edges[i]->move)); */
@@ -521,7 +524,7 @@ void addToTrajectory(Trajectory* trajectory, MCGSNode* node, MCGSEdge* edge) {
 }
 
 MCGSNode* createMCGSNode(ZobristKey hash, MCGSNode* parent) {
-    MCGSNode* node = malloc(sizeof(MCGSNode));
+    MCGSNode* node = allocate(&monteCarloTable->allocator, sizeof(MCGSNode));
     if (!node) {
         printf("Failed to allocate memory for MCGSNode\n");
         return NULL;
@@ -558,10 +561,33 @@ void freeMCGSNode(MCGSNode* node) {
 
 MonteCarloTable* createMonteCarloTable(void) {
     MonteCarloTable* table = calloc(1, sizeof(MonteCarloTable));
-    table->entries =
-        calloc(MONTECARLO_TABLE_SIZE, sizeof(MonteCarloTableEntry));
     table->size = MONTECARLO_TABLE_SIZE;
+    table->entries = calloc(table->size, sizeof(MonteCarloTableEntry));
+    if (!table->entries) {
+        printf("Failed to allocate memory for Monte Carlo table\n");
+        free(table);
+        return NULL;
+    }
+    table->allocator = createArenaAllocator(4ULL * 1024 * 1024 * 1024);
+    if (!table->allocator.memory) {
+        printf("Failed to allocate memory for Monte Carlo table allocator\n");
+        free(table->entries);
+        free(table);
+        return NULL;
+    }
     return table;
+}
+
+void clearMonteCarloTable(MonteCarloTable* table) {
+    printf("Clearing Monte Carlo table\n");
+    for (int i = 0; i < table->size; i++) {
+        MonteCarloTableEntry* entry = &table->entries[i];
+        entry->isUsed = false;
+        entry->hash = 0;
+        entry->node = NULL;
+        entry->next = NULL;
+    }
+    freeArena(&table->allocator);
 }
 
 void freeMonteCarloTable(MonteCarloTable* table) {
@@ -576,7 +602,7 @@ void freeMonteCarloTable(MonteCarloTable* table) {
 
 MonteCarloTableEntry* createMonteCarloTableEntry(ZobristKey hash,
         MCGSNode* node) {
-    MonteCarloTableEntry* entry = calloc(1, sizeof(MonteCarloTableEntry));
+    MonteCarloTableEntry* entry = allocate(&monteCarloTable->allocator, sizeof(MonteCarloTableEntry));
     entry->isUsed = true;
     entry->hash = hash;
     entry->node = node;

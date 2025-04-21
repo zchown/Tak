@@ -208,8 +208,7 @@ void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
             clearTranspositionTable(transpositionTable);
         }
         if (monteCarloTable) {
-            freeMonteCarloTable(monteCarloTable);
-            monteCarloTable = NULL;
+            clearMonteCarloTable(monteCarloTable);
         }
         int r = trainEpisodeAlphaBeta(trainer, i, agentPlaysWhite, alphaBetaTime, sock);
 

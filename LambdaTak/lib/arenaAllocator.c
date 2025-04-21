@@ -1,6 +1,6 @@
 #include "arenaAllocator.h"
 
-ArenaAllocator createArenaAllocator(size_t size) {
+ArenaAllocator createArenaAllocator(uint_fast64_t size) {
     ArenaAllocator allocator;
     allocator.memory = malloc(size);
     if (!allocator.memory) {
