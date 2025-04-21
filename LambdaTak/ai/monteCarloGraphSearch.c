@@ -286,8 +286,8 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
         /* printf("Value: %f\n", node->value); */
         SearchProb probs = outputToSearchProb(out);
         /* printf("Value: %f\n", node->value); */
->>>>>>> policyNetworks
         free(in);
+        free(out);
 
         node->numEdges = moveNum;
         node->unknownChildren = moveNum;
@@ -366,6 +366,7 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
     for (int i = result.trajectory.size - 1; i >= 0; i--) {
         undoMoveNoChecks(state, &result.trajectory.edges[i]->move, false);
     }
+    freeTrajectory(&result.trajectory);
     return result;
 }
 

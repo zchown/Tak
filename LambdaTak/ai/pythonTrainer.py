@@ -117,7 +117,7 @@ def main():
     experience_buffer = ExperienceBuffer(max_size=10000)
     replay_batch_size = 64 
     train_counter = 0
-    replay_frequency = 1
+    replay_frequency = 10
 
     try:
         model = tf.keras.models.load_model('neurelnet.h5')
@@ -221,33 +221,29 @@ def main():
                         model.train_on_batch(inputsInverse, targetsInverse)
 
                         train_counter += 1
-                        if train_counter % 100 == 0:
+                        if train_counter % 250 == 0:
                             #save model
                             try:
                                 model.save('neurelnet.h5')
-<<<<<<< HEAD
                                 coreml_model = ct.convert(
                                     "neurelnet.h5",
                                     source='tensorflow',
                                     inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))],
                                 )
-=======
-                                coreml_model = ct.converters.convert(model, inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))])
->>>>>>> policyNetworks
                                 coreml_model.save('neurelnet.mlpackage')
                             except Exception as e:
                                 print(f"Error saving model: {e}")
-                        if train_counter % 10 == 0:
-                            # Print distribution of predictions and targets
-                            print(f"Target distribution: min={targets.min()}, max={targets.max()}, mean={targets.mean()}")
-                            test_preds = model.predict(inputs)
-                            print(f"Prediction distribution: min={test_preds.min()}, max={test_preds.max()}, mean={test_preds.mean()}")
-
-                            # Check model weights for extreme values
-                            for layer in model.layers:
-                                if hasattr(layer, 'weights') and layer.weights:
-                                    weights = layer.weights[0].numpy()
-                                    print(f"Layer {layer.name} weights - min: {weights.min()}, max: {weights.max()}, mean: {weights.mean()}")
+                        # if train_counter % 10 == 0:
+                        #     # Print distribution of predictions and targets
+                        #     print(f"Target distribution: min={targets.min()}, max={targets.max()}, mean={targets.mean()}")
+                        #     test_preds = model.predict(inputs)
+                        #     print(f"Prediction distribution: min={test_preds.min()}, max={test_preds.max()}, mean={test_preds.mean()}")
+                        #
+                        #     # Check model weights for extreme values
+                        #     for layer in model.layers:
+                        #         if hasattr(layer, 'weights') and layer.weights:
+                        #             weights = layer.weights[0].numpy()
+                        #             print(f"Layer {layer.name} weights - min: {weights.min()}, max: {weights.max()}, mean: {weights.mean()}")
 
                         if train_counter % replay_frequency == 0 and len(experience_buffer.buffer) >= replay_batch_size:
                             replay_inputs, replay_targets = experience_buffer.sample(replay_batch_size)

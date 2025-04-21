@@ -5,7 +5,7 @@
 #include "../lib/moves.h"
 
 typedef enum {UNDER, OVER, EXACT} EstimationType;
-static const u32 TRANSPOSITION_TABLE_SIZE = (1 << 25);
+static const u32 TRANSPOSITION_TABLE_SIZE = (1 << 24);
 
 typedef struct {
     Move move;
