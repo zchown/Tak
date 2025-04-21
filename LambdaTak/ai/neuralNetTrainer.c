@@ -15,7 +15,7 @@ void freeTrainer(Trainer* trainer) {
     free(trainer);
 }
 
-double calculateTimeAdjustedReward(int result, int numMoves, int maxMoves) {
+double calculateReward(int result, int numMoves, int maxMoves) {
     double baseReward;
     switch (result) {
         case ROAD_WHITE:
@@ -38,16 +38,7 @@ double calculateTimeAdjustedReward(int result, int numMoves, int maxMoves) {
             break;
     }
 
-    double moveFactor = 1.01- ((double)numMoves / maxMoves);
-    moveFactor *= moveFactor;
-    double toReturn = baseReward;
-
-    if (toReturn < 0.0) {
-        toReturn = 0.0;
-    } else if (toReturn > 1.0) {
-        toReturn = 1.0;
-    }
-    return toReturn;
+    return baseReward;
 }
 
 void train(Trainer* trainer, int totalEpisodes) {
@@ -140,7 +131,7 @@ int trainEpisode(Trainer* trainer, int episodeNum, int sock) {
         default: break;
     }
 
-    double finalReward = calculateTimeAdjustedReward(gameResult, numPastStates, 225);
+    double finalReward = calculateReward(gameResult, numPastStates, 225);
 
     if (numPastStates > 0) {
         pastValues[numPastStates - 1][0] = finalReward;
@@ -291,7 +282,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         toReturn = -toReturn;
     }
 
-    double finalReward = calculateTimeAdjustedReward(gameResult, numPastStates, 75);
+    double finalReward = calculateReward(gameResult, numPastStates, 75);
 
     // Final update for the last state
     if (numPastStates > 0) {
@@ -350,6 +341,12 @@ void trainHybrid(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
                 i, regularWhiteRoads, regularWhiteFlats, regularBlackRoads, regularBlackFlats, regularDraws,
                 alphaBetaNetWins, alphaBetaAlphaWins, alphaBetaDraws, trainer->learningRate);
 
+        if (transpositionTable) {
+            clearTranspositionTable(transpositionTable);
+        }
+        if (monteCarloTable) {
+            clearMonteCarloTable(monteCarloTable);
+        }
         if (i % 2 == 1) {
             int r = trainEpisode(trainer, i, sock);
             switch (r) {
