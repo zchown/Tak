@@ -30,9 +30,6 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
 
     MonteCarloTableEntry* entry = lookupAndCreate(monteCarloTable, state->hash);
     MCGSNode* root = entry->node;
-    /* MCGSNode* root = createMCGSNode(state->hash, NULL); */
-    /* MonteCarloTableEntry* rootEntry = */
-        /* lookupAndCreate(monteCarloTable, state->hash, root); */
 
 
     int numIterations = 1 << 12;
@@ -200,11 +197,11 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
     while (node->isExpanded && !node->isTerminal) {
         i++;
         if (i > 100) {
-            printf("Infinite loop detected\n");
+            /* printf("Infinite loop detected\n"); */
             break;
         }
         /* printf("Node: %p, Value: %f, Visits: %d\n", node, node->value, node->numVisits); */
-        MCGSEdge* e = selectBestEdge(node);
+        MCGSEdge* e = selectBestEdge(node, &result.trajectory);
         if (!e) break;
         addToTrajectory(&result.trajectory, node, e);
 
@@ -417,7 +414,7 @@ void backPropagate(Trajectory* traj, double value, MCGSStats* stats) {
     }
 }
 
-MCGSEdge* selectBestEdge(MCGSNode* node) {
+MCGSEdge* selectBestEdge(MCGSNode* node, Trajectory* traj) {
     double bestScore = -DBL_MAX;
     MCGSEdge* bestEdge = NULL;
 
@@ -429,10 +426,17 @@ MCGSEdge* selectBestEdge(MCGSNode* node) {
     }
 
     // Skip immediate losing moves unless all moves are losing
+    // Also skip any moves that are already in the trajectory
     bool allLosing = true;
+    bool allVisited = true;
     for (int i = 0; i < node->numEdges; i++) {
         if (node->edges[i]->target->state != MC_LOSS) {
             allLosing = false;
+        }
+        if (node->edges[i]->target->numVisits == 0) {
+            allVisited = false;
+        }
+        if (allLosing && allVisited) {
             break;
         }
     }
@@ -443,6 +447,14 @@ MCGSEdge* selectBestEdge(MCGSNode* node) {
         // Skip losing moves if we have alternatives
         if (edge->target->state == MC_LOSS && !allLosing) {
             continue;
+        }
+
+        if (!allVisited) {
+            for (int j = 0; j < traj->size; j++) {
+                if (traj->nodes[j]->hash == edge->target->hash) {
+                    continue;  // Skip already visited nodes
+                }
+            }
         }
 
         // Using PUCT formula from AlphaZero

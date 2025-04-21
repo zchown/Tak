@@ -104,7 +104,7 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseN
 
 void backPropagate(Trajectory* trajectory, double value, MCGSStats* stats);
 
-MCGSEdge* selectBestEdge(MCGSNode* node);
+MCGSEdge* selectBestEdge(MCGSNode* node, Trajectory* trajectory);
 
 Trajectory createTrajectory(int capacity);
 void freeTrajectory(Trajectory* trajectory);
