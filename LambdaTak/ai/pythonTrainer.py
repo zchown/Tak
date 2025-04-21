@@ -43,7 +43,7 @@ class ExperienceBuffer:
 def recv_all(conn, n):
     data = b''
     while len(data) < n:
-        print(f"Received {len(data)} bytes, waiting for {n} bytes")
+        # print(f"Received {len(data)} bytes, waiting for {n} bytes")
         packet = conn.recv(n - len(data))
         if not packet:
             return None
@@ -66,19 +66,19 @@ def send_data(conn, data):
 
 def send_ack(conn):
     conn.sendall(b'ACK\0')
-    print("Sent ACK")
+    # print("Sent ACK")
 
 
 def wait_for_ack(conn):
-    print("Waiting for ACK...")
+    # print("Waiting for ACK...")
     ack = recv_all(conn, 4)
     if ack is None:
-        print("Connection closed while waiting for ACK")
+        # print("Connection closed while waiting for ACK")
         return False
     if ack != b'ACK\0':
-        print(f"Expected ACK, got {ack}")
+        # print(f"Expected ACK, got {ack}")
         return False
-    print("Received ACK")
+    # print("Received ACK")
     return True
 
 
@@ -179,7 +179,7 @@ def main():
                         # send all 66 outputs
                         prediction_bytes = struct.pack('!66f', *outputs[0])
 
-                        print(f"Sending bytes: {' '.join(f'{b:02x}' for b in prediction_bytes)}")
+                        # print(f"Sending bytes: {' '.join(f'{b:02x}' for b in prediction_bytes)}")
 
                         conn.sendall(prediction_bytes)
 
@@ -248,7 +248,7 @@ def main():
 
                         if train_counter % replay_frequency == 0 and len(experience_buffer.buffer) >= replay_batch_size:
                             replay_inputs, replay_targets = experience_buffer.sample(replay_batch_size)
-                            print(f"Training on {replay_batch_size} samples from experience buffer")
+                            # print(f"Training on {replay_batch_size} samples from experience buffer")
                             model.train_on_batch(replay_inputs, replay_targets)
 
                         send_ack(conn)

@@ -223,9 +223,9 @@ void trainAlphaBeta(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
                 break;
         }
 
-        if (i % trainer->saveInterval == 0) {
-            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_verysmall");
-        }
+        /* if (i % trainer->saveInterval == 0) { */
+        /*     saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_verysmall"); */
+        /* } */
         agentPlaysWhite = !agentPlaysWhite;
     }
     printf("\n");
@@ -380,9 +380,9 @@ void trainHybrid(Trainer* trainer, int totalEpisodes, int alphaBetaTime) {
             agentPlaysWhite = !agentPlaysWhite;
         }
 
-        if (i % trainer->saveInterval == 0) {
-            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_verysmall");
-        }
+        /* if (i % trainer->saveInterval == 0) { */
+        /*     saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_verysmall"); */
+        /* } */
     }
     printf("\n");
 }
