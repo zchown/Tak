@@ -91,64 +91,38 @@ int waitForAck(int sock) {
 }
 
 double* pythonPredict(int sock, double* inputs, int inputSize) {
-    /* printf("\n--- STARTING PREDICTION REQUEST ---\n"); */
-    /* printf("Sending prediction request with input size %d\n", inputSize); */
-
-    // Send prediction request header
     char header[] = "predict";
     sendData(sock, header, strlen(header) + 1);
 
-    // Send input size
     sendData(sock, &inputSize, sizeof(int));
-
-    // Send input data
     sendData(sock, inputs, inputSize * sizeof(double));
 
-    // Receive prediction response (4-byte float in network byte order)
-    float predictionValueNetwork;
-    receiveData(sock, &predictionValueNetwork, sizeof(float));
+    float netbuf[OUTPUT_SIZE];
+    receiveData(sock, netbuf, OUTPUT_SIZE * sizeof(float));
 
-    // Convert network byte order to host byte order if needed
-    // (handling the float representation)
-    uint32_t* asInt = (uint32_t*)&predictionValueNetwork;
-    *asInt = ntohl(*asInt);
-    float predictionValue = *(float*)asInt;
-
-    /* printf("Received prediction value: %f\n", prediction_value); */
-
-    // Send acknowledgment
-    sendAck(sock);
-
-    // Allocate memory for the result and return it
-    double* result = (double*)malloc(sizeof(double));
-    if (result == NULL) {
-        perror("Memory allocation failed");
-        return NULL;
+    double* result = malloc(OUTPUT_SIZE * sizeof(double));
+    for (int i = 0; i < OUTPUT_SIZE; i++) {
+        uint32_t tmp;
+        memcpy(&tmp, &netbuf[i], sizeof(tmp));
+        tmp = ntohl(tmp);
+        float f;
+        memcpy(&f, &tmp, sizeof(f));
+        result[i] = (double)f;
     }
-    *result = (double)predictionValue;
 
-    /* printf("--- PREDICTION REQUEST COMPLETED ---\n\n"); */
+    sendAck(sock);
     return result;
 }
 
 void pythonTrain(int sock, double* inputs, double* outputs, int targetCount, double* targets, int dataSize) {
-    /* printf("\n--- STARTING TRAINING REQUEST ---\n"); */
-    /* printf("Sending training request with data size %d\n", dataSize); */
-
-    // Send request type
     char header[] = "train";
     sendData(sock, header, strlen(header) + 1);
 
-    // Send input data
     sendData(sock, inputs, dataSize * sizeof(double));
 
-    // Send current outputs
-    sendData(sock, outputs, targetCount * sizeof(double));
+    sendData(sock, outputs, OUTPUT_SIZE * sizeof(double));
 
-    // Send target values
-    sendData(sock, targets, targetCount * sizeof(double));
-
-    /* printf("--- TRAINING REQUEST COMPLETED ---\n\n"); */
+    sendData(sock, targets, OUTPUT_SIZE * sizeof(double));
 }
 
 void closeConnection(int sock) {

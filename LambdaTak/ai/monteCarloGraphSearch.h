@@ -12,8 +12,9 @@
 #include "neuralNetworks.h"
 #include <float.h>
 #include <math.h>
-/* #include "pythonTrainer.h" */
-#include "accelerateNeuralNet.h"
+#include "pythonTrainer.h"
+#include "policyNetwork.h"
+#include  "accelerateNeuralNet.h"
 
 #define CPUCT (1.0) // exploration constant
 
@@ -24,6 +25,8 @@
 #define Q_EPSILON (0.01)
 
 extern GraphNN* graphN;
+
+extern GraphNN* graphNN;
 
 typedef enum {
     MC_WIN,
@@ -93,9 +96,9 @@ typedef struct {
     int iterations;
 } MCGSStats;
 
-Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingMode, int sock);
+Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingMode, int sock, double* probs);
 
-SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseNeuralNet* net, MCGSNode* root, MCGSStats* stats, int sock);
+SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state, DenseNeuralNet* net, MCGSNode* root, MCGSStats* stats, int sock, bool trainingMode);
 
 void backPropagate(Trajectory* trajectory, double value, MCGSStats* stats);
 
@@ -124,7 +127,5 @@ u32 mcZobristToIndex(ZobristKey hash);
 MCGSStats createMonteCarloStats(void);
 void printMCGSStats(MCGSStats* stats);
 void printTopMoves(MCGSNode* root, int numMoves);
-
-int mcScoreMove(const GameState* state, const Move* move);
 
 #endif // MONTECARLOGRAPHSEARCH_H
