@@ -24,6 +24,8 @@ class ExperienceBuffer:
         self.buffer = deque(maxlen=max_size)
 
     def add(self, inputs, targets):
+        # if (targets[0][0] < 0.5) and (targets[0][0] > -0.5):
+            # return
         self.buffer.append((inputs, targets))
 
         inverse_inputs = -inputs
@@ -77,36 +79,45 @@ def create_alphazero_model():
     input_layer = Input(shape=(TOTAL_INPUT,), name='input')
     x = Reshape((ROW_SIZE, ROW_SIZE, INPUT_SQUARE_DEPTH, INPUT_PIECE_TYPES))(input_layer)
     
-    x = Conv3D(256, (3, 3, 7), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
+    x = Conv3D(256, (3, 3, 7), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.001))(x)
     x = MaxPooling3D(pool_size=(1, 1, INPUT_SQUARE_DEPTH))(x)
     x = Reshape((ROW_SIZE, ROW_SIZE, 256))(x)
-    
-    x = Conv2D(256, (3, 3), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
     x = BatchNormalization()(x)
-    x = Dropout(0.5)(x)
+    x = Dropout(0.25)(x)
     
-    x = Conv2D(128, (3, 3), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
+    x = Conv2D(64, (3, 3), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.001))(x)
+    x = MaxPooling2D(pool_size=(3, 3))(x)
     x = BatchNormalization()(x)
-    x = Dropout(0.5)(x)
+    x = Dropout(0.25)(x)
     
-    x = Conv2D(64, (3, 3), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
+    x = Conv2D(32, (3, 3), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
+    # x = MaxPooling2D(pool_size=(3, 3))(x)
     x = BatchNormalization()(x)
-    x = Dropout(0.5)(x)
-    
+    x = Dropout(0.25)(x)
+    #
+    # x = Conv2D(256, (3, 3), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
+    # x = BatchNormalization()(x)
+    # x = Dropout(0.25)(x)
+    # x = Conv2D(64, (3, 3), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
+    # x = BatchNormalization()(x)
+
     x = Flatten()(x)
     
-    x = Dense(1024, activation='relu')(x)
-    x = Dense(1024, activation='relu')(x)
+    # x = Dense(1024, activation='relu')(x)
+    # x = BatchNormalization()(x)
+    # x = Dense(1024, activation='relu')(x)
+    # x = Dropout(0.25)(x)
     x = BatchNormalization()(x)
-    x = Dropout(0.5)(x)
     x = Dense(512, activation='relu')(x)
-    x = Dense(512, activation='relu')(x)
+    dropout = Dropout(0.5)(x)
+    # x = Dense(512, activation='relu')(x)
     x = BatchNormalization()(x)
-    x = Dropout(0.5)(x)
+    x = Dense(256, activation='relu')(x)
+    x = BatchNormalization()(x)
+
     
     shared_output = Dense(256, activation='relu')(x)
     shared_output = BatchNormalization()(shared_output)
-    shared_output = Dropout(0.5)(shared_output)
     
     # Policy head (output move probabilities)
     policy_hidden = Dense(128, activation='relu')(shared_output)
@@ -131,11 +142,19 @@ def create_alphazero_model():
             'value_output': 'mean_squared_error',
             'policy_output': 'categorical_crossentropy'
         },
+        loss_weights={
+            'value_output': 2.0,
+            'policy_output': 1.0
+        },
         metrics={
             'value_output': 'mean_squared_error',
             'policy_output': 'accuracy'
         }
     )
+
+    # print model summary
+    internal_model.summary()
+    combined_model.summary()
     
     return internal_model, combined_model
 
@@ -146,7 +165,7 @@ def main():
     experience_buffer = ExperienceBuffer(max_size=10000)
     replay_batch_size = 32
     train_counter = 0
-    replay_frequency = 10
+    replay_frequency = 5
 
     try:
         internal_model = tf.keras.models.load_model('neurelnet_internal.h5')
@@ -286,7 +305,7 @@ def main():
                                 print(f"Error saving model: {e}")
 
                         # Experience replay
-                        if train_counter % replay_frequency == 0 and len(experience_buffer.buffer) >= replay_batch_size * 50:
+                        if train_counter % replay_frequency == 0 and len(experience_buffer.buffer) >= replay_batch_size * 10:
                             replay_inputs, replay_targets = experience_buffer.sample(replay_batch_size)
 
                             replay_value_targets = replay_targets[:, 0:1]
@@ -296,6 +315,28 @@ def main():
                                     x=replay_inputs, 
                                     y={'value_output': replay_value_targets, 'policy_output': replay_policy_targets}
                                     )
+
+                        if train_counter % 1000 == 0:
+                            # run a bunch of batches and also run tests to see if the model is learning
+                            for _ in range(100):
+                                replay_inputs, replay_targets = experience_buffer.sample(replay_batch_size)
+                                replay_value_targets = replay_targets[:, 0:1]
+                                replay_policy_targets = replay_targets[:, 1:TOTAL_OUTPUT]
+
+                                internal_model.train_on_batch(
+                                        x=replay_inputs, 
+                                        y={'value_output': replay_value_targets, 'policy_output': replay_policy_targets}
+                                        )
+                            # run a test only on value head
+                            test_inputs, test_targets = experience_buffer.sample(replay_batch_size)
+                            test_value_targets = test_targets[:, 0:1]
+                            test_policy_targets = test_targets[:, 1:TOTAL_OUTPUT]
+                            losses = internal_model.evaluate(
+                                    x=test_inputs, 
+                                    y={'value_output': test_value_targets, 'policy_output': test_policy_targets},
+                                    verbose=0
+                                    )
+                            print(f"Test losses: {losses}")
 
                         send_ack(conn)
                         print("Training cycle completed successfully")
