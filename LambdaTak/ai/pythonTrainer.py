@@ -4,7 +4,7 @@ import struct
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Dense, Flatten, Reshape, Input, Conv3D
+from tensorflow.keras.layers import Dense, Flatten, Reshape, Input, Conv3D, Conv2D, MaxPooling2D
 from tensorflow.keras.layers import MaxPooling3D, Dropout, BatchNormalization, Concatenate
 import random
 from collections import deque
@@ -75,46 +75,68 @@ def wait_for_ack(conn):
 
 def create_alphazero_model():
     input_layer = Input(shape=(TOTAL_INPUT,), name='input')
-
     x = Reshape((ROW_SIZE, ROW_SIZE, INPUT_SQUARE_DEPTH, INPUT_PIECE_TYPES))(input_layer)
-    x = Conv3D(64, (3, 3, 7), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
-    x = Dropout(0.5)(x)
-    x = MaxPooling3D(pool_size=(2, 2, 1))(x)
-    x = Conv3D(128, (3, 3, 7), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
-    x = Dropout(0.5)(x)
-    x = MaxPooling3D(pool_size=(2, 2, 1))(x)
+    
     x = Conv3D(256, (3, 3, 7), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
-    x = Flatten()(x)
+    x = MaxPooling3D(pool_size=(1, 1, INPUT_SQUARE_DEPTH))(x)
+    x = Reshape((ROW_SIZE, ROW_SIZE, 256))(x)
+    
+    x = Conv2D(256, (3, 3), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
+    x = BatchNormalization()(x)
     x = Dropout(0.5)(x)
-    shared_output = Dense(512, activation='relu')(x)
+    
+    x = Conv2D(128, (3, 3), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
+    x = BatchNormalization()(x)
+    x = Dropout(0.5)(x)
+    
+    x = Conv2D(64, (3, 3), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
+    x = BatchNormalization()(x)
+    x = Dropout(0.5)(x)
+    
+    x = Flatten()(x)
+    
+    x = Dense(1024, activation='relu')(x)
+    x = Dense(1024, activation='relu')(x)
+    x = BatchNormalization()(x)
+    x = Dropout(0.5)(x)
+    x = Dense(512, activation='relu')(x)
+    x = Dense(512, activation='relu')(x)
+    x = BatchNormalization()(x)
+    x = Dropout(0.5)(x)
+    
+    shared_output = Dense(256, activation='relu')(x)
+    shared_output = BatchNormalization()(shared_output)
+    shared_output = Dropout(0.5)(shared_output)
+    
     # Policy head (output move probabilities)
-    policy_hidden = Dense(256, activation='relu')(shared_output)
+    policy_hidden = Dense(128, activation='relu')(shared_output)
     policy_output = Dense(POLICY_SIZE, activation='softmax', name='policy_output')(policy_hidden)
+    
     # Value head (output position evaluation)
     value_hidden = Dense(128, activation='relu')(shared_output)
     value_hidden = BatchNormalization()(value_hidden)
     value_output = Dense(1, activation='tanh', name='value_output')(value_hidden)  # tanh for [-1,1] range
-
+    
     # Create internal model with two output heads for training
     internal_model = Model(inputs=input_layer, outputs=[value_output, policy_output])
-
+    
     # Wrapper for CoreML conversion
     combined_output = Concatenate(name='combined_output')([value_output, policy_output])
     combined_model = Model(inputs=input_layer, outputs=combined_output)
-
+    
     # Compile the internal model for training
     internal_model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
-            loss={
-                'value_output': 'mean_squared_error',
-                'policy_output': 'categorical_crossentropy'
-                },
-            metrics={
-                'value_output': 'mean_squared_error',
-                'policy_output': 'accuracy'
-                }
-            )
-
+        optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.0001),
+        loss={
+            'value_output': 'mean_squared_error',
+            'policy_output': 'categorical_crossentropy'
+        },
+        metrics={
+            'value_output': 'mean_squared_error',
+            'policy_output': 'accuracy'
+        }
+    )
+    
     return internal_model, combined_model
 
 def main():
@@ -122,7 +144,7 @@ def main():
     print("AlphaZero-style model ready, listening for connections...")
 
     experience_buffer = ExperienceBuffer(max_size=10000)
-    replay_batch_size = 16
+    replay_batch_size = 32
     train_counter = 0
     replay_frequency = 10
 

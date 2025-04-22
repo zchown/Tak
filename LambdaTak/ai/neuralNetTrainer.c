@@ -272,6 +272,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
             move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
             move = iterativeDeepeningSearch(state, alphaBetaTime);
         } else {
+            /* move = monteCarloGraphSearch(state, trainer->net, false, sock, pastValues[numPastStates]); */
             move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
         }
         makeMoveNoChecks(state, &move, false);
