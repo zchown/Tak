@@ -23,6 +23,8 @@ void sendAck(int sock);
 double* pythonPredict(int sock, double* inputs, int input_size);
 void pythonTrain(int sock, double* inputs, double* outputs, int target_count, double* targets, int data_size);
 
+void pythonTrainTD(int sock, double* inputs, double* outputs, int target_count, double* targets, int data_size);
+
 #endif // PYTHONTRAINER_H
 
 

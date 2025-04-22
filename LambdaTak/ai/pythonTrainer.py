@@ -86,19 +86,25 @@ def create_model():
     model = Sequential([
         Input(shape=(TOTAL_INPUT,), name='input'),
         Reshape((ROW_SIZE, ROW_SIZE, INPUT_SQUARE_DEPTH, INPUT_PIECE_TYPES)),
-        Conv3D(64, (3, 3, 7), activation='relu', padding='same', kernel_regularizer='l2'),
-        Dropout(0.5),
-        Dropout(0.5),
-        Conv3D(128, (3, 3, 7), activation='relu', padding='same', kernel_regularizer='l2'),
-        Dropout(0.5),
-        MaxPooling3D(pool_size=(2, 2, 1)),
+        Conv3D(64, (3, 3, 7), activation='relu', padding='same'),
+        Dropout(0.25),
         Conv3D(128, (3, 3, 7), activation='relu', padding='same'),
+        Dropout(0.25),
         MaxPooling3D(pool_size=(2, 2, 1)),
-        Dropout(0.5),
+        BatchNormalization(),
+        Conv3D(128, (3, 3, 7), activation='relu', padding='same'),
+        Dropout(0.25),
         Conv3D(256, (3, 3, 7), activation='relu', padding='same'),
+        MaxPooling3D(pool_size=(2, 2, 1)),
+        BatchNormalization(),
+        Conv3D(256, (3, 3, 7), activation='relu', padding='same'),
+        Dropout(0.25),
         Flatten(),
         BatchNormalization(),
+        Dense(1024, activation='relu'),
+        Dropout(0.25),
         Dense(512, activation='relu'),
+        BatchNormalization(),
         Dropout(0.25),
         Dense(256, activation='relu'),
         Dropout(0.25),
@@ -254,6 +260,38 @@ def main():
                         send_ack(conn)
 
                         print("Training cycle completed successfully")
+                    elif request_type == 'trainTD':
+                        batch = 1
+
+                        raw_inputs = receive_data(conn)
+                        if raw_inputs is None:
+                            print("Incomplete training inputs")
+                            break
+                        send_ack(conn)
+
+                        inputs = np.frombuffer(raw_inputs, dtype=np.float64).reshape(batch, TOTAL_INPUT)
+
+                        raw_outputs = receive_data(conn)
+                        if raw_outputs is None:
+                            print("Incomplete training outputs")
+                            break
+                        send_ack(conn)
+
+                        raw_targets = receive_data(conn)
+                        if raw_targets is None:
+                            print("Incomplete training targets")
+                            break
+
+                        targets = np.frombuffer(raw_targets, dtype=np.float64).reshape(batch, 66)
+
+                        model.train_on_batch(inputs, targets)
+                        inputsInverse = -inputs
+                        targetsInverse = targets.copy()
+                        targetsInverse[0][0] = 1 - targets[0][0]
+                        model.train_on_batch(inputsInverse, targetsInverse)
+                        send_ack(conn)
+
+                        print("TD Training cycle completed successfully")
 
                     else:
                         print(f"Unknown request: {request_type}")
