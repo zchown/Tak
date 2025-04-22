@@ -317,7 +317,7 @@ def main():
                         inverse_targets[0] = -targets[0]
                         internal_model.train_on_batch(
                                 x=inverse_inputs, 
-                                y={'value_output': inverse_targets[:, 0:1], 'policy_output': inverse_targets[:, 1:TOTAL_OUTPUT]},
+                                y={'value_output': inverse_targets[:, 0:1], 'policy_output': policy_targets},
                                 )
 
                         send_ack(conn)
