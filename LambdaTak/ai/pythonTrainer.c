@@ -135,11 +135,11 @@ void pythonTrain(int sock, double* inputs, double* outputs, int targetCount, dou
 void pythonTrainTD(int sock, double* inputs, double* outputs, int targetCount, double* targets, int dataSize) {
     char header[] = "trainTD";
     sendData(sock, header, strlen(header) + 1);
-
+    
     sendData(sock, inputs, dataSize * sizeof(double));
-
+    
     sendData(sock, outputs, OUTPUT_SIZE * sizeof(double));
-
+    
     sendData(sock, targets, OUTPUT_SIZE * sizeof(double));
 }
 

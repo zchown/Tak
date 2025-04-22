@@ -19,17 +19,17 @@ INPUT_PIECE_TYPES = 3
 
 # Experience replay buffer
 class ExperienceBuffer:
-    def __init__(self, max_size=1000):
+    def __init__(self, max_size=5000):
         self.buffer = deque(maxlen=max_size)
 
     def add(self, inputs, targets):
         self.buffer.append((inputs, targets))
 
         # Add inverse example 
-        inverse_inputs = -inputs
-        inverse_targets = targets.copy()
-        inverse_targets[0][0] = 1 - targets[0][0]
-        self.buffer.append((inverse_inputs, inverse_targets))
+        inputs = inputs.reshape((1, TOTAL_INPUT))
+        # inverse_inputs = -inputs
+        # inverse_targets = targets.copy()
+        # inverse_targets[0][0] = 1 - targets[0][0]
 
     def sample(self, batch_size):
         if batch_size > len(self.buffer):
@@ -86,33 +86,20 @@ def create_model():
     model = Sequential([
         Input(shape=(TOTAL_INPUT,), name='input'),
         Reshape((ROW_SIZE, ROW_SIZE, INPUT_SQUARE_DEPTH, INPUT_PIECE_TYPES)),
-        Conv3D(64, (3, 3, 7), activation='relu', padding='same'),
-        Dropout(0.25),
-        Conv3D(128, (3, 3, 7), activation='relu', padding='same'),
-        Dropout(0.25),
+        Conv3D(64, (3, 3, 7), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01)),
+        Dropout(0.5),
         MaxPooling3D(pool_size=(2, 2, 1)),
-        BatchNormalization(),
-        Conv3D(128, (3, 3, 7), activation='relu', padding='same'),
-        Dropout(0.25),
-        Conv3D(256, (3, 3, 7), activation='relu', padding='same'),
+        Conv3D(128, (3, 3, 7), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01)),
+        Dropout(0.5),
         MaxPooling3D(pool_size=(2, 2, 1)),
-        BatchNormalization(),
-        Conv3D(256, (3, 3, 7), activation='relu', padding='same'),
-        Dropout(0.25),
+        Conv3D(256, (3, 3, 7), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01)),
         Flatten(),
-        BatchNormalization(),
-        Dense(1024, activation='relu'),
-        Dropout(0.25),
-        Dense(512, activation='relu'),
-        BatchNormalization(),
-        Dropout(0.25),
         Dense(256, activation='relu'),
-        Dropout(0.25),
         Dense(128, activation='relu'),
         BatchNormalization(),
         Dense(66, activation='sigmoid', name='output')
         ])
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
     model.optimizer.learning_rate = 0.0001
     return model
 
@@ -122,7 +109,7 @@ def main():
     print("Model ready, listening for connections...")
 
     experience_buffer = ExperienceBuffer(max_size=10000)
-    replay_batch_size = 64 
+    replay_batch_size = 16
     train_counter = 0
     replay_frequency = 10
 
@@ -222,10 +209,10 @@ def main():
                         experience_buffer.add(inputs, targets)
 
                         model.train_on_batch(inputs, targets)
-                        inputsInverse = -inputs
-                        targetsInverse = targets.copy()
-                        targetsInverse[0][0] = 1 - targets[0][0]
-                        model.train_on_batch(inputsInverse, targetsInverse)
+                        # inputsInverse = -inputs
+                        # targetsInverse = targets.copy()
+                        # targetsInverse[0][0] = 1 - targets[0][0]
+                        # model.train_on_batch(inputsInverse, targetsInverse)
 
                         train_counter += 1
                         if train_counter % 250 == 0:
@@ -252,7 +239,7 @@ def main():
                         #             weights = layer.weights[0].numpy()
                         #             print(f"Layer {layer.name} weights - min: {weights.min()}, max: {weights.max()}, mean: {weights.mean()}")
 
-                        if train_counter % replay_frequency == 0 and len(experience_buffer.buffer) >= replay_batch_size:
+                        if train_counter % replay_frequency == 0 and len(experience_buffer.buffer) >= replay_batch_size * 50:
                             replay_inputs, replay_targets = experience_buffer.sample(replay_batch_size)
                             # print(f"Training on {replay_batch_size} samples from experience buffer")
                             model.train_on_batch(replay_inputs, replay_targets)
@@ -285,10 +272,10 @@ def main():
                         targets = np.frombuffer(raw_targets, dtype=np.float64).reshape(batch, 66)
 
                         model.train_on_batch(inputs, targets)
-                        inputsInverse = -inputs
-                        targetsInverse = targets.copy()
-                        targetsInverse[0][0] = 1 - targets[0][0]
-                        model.train_on_batch(inputsInverse, targetsInverse)
+                        # inputsInverse = -inputs
+                        # targetsInverse = targets.copy()
+                        # targetsInverse[0][0] = 1 - targets[0][0]
+                        # model.train_on_batch(inputsInverse, targetsInverse)
                         send_ack(conn)
 
                         print("TD Training cycle completed successfully")

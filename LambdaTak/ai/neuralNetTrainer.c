@@ -58,8 +58,7 @@ void train(Trainer* trainer, int totalEpisodes) {
                 i, whiteRoads, whiteFlats, blackRoads, blackFlats, draws, trainer->learningRate);
 
         if (monteCarloTable) {
-            freeMonteCarloTable(monteCarloTable);
-            monteCarloTable = NULL;
+            clearMonteCarloTable(monteCarloTable);
         }
 
         int r = trainEpisode(trainer, i, sock);
@@ -82,9 +81,9 @@ void train(Trainer* trainer, int totalEpisodes) {
             default:
                 break;
         }
-        if (i % trainer->saveInterval == 0) {
-            saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_verysmall");
-        }
+        /* if (i % trainer->saveInterval == 0) { */
+        /*     saveDenseNeuralNet(trainer->net, "n_models/tak_model.weights_verysmall"); */
+        /* } */
     }
     printf("\n");
 }
@@ -146,6 +145,13 @@ int trainEpisode(Trainer* trainer, int episodeNum, int sock) {
     }
 
     for (int i = numPastStates - 2; i >= 0; i--) {
+        if (finalReward > 0.5) {
+            finalReward = finalReward * 0.9;
+        }
+        if (finalReward < 0.5) {
+            finalReward = finalReward * 1.1;
+        }
+
         pastValues[i][0] = finalReward;
         pythonTrain(sock, pastStates[i], pastOutputs[i], 1, pastValues[i], 7 * 36 * 3);
     }
@@ -314,7 +320,12 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
 
 
         /* backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &targetValue, trainer->learningRate * decay); */
-        pastValues[i][0] = finalReward;
+        if (finalReward > 0.5) {
+            finalReward = finalReward * 0.9;
+        }
+        if (finalReward < 0.5) {
+            finalReward = finalReward * 1.1;
+        }
         pythonTrain(sock, pastStates[i], pastOutputs[i], 1, pastValues[i], 7 * 36 * 3);
     }
 
