@@ -6,6 +6,8 @@ cabal-dev/
 frontEnd/node_modules
 LambdaTak/build-debug/*
 LambdaTak/build-release/*
+LambdaTak/neurelnet.h5
+LambdaTak/neurelnet.mlpackage/*
 *.weights*
 test1.ptn
 .hpc/

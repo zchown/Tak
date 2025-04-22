@@ -66,13 +66,22 @@ An advanced AI implementation focused on competitive play:
     - Also insentivizes the player to block the opponent with standing stones
 
 - **Neural Network Integration**:
-  - Handmade neural network implementation using Apples Accelerate framework
-    - TODO: do conditional compilation for non m series macs using simd instructions instead
-  - Netork trainer to train the network on self play and against an alpha beta search
+  - NeuralNeworks.c is a handmade neural network implementation
+    - It used the Accelerate framework to speed things up but has been replaced because it was still to slow and only supported basic dense networks
+  - The new implementation uses TensorFlow for training and BNNS through the Accelerate framework for inference
+    - The training loop lives in neuralNetTrainer.c there are some artifacts from the old implementation left in
+    - pythonTrainer.c then uses sockets to pass data back and forth between the trainer and a python process that is running the training of the model
+    - The model is compiled to a BNNS model so that it can be used in the monteCarloGraphSearch
 
-- **Work in Progress**
-  - Monte Carlo Tree Search implementation (currently limited by lack of policy network)
-
+- **Monte Carlo Graph Search:**
+  - A Monte Carlo Graph Search is included in monteCarloGraphSearch.c
+    - mostly based on the alphaZero paper [https://arxiv.org/pdf/2012.11045]
+    - It uses a BNNS neural network to do inference and get priors for the search
+    - It has a training mode
+        - In training mode moves are chosen stochastically based on visits
+        - The visits are then used to update the policy network
+        - Uniform noise is added at every step to the networks priors to encourage exploration
+  
 ## Setup and Running
 
 ### TakServer
@@ -95,7 +104,6 @@ Uses CMake build system with the following dependencies:
 - Janson (for JSON parsing)
 - libwebsockets (for WebSocket communication)
 - Accelerate (for neural network)
-    - WIP: offer a non-m series mac version using simd instructions instead
 
 1. Navigate to the LambdaTak directory
 2. To build project in debug mode:
@@ -112,3 +120,6 @@ Uses CMake build system with the following dependencies:
     `./build-debug/LambdaTak-test`
 6. To run the neural network trainer:
     `./build-release/trainTak`
+7. To run training:
+    First run the python script `pythonTrainer.py` in the `LambdaTak` directory
+    Then run the trainer with `./build-release/trainTak`
