@@ -847,27 +847,20 @@ void printBitboard(Bitboard board) {
     printf("\n");
 }
 
-// 0-1 normalized
-// -1-1 was giving me issues previously
 double* gameStateToVector(const GameState* state) {
-    const int vecSize = TOTAL_SQUARES * (BOARD_SIZE + 1) * 3;
+    const int vecSize = TOTAL_SQUARES * (BOARD_SIZE + 1);
 
     double* vector = (double*)calloc(vecSize, sizeof(double));
     if (!vector) return NULL; 
 
     for (int i = 0; i < TOTAL_SQUARES; i++) {
         const Square* sq = &state->board->squares[i];
-        const int baseIdx = i * (BOARD_SIZE + 1) * 3;
 
         for (int j = 0; j < sq->numPieces && j < (BOARD_SIZE + 1); j++) {
-            const int pieceIdx = sq->numPieces - j - 1;
-            const Piece* piece = &sq->pieces[pieceIdx];
-
-            const int typeOffset = piece->stone; 
-
-            const double value = (piece->color == BLACK) ? -1.0 : 1.0;
-
-            vector[baseIdx + j*3 + typeOffset] = value;
+            double val = 1.0 - ((sq->pieces[j].stone + 1) / 4.0);
+            // branchless
+            double colorUpdate = sq->pieces[j].color * -1.0;
+            vector[i * (BOARD_SIZE + 1) + j] = val + colorUpdate;
         }
     }
 

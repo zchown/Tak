@@ -99,13 +99,16 @@ int trainEpisode(Trainer* trainer, int episodeNum, int sock) {
     int numMoves = 512;
     while (checkGameResult(state) == CONTINUE) {
         double* inputs = gameStateToVector(state);
-        double* outputs = pythonPredict(sock, inputs, (7 * 36 * 3));
+        double* outputs = pythonPredict(sock, inputs, (7 * 36));
 
         if (numPastStates > 0) {
             double* reward = malloc(OUTPUT_SIZE * sizeof(double));
             memcpy(reward, pastValues[numPastStates - 1], OUTPUT_SIZE * sizeof(double));
-            reward[0] = outputs[0];
-            pythonTrainTD(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, reward, 7 * 36 * 3);
+            if (pastOutputs[numPastStates - 1][0] - outputs[0] > 0.3) {
+                reward[0] = (outputs[0] + pastOutputs[numPastStates - 1][0]) / 2.0;
+                pythonTrainTD(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, reward, 7 * 36);
+            }
+
         }
 
         pastStates[numPastStates] = inputs;
@@ -141,13 +144,13 @@ int trainEpisode(Trainer* trainer, int episodeNum, int sock) {
 
     if (numPastStates > 0) {
         pastValues[numPastStates - 1][0] = finalReward;
-        pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, pastValues[numPastStates - 1], 7 * 36 * 3);
+        pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, pastValues[numPastStates - 1], 7 * 36);
     }
 
     for (int i = numPastStates - 2; i >= 0; i--) {
         finalReward = finalReward * trainer->discountFactor;
         pastValues[i][0] = finalReward;
-        pythonTrain(sock, pastStates[i], pastOutputs[i], 1, pastValues[i], 7 * 36 * 3);
+        pythonTrain(sock, pastStates[i], pastOutputs[i], 1, pastValues[i], 7 * 36);
     }
 
     for (int i = 0; i < numPastStates; i++) {
@@ -249,14 +252,16 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
     int numMoves = 512;
     while (checkGameResult(state) == CONTINUE) {
         double* inputs = gameStateToVector(state);
-        double* outputs = pythonPredict(sock, inputs, (7 * 36 * 3));
+        double* outputs = pythonPredict(sock, inputs, (7 * 36));
         /* printf("Got outputs\n"); */
 
         if (numPastStates > 0) {
             double* reward = malloc(OUTPUT_SIZE * sizeof(double));
             memcpy(reward, pastValues[numPastStates - 1], OUTPUT_SIZE * sizeof(double));
-            reward[0] = outputs[0];
-            pythonTrainTD(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, reward, 7 * 36 * 3);
+            if (pastOutputs[numPastStates - 1][0] - outputs[0] > 0.3) {
+                reward[0] = (outputs[0] + pastOutputs[numPastStates - 1][0]) / 2.0;
+                pythonTrainTD(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, reward, 7 * 36);
+            }
         }
 
         pastStates[numPastStates] = inputs;
@@ -270,10 +275,22 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         if ((state->turn == WHITE && !agentPlaysWhite) || (state->turn == BLACK && agentPlaysWhite)){
             // run monte carlo anyway so we can get the policy values
             move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
-            move = iterativeDeepeningSearch(state, alphaBetaTime);
+
+            int random = rand() % 10;
+            if (random < 7) {
+                move = iterativeDeepeningSearch(state, alphaBetaTime);
+            } else {
+                move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
+            }
         } else {
             /* move = monteCarloGraphSearch(state, trainer->net, false, sock, pastValues[numPastStates]); */
             move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
+            int random = rand() % 10;
+            if (random < 3) {
+                move = iterativeDeepeningSearch(state, alphaBetaTime);
+            } else {
+                move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
+            }
         }
         makeMoveNoChecks(state, &move, false);
         freeGeneratedMoves(moves);
@@ -304,7 +321,9 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         /* backpropagateDense(trainer->net, pastStates[numPastStates - 1],  */
                 /* pastOutputs[numPastStates - 1], &finalReward, trainer->learningRate); */
         pastValues[numPastStates - 1][0] = finalReward;
-        pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, pastValues[numPastStates - 1], 7 * 36 * 3);
+        pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, pastValues[numPastStates - 1], 7 * 36);
+        /* pythonTrain(sock, pastStates[numPastStates - 1], NULL, 1, pastValues[numPastStates - 1], 7 * 36); */
+
     }
 
     for (int i = numPastStates - 2; i >= 0; i--) {
@@ -316,7 +335,8 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
 
         /* backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &targetValue, trainer->learningRate * decay); */
         finalReward = finalReward * trainer->discountFactor;
-        pythonTrain(sock, pastStates[i], pastOutputs[i], 1, pastValues[i], 7 * 36 * 3);
+        pythonTrain(sock, pastStates[i], pastOutputs[i], 1, pastValues[i], 7 * 36);
+        /* pythonTrain(sock, pastStates[i], NULL, 1, pastValues[i], 7 * 36); */
     }
 
     for (int i = 0; i < numPastStates; i++) {

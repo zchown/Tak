@@ -10,7 +10,7 @@ import random
 from collections import deque
 
 # Model configuration
-TOTAL_INPUT = 6 * 6 * 7 * 3
+TOTAL_INPUT = 6 * 6 * 7
 INPUT_SQUARES = 36
 ROW_SIZE = 6
 INPUT_SQUARE_DEPTH = 7
@@ -77,20 +77,20 @@ def wait_for_ack(conn):
 
 def create_alphazero_model():
     input_layer = Input(shape=(TOTAL_INPUT,), name='input')
-    x = Reshape((ROW_SIZE, ROW_SIZE, INPUT_SQUARE_DEPTH, INPUT_PIECE_TYPES))(input_layer)
+    x = Reshape((ROW_SIZE, ROW_SIZE, INPUT_SQUARE_DEPTH))(input_layer)
     
-    x = Conv3D(256, (3, 3, 7), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.001))(x)
-    x = MaxPooling3D(pool_size=(1, 1, INPUT_SQUARE_DEPTH))(x)
-    x = Reshape((ROW_SIZE, ROW_SIZE, 256))(x)
+    # x = Conv3D(256, (3, 3, 7), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.001))(x)
+    # x = MaxPooling3D(pool_size=(1, 1, INPUT_SQUARE_DEPTH))(x)
+    # x = Reshape((ROW_SIZE, ROW_SIZE, 256))(x)
+    # x = BatchNormalization()(x)
+    # x = Dropout(0.25)(x)
+    
+    x = Conv2D(256, (3, 3), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.001))(x)
+    x = MaxPooling2D(pool_size=(2, 2))(x)
     x = BatchNormalization()(x)
     x = Dropout(0.25)(x)
     
-    x = Conv2D(64, (3, 3), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.001))(x)
-    x = MaxPooling2D(pool_size=(3, 3))(x)
-    x = BatchNormalization()(x)
-    x = Dropout(0.25)(x)
-    
-    x = Conv2D(32, (3, 3), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
+    x = Conv2D(128, (3, 3), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
     # x = MaxPooling2D(pool_size=(3, 3))(x)
     x = BatchNormalization()(x)
     x = Dropout(0.25)(x)
@@ -98,18 +98,19 @@ def create_alphazero_model():
     # x = Conv2D(256, (3, 3), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
     # x = BatchNormalization()(x)
     # x = Dropout(0.25)(x)
-    # x = Conv2D(64, (3, 3), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
-    # x = BatchNormalization()(x)
+    x = Conv2D(64, (3, 3), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
+    x = BatchNormalization()(x)
+    x = Dropout(0.25)(x)
 
     x = Flatten()(x)
     
     # x = Dense(1024, activation='relu')(x)
-    # x = BatchNormalization()(x)
-    # x = Dense(1024, activation='relu')(x)
-    # x = Dropout(0.25)(x)
+    x = Dense(1024, activation='relu')(x)
+    x = BatchNormalization()(x)
+    x = Dropout(0.25)(x)
     x = BatchNormalization()(x)
     x = Dense(512, activation='relu')(x)
-    dropout = Dropout(0.5)(x)
+    dropout = Dropout(0.25)(x)
     # x = Dense(512, activation='relu')(x)
     x = BatchNormalization()(x)
     x = Dense(256, activation='relu')(x)
@@ -117,7 +118,6 @@ def create_alphazero_model():
 
     
     shared_output = Dense(256, activation='relu')(x)
-    shared_output = BatchNormalization()(shared_output)
     
     # Policy head (output move probabilities)
     policy_hidden = Dense(128, activation='relu')(shared_output)
@@ -163,9 +163,9 @@ def main():
     print("AlphaZero-style model ready, listening for connections...")
 
     experience_buffer = ExperienceBuffer(max_size=10000)
-    replay_batch_size = 32
+    replay_batch_size = 128
     train_counter = 0
-    replay_frequency = 5
+    replay_frequency = 1
 
     try:
         internal_model = tf.keras.models.load_model('neurelnet_internal.h5')
@@ -316,7 +316,7 @@ def main():
                                     y={'value_output': replay_value_targets, 'policy_output': replay_policy_targets}
                                     )
 
-                        if train_counter % 1000 == 0:
+                        if train_counter % 250 == 0:
                             # run a bunch of batches and also run tests to see if the model is learning
                             for _ in range(100):
                                 replay_inputs, replay_targets = experience_buffer.sample(replay_batch_size)

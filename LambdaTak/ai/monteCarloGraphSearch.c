@@ -16,7 +16,7 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     }
 
     if (!graphNN) {
-        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlpackage/Data/com.apple.CoreML/model.mlmodel", 7 * 36 * 3, 1);
+        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlpackage/Data/com.apple.CoreML/model.mlmodel", 7 * 36, 1);
         if (!graphNN) {
             fprintf(stderr, "Failed to load graph neural network\n");
             return (Move){0};
@@ -24,7 +24,7 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     } else if (trainingMode) {
         // Reset the graphNN for training mode
         freeGraphNN(graphNN);
-        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlpackage/Data/com.apple.CoreML/model.mlmodel", 7 * 36 * 3, 1);
+        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlpackage/Data/com.apple.CoreML/model.mlmodel", 7 * 36, 1);
         if (!graphNN) {
             fprintf(stderr, "Failed to load graph neural network\n");
             return (Move){0};
