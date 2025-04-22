@@ -271,7 +271,7 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
         /* double* out = feedForwardDense(net, 7 * 36 * 3, in, 0.0, true); */
         double* out = malloc(66 * sizeof(double));
         predictGraphNN(graphNN, in, out);
-        node->value = 2 * (out[0] - 1);
+        node->value = out[0];
         if (trainingMode) {
             // apply noise
             for (int i = 0; i < 61; i++) {

@@ -25,16 +25,16 @@ double calculateReward(int result, int numMoves, int maxMoves) {
             baseReward = 0.9;
             break;
         case ROAD_BLACK:
-            baseReward = 0.0;
+            baseReward = -1.0;
             break;
         case FLAT_BLACK:
-            baseReward = 0.1;
+            baseReward = -0.9;
             break;
         case DRAW:
-            baseReward = 0.5;
+            baseReward = 0.0;
             break;
         default:
-            baseReward = 0.5;
+            baseReward = 0.0;
             break;
     }
 
@@ -145,13 +145,7 @@ int trainEpisode(Trainer* trainer, int episodeNum, int sock) {
     }
 
     for (int i = numPastStates - 2; i >= 0; i--) {
-        if (finalReward > 0.5) {
-            finalReward = finalReward * 0.9;
-        }
-        if (finalReward < 0.5) {
-            finalReward = finalReward * 1.1;
-        }
-
+        finalReward = finalReward * trainer->discountFactor;
         pastValues[i][0] = finalReward;
         pythonTrain(sock, pastStates[i], pastOutputs[i], 1, pastValues[i], 7 * 36 * 3);
     }
@@ -320,12 +314,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
 
 
         /* backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &targetValue, trainer->learningRate * decay); */
-        if (finalReward > 0.5) {
-            finalReward = finalReward * 0.9;
-        }
-        if (finalReward < 0.5) {
-            finalReward = finalReward * 1.1;
-        }
+        finalReward = finalReward * trainer->discountFactor;
         pythonTrain(sock, pastStates[i], pastOutputs[i], 1, pastValues[i], 7 * 36 * 3);
     }
 

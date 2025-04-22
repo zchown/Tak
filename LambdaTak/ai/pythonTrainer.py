@@ -1,12 +1,11 @@
 import socket
 import coremltools as ct
 import struct
-import coremltools as ct
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
+from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, Flatten, Reshape, Input, Conv3D
-from tensorflow.keras.layers import MaxPooling3D, Dropout, BatchNormalization
+from tensorflow.keras.layers import MaxPooling3D, Dropout, BatchNormalization, Concatenate
 import random
 from collections import deque
 
@@ -16,6 +15,8 @@ INPUT_SQUARES = 36
 ROW_SIZE = 6
 INPUT_SQUARE_DEPTH = 7
 INPUT_PIECE_TYPES = 3
+POLICY_SIZE = 65
+TOTAL_OUTPUT = 66
 
 # Experience replay buffer
 class ExperienceBuffer:
@@ -25,11 +26,11 @@ class ExperienceBuffer:
     def add(self, inputs, targets):
         self.buffer.append((inputs, targets))
 
-        # Add inverse example 
-        inputs = inputs.reshape((1, TOTAL_INPUT))
-        # inverse_inputs = -inputs
-        # inverse_targets = targets.copy()
-        # inverse_targets[0][0] = 1 - targets[0][0]
+        inverse_inputs = -inputs
+        inverse_targets = targets.copy()
+        inverse_targets[0] = -targets[0]
+
+        self.buffer.append((inverse_inputs, inverse_targets))
 
     def sample(self, batch_size):
         if batch_size > len(self.buffer):
@@ -43,13 +44,11 @@ class ExperienceBuffer:
 def recv_all(conn, n):
     data = b''
     while len(data) < n:
-        # print(f"Received {len(data)} bytes, waiting for {n} bytes")
         packet = conn.recv(n - len(data))
         if not packet:
             return None
         data += packet
     return data
-
 
 def receive_data(conn):
     size_data = recv_all(conn, 4)
@@ -63,50 +62,64 @@ def send_data(conn, data):
     conn.sendall(struct.pack('!I', size))
     conn.sendall(data)
 
-
 def send_ack(conn):
     conn.sendall(b'ACK\0')
-    # print("Sent ACK")
-
 
 def wait_for_ack(conn):
-    # print("Waiting for ACK...")
     ack = recv_all(conn, 4)
     if ack is None:
-        # print("Connection closed while waiting for ACK")
         return False
     if ack != b'ACK\0':
-        # print(f"Expected ACK, got {ack}")
         return False
-    # print("Received ACK")
     return True
 
+def create_alphazero_model():
+    input_layer = Input(shape=(TOTAL_INPUT,), name='input')
 
-def create_model():
-    model = Sequential([
-        Input(shape=(TOTAL_INPUT,), name='input'),
-        Reshape((ROW_SIZE, ROW_SIZE, INPUT_SQUARE_DEPTH, INPUT_PIECE_TYPES)),
-        Conv3D(64, (3, 3, 7), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01)),
-        Dropout(0.5),
-        MaxPooling3D(pool_size=(2, 2, 1)),
-        Conv3D(128, (3, 3, 7), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01)),
-        Dropout(0.5),
-        MaxPooling3D(pool_size=(2, 2, 1)),
-        Conv3D(256, (3, 3, 7), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01)),
-        Flatten(),
-        Dense(256, activation='relu'),
-        Dense(128, activation='relu'),
-        BatchNormalization(),
-        Dense(66, activation='sigmoid', name='output')
-        ])
-    model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
-    model.optimizer.learning_rate = 0.0001
-    return model
+    x = Reshape((ROW_SIZE, ROW_SIZE, INPUT_SQUARE_DEPTH, INPUT_PIECE_TYPES))(input_layer)
+    x = Conv3D(64, (3, 3, 7), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
+    x = Dropout(0.5)(x)
+    x = MaxPooling3D(pool_size=(2, 2, 1))(x)
+    x = Conv3D(128, (3, 3, 7), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
+    x = Dropout(0.5)(x)
+    x = MaxPooling3D(pool_size=(2, 2, 1))(x)
+    x = Conv3D(256, (3, 3, 7), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
+    x = Flatten()(x)
+    x = Dropout(0.5)(x)
+    shared_output = Dense(512, activation='relu')(x)
+    # Policy head (output move probabilities)
+    policy_hidden = Dense(256, activation='relu')(shared_output)
+    policy_output = Dense(POLICY_SIZE, activation='softmax', name='policy_output')(policy_hidden)
+    # Value head (output position evaluation)
+    value_hidden = Dense(128, activation='relu')(shared_output)
+    value_hidden = BatchNormalization()(value_hidden)
+    value_output = Dense(1, activation='tanh', name='value_output')(value_hidden)  # tanh for [-1,1] range
 
+    # Create internal model with two output heads for training
+    internal_model = Model(inputs=input_layer, outputs=[value_output, policy_output])
+
+    # Wrapper for CoreML conversion
+    combined_output = Concatenate(name='combined_output')([value_output, policy_output])
+    combined_model = Model(inputs=input_layer, outputs=combined_output)
+
+    # Compile the internal model for training
+    internal_model.compile(
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+            loss={
+                'value_output': 'mean_squared_error',
+                'policy_output': 'categorical_crossentropy'
+                },
+            metrics={
+                'value_output': 'mean_squared_error',
+                'policy_output': 'accuracy'
+                }
+            )
+
+    return internal_model, combined_model
 
 def main():
-    model = create_model()
-    print("Model ready, listening for connections...")
+    internal_model, combined_model = create_alphazero_model()
+    print("AlphaZero-style model ready, listening for connections...")
 
     experience_buffer = ExperienceBuffer(max_size=10000)
     replay_batch_size = 16
@@ -114,16 +127,29 @@ def main():
     replay_frequency = 10
 
     try:
-        model = tf.keras.models.load_model('neurelnet.h5')
+        internal_model = tf.keras.models.load_model('neurelnet_internal.h5')
+        input_layer = internal_model.input
+        value_output = internal_model.get_layer('value_output').output
+        policy_output = internal_model.get_layer('policy_output').output
+        combined_output = Concatenate(name='combined_output')([value_output, policy_output])
+        combined_model = Model(inputs=input_layer, outputs=combined_output)
         print("Loaded existing model")
-        print("Converted and saved CoreML model")
     except (FileNotFoundError, OSError):
         print("No existing model found, using new model")
     except Exception as e:
         print(f"Error loading model: {e}")
         return
-    coreml_model = ct.converters.convert(model, inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))])
-    coreml_model.save('neurelnet.mlpackage')
+
+    try:
+        coreml_model = ct.convert(
+                combined_model, 
+                inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))]
+                )
+        coreml_model.save('neurelnet.mlpackage')
+        print("Converted and saved CoreML model")
+    except Exception as e:
+        print(f"Error converting to CoreML: {e}")
+        return
 
     HOST, PORT = 'localhost', 65432
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
@@ -166,14 +192,12 @@ def main():
                         send_ack(conn)
 
                         inputs = np.frombuffer(raw, dtype=np.float64).reshape(1, -1)
-                        outputs = model.predict(inputs, verbose=0)
-                        print(f"Prediction raw value: {outputs[0][0]}")
 
-                        # send all 66 outputs
-                        prediction_bytes = struct.pack('!66f', *outputs[0])
+                        combined_output = combined_model.predict(inputs, verbose=0)
 
-                        # print(f"Sending bytes: {' '.join(f'{b:02x}' for b in prediction_bytes)}")
+                        print(f"Value prediction: {combined_output[0][0]}")
 
+                        prediction_bytes = struct.pack('!66f', *combined_output[0])
                         conn.sendall(prediction_bytes)
 
                         if not wait_for_ack(conn):
@@ -204,49 +228,56 @@ def main():
                             print("Incomplete training targets")
                             break
 
-                        targets = np.frombuffer(raw_targets, dtype=np.float64).reshape(batch, 66)
+                        targets = np.frombuffer(raw_targets, dtype=np.float64).reshape(batch, TOTAL_OUTPUT)
 
                         experience_buffer.add(inputs, targets)
 
-                        model.train_on_batch(inputs, targets)
-                        # inputsInverse = -inputs
-                        # targetsInverse = targets.copy()
-                        # targetsInverse[0][0] = 1 - targets[0][0]
-                        # model.train_on_batch(inputsInverse, targetsInverse)
+                        value_targets = targets[:, 0:1]
+                        policy_targets = targets[:, 1:TOTAL_OUTPUT] 
+
+                        internal_model.train_on_batch(
+                                x=inputs, 
+                                y={'value_output': value_targets, 'policy_output': policy_targets}
+                                )
+                        # train on inverse
+                        inverse_inputs = -inputs
+                        inverse_targets = targets.copy()
+                        inverse_targets[0] = -targets[0]
+                        internal_model.train_on_batch(
+                                x=inverse_inputs, 
+                                y={'value_output': inverse_targets[:, 0:1], 'policy_output': inverse_targets[:, 1:TOTAL_OUTPUT]}
+                                )
 
                         train_counter += 1
                         if train_counter % 250 == 0:
-                            #save model
+                            # Save models
                             try:
-                                model.save('neurelnet.h5')
+                                internal_model.save('neurelnet_internal.h5')
+                                tf.keras.models.save_model(combined_model, 'neurelnet_combined.h5')
                                 coreml_model = ct.convert(
-                                    "neurelnet.h5",
-                                    source='tensorflow',
-                                    inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))],
-                                )
+                                        combined_model,
+                                        inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))],
+                                        )
                                 coreml_model.save('neurelnet.mlpackage')
+                                print("Saved models")
                             except Exception as e:
                                 print(f"Error saving model: {e}")
-                        # if train_counter % 10 == 0:
-                        #     # Print distribution of predictions and targets
-                        #     print(f"Target distribution: min={targets.min()}, max={targets.max()}, mean={targets.mean()}")
-                        #     test_preds = model.predict(inputs)
-                        #     print(f"Prediction distribution: min={test_preds.min()}, max={test_preds.max()}, mean={test_preds.mean()}")
-                        #
-                        #     # Check model weights for extreme values
-                        #     for layer in model.layers:
-                        #         if hasattr(layer, 'weights') and layer.weights:
-                        #             weights = layer.weights[0].numpy()
-                        #             print(f"Layer {layer.name} weights - min: {weights.min()}, max: {weights.max()}, mean: {weights.mean()}")
 
+                        # Experience replay
                         if train_counter % replay_frequency == 0 and len(experience_buffer.buffer) >= replay_batch_size * 50:
                             replay_inputs, replay_targets = experience_buffer.sample(replay_batch_size)
-                            # print(f"Training on {replay_batch_size} samples from experience buffer")
-                            model.train_on_batch(replay_inputs, replay_targets)
+
+                            replay_value_targets = replay_targets[:, 0:1]
+                            replay_policy_targets = replay_targets[:, 1:TOTAL_OUTPUT]
+
+                            internal_model.train_on_batch(
+                                    x=replay_inputs, 
+                                    y={'value_output': replay_value_targets, 'policy_output': replay_policy_targets}
+                                    )
 
                         send_ack(conn)
-
                         print("Training cycle completed successfully")
+
                     elif request_type == 'trainTD':
                         batch = 1
 
@@ -255,8 +286,6 @@ def main():
                             print("Incomplete training inputs")
                             break
                         send_ack(conn)
-
-                        inputs = np.frombuffer(raw_inputs, dtype=np.float64).reshape(batch, TOTAL_INPUT)
 
                         raw_outputs = receive_data(conn)
                         if raw_outputs is None:
@@ -269,15 +298,29 @@ def main():
                             print("Incomplete training targets")
                             break
 
-                        targets = np.frombuffer(raw_targets, dtype=np.float64).reshape(batch, 66)
+                        targets = np.frombuffer(raw_targets, dtype=np.float64).reshape(batch, TOTAL_OUTPUT)
+                        inputs = np.frombuffer(raw_inputs, dtype=np.float64).reshape(batch, TOTAL_INPUT)
 
-                        model.train_on_batch(inputs, targets)
-                        # inputsInverse = -inputs
-                        # targetsInverse = targets.copy()
-                        # targetsInverse[0][0] = 1 - targets[0][0]
-                        # model.train_on_batch(inputsInverse, targetsInverse)
+                        value_targets = targets[:, 0:1]
+
+                        #only train the value head
+                        policy_targets = internal_model.predict(inputs, verbose=0)[1]
+
+                        internal_model.train_on_batch(
+                                x=inputs, 
+                                y={'value_output': value_targets, 'policy_output': policy_targets},
+                                )
+
+                        # train on inverse
+                        inverse_inputs = -inputs
+                        inverse_targets = targets.copy()
+                        inverse_targets[0] = -targets[0]
+                        internal_model.train_on_batch(
+                                x=inverse_inputs, 
+                                y={'value_output': inverse_targets[:, 0:1], 'policy_output': inverse_targets[:, 1:TOTAL_OUTPUT]},
+                                )
+
                         send_ack(conn)
-
                         print("TD Training cycle completed successfully")
 
                     else:
@@ -286,12 +329,12 @@ def main():
 
                 print("Connection closed, saving model...")
                 try:
-                    model.save('neurelnet.h5')
+                    internal_model.save('neurelnet_internal.h5')
+                    tf.keras.models.save_model(combined_model, 'neurelnet_combined.h5')
                     coreml_model = ct.convert(
-                        "neurelnet.h5",
-                        source='tensorflow',
-                        inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))],
-                    )
+                            combined_model,
+                            inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))],
+                            )
                     coreml_model.save('neurelnet.mlpackage')
                 except Exception as e:
                     print(f"Error saving model: {e}")
