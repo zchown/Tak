@@ -104,7 +104,7 @@ int trainEpisode(Trainer* trainer, int episodeNum, int sock) {
         if (numPastStates > 0) {
             double* reward = malloc(OUTPUT_SIZE * sizeof(double));
             memcpy(reward, pastValues[numPastStates - 1], OUTPUT_SIZE * sizeof(double));
-            if (pastOutputs[numPastStates - 1][0] - outputs[0] > 0.3) {
+            if (pastOutputs[numPastStates - 1][0] - outputs[0] > 0.1) {
                 reward[0] = (outputs[0] + pastOutputs[numPastStates - 1][0]) / 2.0;
                 pythonTrainTD(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, reward, 7 * 36);
             }
@@ -258,7 +258,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         if (numPastStates > 0) {
             double* reward = malloc(OUTPUT_SIZE * sizeof(double));
             memcpy(reward, pastValues[numPastStates - 1], OUTPUT_SIZE * sizeof(double));
-            if (pastOutputs[numPastStates - 1][0] - outputs[0] > 0.3) {
+            if (pastOutputs[numPastStates - 1][0] - outputs[0] > 0.1) {
                 reward[0] = (outputs[0] + pastOutputs[numPastStates - 1][0]) / 2.0;
                 pythonTrainTD(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, reward, 7 * 36);
             }
