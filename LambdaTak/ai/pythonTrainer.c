@@ -138,7 +138,7 @@ void pythonTrainTD(int sock, double* inputs, double* outputs, int targetCount, d
     
     sendData(sock, inputs, dataSize * sizeof(double));
     
-    sendData(sock, outputs, OUTPUT_SIZE * sizeof(double));
+    /* sendData(sock, outputs, OUTPUT_SIZE * sizeof(double)); */
     
     sendData(sock, targets, OUTPUT_SIZE * sizeof(double));
 }

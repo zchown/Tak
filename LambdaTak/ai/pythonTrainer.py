@@ -116,18 +116,19 @@ def wait_for_ack(conn):
 
 def value_entropy_loss(y_true, y_pred):
     mse = tf.keras.losses.mean_squared_error(y_true, y_pred)
-    
+
     eps = 1e-5
-    # variance_penalty = 0.005 * tf.reduce_mean(1.0 / (tf.abs(y_pred) + eps))
-    variance_penalty = 0;
-    
+    # variance_penalty = 0.001 * tf.reduce_mean(1.0 / (tf.abs(y_pred) + eps))
+    variance_penalty = 0.0
+
     y_pred_flat = tf.reshape(y_pred, [-1])
-    histogram = tf.histogram_fixed_width(y_pred_flat, [-1.0, 1.0], nbins=10)
+    y_pred_flat = tf.abs(y_pred_flat)
+    histogram = tf.histogram_fixed_width(y_pred_flat, [0.0, 1.0], nbins=10)
     histogram = tf.cast(histogram, tf.float32) / tf.reduce_sum(tf.cast(histogram, tf.float32))
     entropy = -tf.reduce_sum(histogram * tf.math.log(histogram + eps))
-    
-    entropy_penalty = 0.05 * (1.0 / (entropy + eps))
-    
+
+    entropy_penalty = 0.001 * (1.0 / (entropy + eps))
+
     return mse + variance_penalty + entropy_penalty
 
 def residual_block(x, filters):
@@ -236,7 +237,7 @@ def main():
     replay_batch_size = 128
     train_counter = 0
     replay_frequency = 5
-    last_was_train = False
+    last_was_train = 0
 
     value_predictions = []
 
@@ -294,19 +295,20 @@ def main():
                     print(f"Received request type: {request_type}")
 
                     if request_type == 'predict':
-                        if last_was_train:
-                            last_was_train = False
-                            for _ in range(50):
-                                if len(experience_buffer.buffer) < replay_batch_size * 10:
-                                    break
-                                replay_inputs, replay_targets = experience_buffer.sample(replay_batch_size)
-                                replay_value_targets = replay_targets[:, 0:1]
-                                replay_policy_targets = replay_targets[:, 1:TOTAL_OUTPUT]
-                                internal_model.train_on_batch(
-                                        x=replay_inputs, 
-                                        y={'value_output': replay_value_targets, 'policy_output': replay_policy_targets}
-                                        )
-
+                        if last_was_train == 5:
+                            last_was_train = 0
+                            if (train_counter > 1000) == 0:
+                                print("Training on experience buffer...")
+                                for _ in range(50):
+                                    if len(experience_buffer.buffer) < replay_batch_size * 10:
+                                        break
+                                    replay_inputs, replay_targets = experience_buffer.sample(replay_batch_size)
+                                    replay_value_targets = replay_targets[:, 0:1]
+                                    replay_policy_targets = replay_targets[:, 1:TOTAL_OUTPUT]
+                                    internal_model.train_on_batch(
+                                            x=replay_inputs, 
+                                            y={'value_output': replay_value_targets, 'policy_output': replay_policy_targets}
+                                            )
                         size_bytes = receive_data(conn)
                         if size_bytes is None:
                             print("Failed to read input_size prefix")
@@ -356,7 +358,7 @@ def main():
                         print("Prediction cycle completed successfully")
 
                     elif request_type == 'train':
-                        last_was_train = True
+                        last_was_train = last_was_train + 1
                         batch = 1
 
                         raw_inputs = receive_data(conn)
@@ -367,11 +369,11 @@ def main():
 
                         inputs = np.frombuffer(raw_inputs, dtype=np.float64).reshape(batch, TOTAL_INPUT)
 
-                        raw_outputs = receive_data(conn)
-                        if raw_outputs is None:
-                            print("Incomplete training outputs")
-                            break
-                        send_ack(conn)
+                        1# raw_outputs = receive_data(conn)
+                        # if raw_outputs is None:
+                        #     print("Incomplete training outputs")
+                        #     break
+                        # send_ack(conn)
 
                         raw_targets = receive_data(conn)
                         if raw_targets is None:
@@ -382,25 +384,26 @@ def main():
 
                         experience_buffer.add(inputs, targets)
 
-                        value_targets = targets[:, 0:1]
-                        policy_targets = targets[:, 1:TOTAL_OUTPUT] 
-
-                        internal_model.train_on_batch(
-                                x=inputs, 
-                                y={'value_output': value_targets, 'policy_output': policy_targets}
-                                )
-
-                        inverse_inputs = -inputs
+                        inverse_inputs = inputs.copy()
+                        inverse_inputs = -inverse_inputs
                         inverse_targets = targets.copy()
                         inverse_targets[0][0] = -targets[0][0] 
+
+                        batch_inputs = np.vstack((inputs, inverse_inputs))
+                        batch_targets = np.vstack((targets, inverse_targets))
+                        value_targets = batch_targets[:, 0:1]
+                        policy_targets = batch_targets[:, 1:TOTAL_OUTPUT]
+
                         internal_model.train_on_batch(
-                                x=inverse_inputs, 
-                                y={'value_output': inverse_targets[:, 0:1], 'policy_output': inverse_targets[:, 1:TOTAL_OUTPUT]}
+                                x=batch_inputs, 
+                                y={'value_output': value_targets, 'policy_output': policy_targets}
                                 )
+                        value_predictions.append(value_targets[0][0])
+                        value_predictions.append(value_targets[1][0])
 
                         train_counter += 1
 
-                        if train_counter % 1000 == 0:
+                        if train_counter % 5000 == 0:
                             current_lr = max(initial_lr * (0.95 ** (train_counter // 1000)), min_lr)
                             tf.keras.backend.set_value(internal_model.optimizer.learning_rate, current_lr)
                             print(f"Learning rate adjusted to {current_lr}")
@@ -419,7 +422,7 @@ def main():
                             except Exception as e:
                                 print(f"Error saving model: {e}")
 
-                        if train_counter % replay_frequency == 0 and len(experience_buffer.buffer) >= replay_batch_size:
+                        if train_counter % replay_frequency == 0 and train_counter > 2500:
                             replay_inputs, replay_targets = experience_buffer.sample(replay_batch_size)
 
                             replay_value_targets = replay_targets[:, 0:1]
@@ -430,8 +433,9 @@ def main():
                                     y={'value_output': replay_value_targets, 'policy_output': replay_policy_targets}
                                     )
 
-                        if train_counter % 1000 == 0 and train_counter > 10000:
-                            for _ in range(200):
+                        if train_counter % 2500 == 0 and train_counter > 5000:
+                            print("Training on experience buffer...")
+                            for _ in range(500):
                                 if len(experience_buffer.buffer) < replay_batch_size:
                                     break
 
@@ -473,11 +477,11 @@ def main():
                             break
                         send_ack(conn)
 
-                        raw_outputs = receive_data(conn)
-                        if raw_outputs is None:
-                            print("Incomplete training outputs")
-                            break
-                        send_ack(conn)
+                        # raw_outputs = receive_data(conn)
+                        # if raw_outputs is None:
+                        #     print("Incomplete training outputs")
+                        #     break
+                        # send_ack(conn)
 
                         raw_targets = receive_data(conn)
                         if raw_targets is None:
