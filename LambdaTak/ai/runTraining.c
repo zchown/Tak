@@ -32,7 +32,7 @@ int main() {
     /* DenseNeuralNet net = createDenseNeuralNet(layerSizes, numLayers, Relu); */
     /*  */
     /* loadDenseNeuralNet(&net, "n_models/tak_model.weights_verysmall"); */
-    Trainer* trainer = createTrainer(NULL, 0.999, 0.005, 0.1, 50, 0.99);
+    Trainer* trainer = createTrainer(NULL, 0.999, 0.005, 0.1, 50, 0.95);
 
     printf("Training\n");
     /* trainHybrid(trainer, 10000, 50); */
