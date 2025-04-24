@@ -860,7 +860,9 @@ double* gameStateToVector(const GameState* state) {
             double val = 1.0 - ((sq->pieces[j].stone + 1) / 4.0);
             // branchless
             double colorUpdate = sq->pieces[j].color * -1.0;
-            vector[i * (BOARD_SIZE + 1) + j] = val + colorUpdate;
+            val = val + colorUpdate;
+            double final = (state->turn == WHITE) ? val : 1.0 - val;
+            vector[i * (BOARD_SIZE + 1) + j] = final;
         }
     }
 

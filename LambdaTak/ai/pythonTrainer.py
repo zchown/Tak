@@ -118,7 +118,7 @@ def value_entropy_loss(y_true, y_pred):
     mse = tf.keras.losses.mean_squared_error(y_true, y_pred)
 
     eps = 1e-5
-    # variance_penalty = 0.001 * tf.reduce_mean(1.0 / (tf.abs(y_pred) + eps))
+    variance_penalty = 0.1 * tf.reduce_mean(1.0 / (tf.abs(y_pred) + eps))
     variance_penalty = 0.0
 
     y_pred_flat = tf.reshape(y_pred, [-1])
@@ -127,7 +127,7 @@ def value_entropy_loss(y_true, y_pred):
     histogram = tf.cast(histogram, tf.float32) / tf.reduce_sum(tf.cast(histogram, tf.float32))
     entropy = -tf.reduce_sum(histogram * tf.math.log(histogram + eps))
 
-    entropy_penalty = 0.001 * (1.0 / (entropy + eps))
+    entropy_penalty = 0.1 * (1.0 / (entropy + eps))
 
     return mse + variance_penalty + entropy_penalty
 
@@ -150,43 +150,48 @@ def create_alphazero_model():
     input_layer = Input(shape=(TOTAL_INPUT,), name='input')
     x = Reshape((ROW_SIZE, ROW_SIZE, INPUT_SQUARE_DEPTH))(input_layer)
 
-    x = Conv2D(128, (3, 3), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
+    x = Conv2D(128, (3, 3), activation='sigmoid', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
     x = BatchNormalization()(x)
-    x = LeakyReLU(alpha=0.1)(x)
 
-    x = Conv2D(256, (3, 3), padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
+    x = Conv2D(256, (3, 3), activation='sigmoid', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
     x = BatchNormalization()(x)
-    x = LeakyReLU(alpha=0.1)(x)
 
     x = residual_block(x, 256)
+    x = Dropout(0.25)(x)
     x = residual_block(x, 256)
+    x = Dropout(0.25)(x)
     x = residual_block(x, 256)
+    x = Dropout(0.25)(x)
     x = residual_block(x, 256)
+    x = Dropout(0.25)(x)
     x = residual_block(x, 256)
+    x = Dropout(0.25)(x)
     x = residual_block(x, 256)
+    x = Dropout(0.25)(x)
     x = residual_block(x, 256)
+    x = Dropout(0.25)(x)
     x = residual_block(x, 256)
+    x = Dropout(0.25)(x)
     x = residual_block(x, 256)
+    x = Dropout(0.25)(x)
+    x = residual_block(x, 256)
+    x = Dropout(0.25)(x)
+    x = residual_block(x, 256)
+    x = Dropout(0.25)(x)
     x = residual_block(x, 256)
 
-    x = Flatten()(x)
-
-    x = Dense(512, kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
-    x = BatchNormalization()(x)
-    x = LeakyReLU(alpha=0.1)(x)
-    x = Dropout(0.3)(x)
-
-    x = Dense(256, kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
-    x = BatchNormalization()(x)
-    x = LeakyReLU(alpha=0.1)(x)
-    x = Dropout(0.3)(x)
-
-    policy_hidden = Dense(128, activation='relu')(x)
+    policy_hidden = Conv2D(256, (1, 1), padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
+    policy_hidden = BatchNormalization()(policy_hidden)
+    policy_hidden = LeakyReLU(alpha=0.1)(policy_hidden)
+    policy_hidden = Flatten()(policy_hidden)
+    policy_hidden = Dense(512, kernel_regularizer=tf.keras.regularizers.l2(0.0005))(policy_hidden)
     policy_output = Dense(POLICY_SIZE, activation='softmax', name='policy_output')(policy_hidden)
 
-    value_hidden = Dense(128)(x)
+    value_hidden = Conv2D(256, (1, 1), padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
     value_hidden = BatchNormalization()(value_hidden)
     value_hidden = LeakyReLU(alpha=0.1)(value_hidden)
+    value_hidden = Flatten()(value_hidden)
+    value_hidden = Dense(512, kernel_regularizer=tf.keras.regularizers.l2(0.0005))(value_hidden)
     value_output = Dense(1, activation='tanh', name='value_output', 
                          kernel_initializer=tf.keras.initializers.RandomNormal(mean=0.0, stddev=0.1))(value_hidden)
 
@@ -229,6 +234,7 @@ def plot_value_distribution(values, filename='value_distribution.png'):
     plt.savefig(filename)
     plt.close()
 
+
 def main():
     internal_model, combined_model = create_alphazero_model()
     print("AlphaZero-style model ready, listening for connections...")
@@ -238,6 +244,11 @@ def main():
     train_counter = 0
     replay_frequency = 5
     last_was_train = 0
+    game_counter = 0
+    game_end = False
+
+    game_input_buffer = []
+    game_value_buffer = []
 
     value_predictions = []
 
@@ -295,20 +306,31 @@ def main():
                     print(f"Received request type: {request_type}")
 
                     if request_type == 'predict':
-                        if last_was_train == 5:
+                        if (game_end) and (len(game_input_buffer) > 0):
+                            game_counter += 1
+                            inputs = np.vstack(game_input_buffer)
+                            targets = np.vstack(game_value_buffer)
+                            game_input_buffer.clear()
+                            game_value_buffer.clear()
+                            value_targets = targets[:, 0:1]
+                            policy_targets = targets[:, 1:TOTAL_OUTPUT]
+                            internal_model.train_on_batch(
+                                    x=inputs, 
+                                    y={'value_output': value_targets, 'policy_output': policy_targets}
+                                    )
+                        if game_counter % 5 == 0 and game_counter > 25:
                             last_was_train = 0
-                            if (train_counter > 1000) == 0:
-                                print("Training on experience buffer...")
-                                for _ in range(50):
-                                    if len(experience_buffer.buffer) < replay_batch_size * 10:
-                                        break
-                                    replay_inputs, replay_targets = experience_buffer.sample(replay_batch_size)
-                                    replay_value_targets = replay_targets[:, 0:1]
-                                    replay_policy_targets = replay_targets[:, 1:TOTAL_OUTPUT]
-                                    internal_model.train_on_batch(
-                                            x=replay_inputs, 
-                                            y={'value_output': replay_value_targets, 'policy_output': replay_policy_targets}
-                                            )
+                            print("Training on experience buffer short...")
+                            for _ in range(10):
+                                if len(experience_buffer.buffer) < replay_batch_size * 10:
+                                    break
+                                replay_inputs, replay_targets = experience_buffer.sample(replay_batch_size)
+                                replay_value_targets = replay_targets[:, 0:1]
+                                replay_policy_targets = replay_targets[:, 1:TOTAL_OUTPUT]
+                                internal_model.train_on_batch(
+                                        x=replay_inputs, 
+                                        y={'value_output': replay_value_targets, 'policy_output': replay_policy_targets}
+                                        )
                         size_bytes = receive_data(conn)
                         if size_bytes is None:
                             print("Failed to read input_size prefix")
@@ -358,6 +380,7 @@ def main():
                         print("Prediction cycle completed successfully")
 
                     elif request_type == 'train':
+                        game_end = True
                         last_was_train = last_was_train + 1
                         batch = 1
 
@@ -368,8 +391,9 @@ def main():
                         send_ack(conn)
 
                         inputs = np.frombuffer(raw_inputs, dtype=np.float64).reshape(batch, TOTAL_INPUT)
+                        game_input_buffer.append(inputs)
 
-                        1# raw_outputs = receive_data(conn)
+                        # raw_outputs = receive_data(conn)
                         # if raw_outputs is None:
                         #     print("Incomplete training outputs")
                         #     break
@@ -381,6 +405,7 @@ def main():
                             break
 
                         targets = np.frombuffer(raw_targets, dtype=np.float64).reshape(batch, TOTAL_OUTPUT)
+                        game_value_buffer.append(targets)
 
                         experience_buffer.add(inputs, targets)
 
@@ -403,8 +428,8 @@ def main():
 
                         train_counter += 1
 
-                        if train_counter % 5000 == 0:
-                            current_lr = max(initial_lr * (0.95 ** (train_counter // 1000)), min_lr)
+                        if train_counter % 2500 == 0:
+                            current_lr = max(initial_lr * (0.975 ** (train_counter // 1000)), min_lr)
                             tf.keras.backend.set_value(internal_model.optimizer.learning_rate, current_lr)
                             print(f"Learning rate adjusted to {current_lr}")
 
@@ -422,20 +447,20 @@ def main():
                             except Exception as e:
                                 print(f"Error saving model: {e}")
 
-                        if train_counter % replay_frequency == 0 and train_counter > 2500:
-                            replay_inputs, replay_targets = experience_buffer.sample(replay_batch_size)
-
-                            replay_value_targets = replay_targets[:, 0:1]
-                            replay_policy_targets = replay_targets[:, 1:TOTAL_OUTPUT]
-
-                            internal_model.train_on_batch(
-                                    x=replay_inputs, 
-                                    y={'value_output': replay_value_targets, 'policy_output': replay_policy_targets}
-                                    )
-
-                        if train_counter % 2500 == 0 and train_counter > 5000:
+                        # if train_counter % replay_frequency == 0 and train_counter > 2500:
+                        #     replay_inputs, replay_targets = experience_buffer.sample(replay_batch_size)
+                        #
+                        #     replay_value_targets = replay_targets[:, 0:1]
+                        #     replay_policy_targets = replay_targets[:, 1:TOTAL_OUTPUT]
+                        #
+                        #     internal_model.train_on_batch(
+                        #             x=replay_inputs, 
+                        #             y={'value_output': replay_value_targets, 'policy_output': replay_policy_targets}
+                        #             )
+                        #
+                        if game_counter % 50 == 0 and game_counter > 0:
                             print("Training on experience buffer...")
-                            for _ in range(500):
+                            for _ in range(250):
                                 if len(experience_buffer.buffer) < replay_batch_size:
                                     break
 

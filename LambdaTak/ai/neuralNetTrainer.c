@@ -104,8 +104,9 @@ int trainEpisode(Trainer* trainer, int episodeNum, int sock) {
         if (numPastStates > 0) {
             double* reward = malloc(OUTPUT_SIZE * sizeof(double));
             memcpy(reward, pastValues[numPastStates - 1], OUTPUT_SIZE * sizeof(double));
-            if (pastOutputs[numPastStates - 1][0] - outputs[0] > 0.1) {
-                reward[0] = (outputs[0] + pastOutputs[numPastStates - 1][0]) / 2.0;
+            // if the output and previous are different by more than 0.1 run TD
+            if (fabs(pastOutputs[numPastStates - 1][0] - outputs[0]) > 0.1) {
+                reward[0] = (outputs[0] + pastOutputs[numPastStates - 1][0]);
                 pythonTrainTD(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, reward, 7 * 36);
             }
 
@@ -142,13 +143,17 @@ int trainEpisode(Trainer* trainer, int episodeNum, int sock) {
 
     double finalReward = calculateReward(gameResult, numPastStates, 225);
 
+    if (state->turn == WHITE) {
+        finalReward = -finalReward;
+    }
+
     if (numPastStates > 0) {
         pastValues[numPastStates - 1][0] = finalReward;
         pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, pastValues[numPastStates - 1], 7 * 36);
     }
 
     for (int i = numPastStates - 2; i >= 0; i--) {
-        finalReward = finalReward * trainer->discountFactor;
+        finalReward = -finalReward * trainer->discountFactor;
         pastValues[i][0] = finalReward;
         pythonTrain(sock, pastStates[i], pastOutputs[i], 1, pastValues[i], 7 * 36);
     }
@@ -258,11 +263,12 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         if (numPastStates > 0) {
             double* reward = malloc(OUTPUT_SIZE * sizeof(double));
             memcpy(reward, pastValues[numPastStates - 1], OUTPUT_SIZE * sizeof(double));
-            if (pastOutputs[numPastStates - 1][0] - outputs[0] > 0.1) {
-                reward[0] = (outputs[0] + pastOutputs[numPastStates - 1][0]) / 2.0;
+            if (fabs(pastOutputs[numPastStates - 1][0] - outputs[0]) > 0.1) {
+                reward[0] = (outputs[0] + pastOutputs[numPastStates - 1][0]);
                 pythonTrainTD(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, reward, 7 * 36);
             }
         }
+
 
         pastStates[numPastStates] = inputs;
         pastOutputs[numPastStates] = outputs;
@@ -316,6 +322,10 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
 
     double finalReward = calculateReward(gameResult, numPastStates, 75);
 
+    if (state->turn == WHITE) {
+        finalReward = -finalReward;
+    }
+
     // Final update for the last state
     if (numPastStates > 0) {
         /* backpropagateDense(trainer->net, pastStates[numPastStates - 1],  */
@@ -327,6 +337,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
     }
 
     for (int i = numPastStates - 2; i >= 0; i--) {
+        finalReward = -finalReward * trainer->discountFactor;
         if (pastStates[i] == NULL || pastOutputs[i] == NULL) {
             fprintf(stderr, "NULL pointer in eligibility trace at index %d\n", i);
             continue;  // Skip this iteration
@@ -334,7 +345,6 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
 
 
         /* backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &targetValue, trainer->learningRate * decay); */
-        finalReward = finalReward * trainer->discountFactor;
         pythonTrain(sock, pastStates[i], pastOutputs[i], 1, pastValues[i], 7 * 36);
         /* pythonTrain(sock, pastStates[i], NULL, 1, pastValues[i], 7 * 36); */
     }

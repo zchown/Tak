@@ -127,7 +127,7 @@ void pythonTrain(int sock, double* inputs, double* outputs, int targetCount, dou
 
     sendData(sock, inputs, dataSize * sizeof(double));
 
-    sendData(sock, outputs, OUTPUT_SIZE * sizeof(double));
+    /* sendData(sock, outputs, OUTPUT_SIZE * sizeof(double)); */
 
     sendData(sock, targets, OUTPUT_SIZE * sizeof(double));
 }
