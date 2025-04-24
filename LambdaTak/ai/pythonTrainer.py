@@ -118,8 +118,7 @@ def value_entropy_loss(y_true, y_pred):
     mse = tf.keras.losses.mean_squared_error(y_true, y_pred)
 
     eps = 1e-5
-    variance_penalty = 0.1 * tf.reduce_mean(1.0 / (tf.abs(y_pred) + eps))
-    variance_penalty = 0.0
+    variance_penalty = 0.01 * tf.reduce_mean(1.0 / (tf.abs(y_pred) + eps))
 
     y_pred_flat = tf.reshape(y_pred, [-1])
     y_pred_flat = tf.abs(y_pred_flat)
@@ -321,7 +320,8 @@ def main():
                         if game_counter % 5 == 0 and game_counter > 25:
                             last_was_train = 0
                             print("Training on experience buffer short...")
-                            for _ in range(10):
+                            for i in range(10):
+                                print("Itration: ", i)
                                 if len(experience_buffer.buffer) < replay_batch_size * 10:
                                     break
                                 replay_inputs, replay_targets = experience_buffer.sample(replay_batch_size)
