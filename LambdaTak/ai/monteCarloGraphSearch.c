@@ -38,9 +38,9 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     MCGSNode* root = entry->node;
 
 
-    int numIterations = 1 << 14;
+    int numIterations = 1 << 12;
     if (trainingMode) {
-        numIterations = 1 << 13;
+        numIterations = 1 << 12;
     }
     for (int i = 0; i < numIterations; i++) {
         /* printf("Iteration %d\n", i); */
@@ -281,9 +281,9 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
         if (trainingMode) {
             // apply noise
             for (int i = 0; i < 61; i++) {
-                double noise = ((double)rand() / RAND_MAX) * 0.2;
-                noise -= 0.1;
-                out[i + 1] = fmax(0.0, fmin(1.0, out[i + 1] + noise));
+                double noise = ((double)rand() / RAND_MAX) * 0.4;
+                noise -= 0.2;
+                out[i + 1] = out[i + 1] + noise;
             }
         }
         /* printf("Value: %f\n", node->value); */
@@ -570,7 +570,7 @@ MonteCarloTable* createMonteCarloTable(void) {
         free(table);
         return NULL;
     }
-    table->allocator = createArenaAllocator(10ULL * 1024 * 1024 * 1024);
+    table->allocator = createArenaAllocator(6ULL * 1024 * 1024 * 1024);
     if (!table->allocator.memory) {
         printf("Failed to allocate memory for Monte Carlo table allocator\n");
         free(table->entries);

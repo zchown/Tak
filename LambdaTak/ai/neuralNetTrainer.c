@@ -92,28 +92,28 @@ int trainEpisode(Trainer* trainer, int episodeNum, int sock) {
     GameState* state = createGameState();
     // Store the entire sequence of states, actions, and rewards
     double** pastStates = (double**)malloc(1000 * sizeof(double*));
-    double** pastOutputs = (double**)malloc(1000 * sizeof(double*));
+    /* double** pastOutputs = (double**)malloc(1000 * sizeof(double*)); */
     double** pastValues = (double**)malloc(1000 * sizeof(double*));
     int numPastStates = 0;
 
     int numMoves = 512;
     while (checkGameResult(state) == CONTINUE) {
         double* inputs = gameStateToVector(state);
-        double* outputs = pythonPredict(sock, inputs, (7 * 36));
+        /* double* outputs = pythonPredict(sock, inputs, (7 * 36)); */
 
-        if (numPastStates > 0) {
-            double* reward = malloc(OUTPUT_SIZE * sizeof(double));
-            memcpy(reward, pastValues[numPastStates - 1], OUTPUT_SIZE * sizeof(double));
-            // if the output and previous are different by more than 0.1 run TD
-            if (fabs(pastOutputs[numPastStates - 1][0] - outputs[0]) > 0.1) {
-                reward[0] = (outputs[0] + pastOutputs[numPastStates - 1][0]);
-                pythonTrainTD(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, reward, 7 * 36);
-            }
-
-        }
+        /* if (numPastStates > 0) { */
+        /*     double* reward = malloc(OUTPUT_SIZE * sizeof(double)); */
+        /*     memcpy(reward, pastValues[numPastStates - 1], OUTPUT_SIZE * sizeof(double)); */
+        /*     // if the output and previous are different by more than 0.1 run TD */
+        /*     if (fabs(pastOutputs[numPastStates - 1][0] - outputs[0]) > 0.1) { */
+        /*         reward[0] = (outputs[0] + pastOutputs[numPastStates - 1][0]); */
+        /*         pythonTrainTD(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, reward, 7 * 36); */
+        /*     } */
+        /*  */
+        /* } */
 
         pastStates[numPastStates] = inputs;
-        pastOutputs[numPastStates] = outputs;
+        /* pastOutputs[numPastStates] = outputs; */
         pastValues[numPastStates] = malloc(OUTPUT_SIZE * sizeof(double));
 
         GeneratedMoves* moves = generateAllMoves(state, numMoves);
@@ -143,27 +143,31 @@ int trainEpisode(Trainer* trainer, int episodeNum, int sock) {
 
     double finalReward = calculateReward(gameResult, numPastStates, 225);
 
-    if (state->turn == WHITE) {
-        finalReward = -finalReward;
-    }
+    /* if (state->turn == WHITE) { */
+    /*     finalReward = -finalReward; */
+    /* } */
 
     if (numPastStates > 0) {
         pastValues[numPastStates - 1][0] = finalReward;
-        pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, pastValues[numPastStates - 1], 7 * 36);
+        /* pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, pastValues[numPastStates - 1], 7 * 36); */
+        pythonTrain(sock, pastStates[numPastStates - 1], NULL, 1, pastValues[numPastStates - 1], 7 * 36);
     }
 
     for (int i = numPastStates - 2; i >= 0; i--) {
-        finalReward = -finalReward * trainer->discountFactor;
-        pastValues[i][0] = finalReward;
-        pythonTrain(sock, pastStates[i], pastOutputs[i], 1, pastValues[i], 7 * 36);
+        /* finalReward = -1 * finalReward; */
+        double decay = pow(trainer->discountFactor, numPastStates - i - 1);
+        pastValues[i][0] = finalReward * decay;
+        /* pythonTrain(sock, pastStates[i], pastOutputs[i], 1, pastValues[i], 7 * 36); */
     }
+
+    pythonGameEnd(sock);
 
     for (int i = 0; i < numPastStates; i++) {
         free(pastStates[i]);
-        free(pastOutputs[i]);
+        /* free(pastOutputs[i]); */
     }
     free(pastStates);
-    free(pastOutputs);
+    /* free(pastOutputs); */
     free(pastValues);
     freeGameState(state);
 
@@ -250,28 +254,28 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
     GameState* state = createGameState();
 
     double** pastStates = (double**)malloc(1000 * sizeof(double*));
-    double** pastOutputs = (double**)malloc(1000 * sizeof(double*));
+    /* double** pastOutputs = (double**)malloc(1000 * sizeof(double*)); */
     double** pastValues = (double**)malloc(1000 * sizeof(double*));
     int numPastStates = 0;
 
     int numMoves = 512;
     while (checkGameResult(state) == CONTINUE) {
         double* inputs = gameStateToVector(state);
-        double* outputs = pythonPredict(sock, inputs, (7 * 36));
+        /* double* outputs = pythonPredict(sock, inputs, (7 * 36)); */
         /* printf("Got outputs\n"); */
 
-        if (numPastStates > 0) {
-            double* reward = malloc(OUTPUT_SIZE * sizeof(double));
-            memcpy(reward, pastValues[numPastStates - 1], OUTPUT_SIZE * sizeof(double));
-            if (fabs(pastOutputs[numPastStates - 1][0] - outputs[0]) > 0.1) {
-                reward[0] = (outputs[0] + pastOutputs[numPastStates - 1][0]);
-                pythonTrainTD(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, reward, 7 * 36);
-            }
-        }
+        /* if (numPastStates > 0) { */
+        /*     double* reward = malloc(OUTPUT_SIZE * sizeof(double)); */
+        /*     memcpy(reward, pastValues[numPastStates - 1], OUTPUT_SIZE * sizeof(double)); */
+        /*     if (fabs(pastOutputs[numPastStates - 1][0] - outputs[0]) > 0.1) { */
+        /*         reward[0] = (outputs[0] + pastOutputs[numPastStates - 1][0]); */
+        /*         pythonTrainTD(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, reward, 7 * 36); */
+        /*     } */
+        /* } */
 
 
         pastStates[numPastStates] = inputs;
-        pastOutputs[numPastStates] = outputs;
+        /* pastOutputs[numPastStates] = outputs; */
         pastValues[numPastStates] = malloc(OUTPUT_SIZE * sizeof(double));
 
         GeneratedMoves* moves = generateAllMoves(state, numMoves);
@@ -283,20 +287,17 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
             move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
 
             int random = rand() % 10;
-            if (random < 7) {
+            if (random < 9) {
                 move = iterativeDeepeningSearch(state, alphaBetaTime);
-            } else {
-                move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
-            }
+            } 
         } else {
             /* move = monteCarloGraphSearch(state, trainer->net, false, sock, pastValues[numPastStates]); */
             move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
             int random = rand() % 10;
-            if (random < 3) {
-                move = iterativeDeepeningSearch(state, alphaBetaTime);
-            } else {
-                move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
-            }
+            if (random < 6) {
+                /* move = iterativeDeepeningSearch(state, alphaBetaTime); */
+                move = monteCarloGraphSearch(state, trainer->net, false, sock, pastValues[numPastStates]);
+            } 
         }
         makeMoveNoChecks(state, &move, false);
         freeGeneratedMoves(moves);
@@ -322,40 +323,45 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
 
     double finalReward = calculateReward(gameResult, numPastStates, 75);
 
-    if (state->turn == WHITE) {
-        finalReward = -finalReward;
-    }
+    /* if (state->turn == WHITE) { */
+    /*     finalReward = -finalReward; */
+    /* } */
 
     // Final update for the last state
     if (numPastStates > 0) {
         /* backpropagateDense(trainer->net, pastStates[numPastStates - 1],  */
                 /* pastOutputs[numPastStates - 1], &finalReward, trainer->learningRate); */
         pastValues[numPastStates - 1][0] = finalReward;
-        pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, pastValues[numPastStates - 1], 7 * 36);
-        /* pythonTrain(sock, pastStates[numPastStates - 1], NULL, 1, pastValues[numPastStates - 1], 7 * 36); */
+        /* pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, pastValues[numPastStates - 1], 7 * 36); */
+        pythonTrain(sock, pastStates[numPastStates - 1], NULL, 1, pastValues[numPastStates - 1], 7 * 36);
 
     }
 
     for (int i = numPastStates - 2; i >= 0; i--) {
-        finalReward = -finalReward * trainer->discountFactor;
-        if (pastStates[i] == NULL || pastOutputs[i] == NULL) {
-            fprintf(stderr, "NULL pointer in eligibility trace at index %d\n", i);
-            continue;  // Skip this iteration
-        }
+        /* finalReward = -1 * finalReward; */
+        /* finalReward = finalReward * trainer->discountFactor; */
+        double decay = pow(trainer->discountFactor, numPastStates - i - 1);
+        pastValues[i][0] = finalReward * decay;
+        /* if (pastStates[i] == NULL || pastOutputs[i] == NULL) { */
+        /*     fprintf(stderr, "NULL pointer in eligibility trace at index %d\n", i); */
+        /*     continue;  // Skip this iteration */
+        /* } */
 
 
         /* backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &targetValue, trainer->learningRate * decay); */
-        pythonTrain(sock, pastStates[i], pastOutputs[i], 1, pastValues[i], 7 * 36);
-        /* pythonTrain(sock, pastStates[i], NULL, 1, pastValues[i], 7 * 36); */
+        /* pythonTrain(sock, pastStates[i], pastOutputs[i], 1, pastValues[i], 7 * 36); */
+        pythonTrain(sock, pastStates[i], NULL, 1, pastValues[i], 7 * 36);
     }
+
+    pythonGameEnd(sock);
 
     for (int i = 0; i < numPastStates; i++) {
         if (pastStates[i]) free(pastStates[i]);
-        if (pastOutputs[i]) free(pastOutputs[i]);
+        /* if (pastOutputs[i]) free(pastOutputs[i]); */
         if (pastValues[i]) free(pastValues[i]);
     }
     free(pastStates);
-    free(pastOutputs);
+    /* free(pastOutputs); */
     free(pastValues);
     freeGameState(state);
 

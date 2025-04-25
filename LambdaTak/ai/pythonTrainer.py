@@ -9,8 +9,10 @@ from tensorflow.keras.layers import MaxPooling3D, Dropout, BatchNormalization, C
 import random
 from collections import deque
 import matplotlib.pyplot as plt
+import threading
+import queue
+import time
 
-# Model configuration
 TOTAL_INPUT = 6 * 6 * 7
 INPUT_SQUARES = 36
 ROW_SIZE = 6
@@ -31,6 +33,7 @@ class ExperienceBuffer:
                 "mid_neg": 0,    # -0.6 to -0.2
                 "high_neg": 0    # < -0.6
                 }
+        self.lock = threading.Lock()
 
     def add(self, inputs, targets):
         value = targets[0][0]
@@ -50,29 +53,33 @@ class ExperienceBuffer:
 
         priority = 1.0 + abs(value)
 
-        self.buffer.append((inputs, targets))
-        self.priorities.append(priority)
+        with self.lock:
+            self.buffer.append((inputs, targets))
+            self.priorities.append(priority)
 
-        inverse_inputs = -inputs
-        inverse_targets = targets.copy()
-        inverse_targets[0] = -targets[0]
+            inverse_inputs = -inputs
+            inverse_targets = targets.copy()
+            inverse_targets[0] = -targets[0]
 
-        self.buffer.append((inverse_inputs, inverse_targets))
-        self.priorities.append(priority)
+            self.buffer.append((inverse_inputs, inverse_targets))
+            self.priorities.append(priority)
 
     def sample(self, batch_size):
-        if batch_size > len(self.buffer):
-            batch_size = len(self.buffer)
+        with self.lock:
+            if batch_size > len(self.buffer):
+                batch_size = len(self.buffer)
 
-        probs = np.array(self.priorities) / sum(self.priorities)
+            if len(self.buffer) == 0:
+                return None, None
 
-        # Sample based on priorities
-        indices = np.random.choice(len(self.buffer), size=batch_size, p=probs, replace=False)
+            probs = np.array(self.priorities) / sum(self.priorities)
 
-        batch = [self.buffer[idx] for idx in indices]
-        inputs = np.vstack([item[0] for item in batch])
-        targets = np.vstack([item[1] for item in batch])
-        return inputs, targets
+            indices = np.random.choice(len(self.buffer), size=batch_size, p=probs, replace=False)
+
+            batch = [self.buffer[idx] for idx in indices]
+            inputs = np.vstack([item[0] for item in batch])
+            targets = np.vstack([item[1] for item in batch])
+            return inputs, targets
 
     def get_distribution_stats(self):
         total = sum(self.value_distribution.values())
@@ -81,6 +88,428 @@ class ExperienceBuffer:
 
         dist = {k: v/total for k, v in self.value_distribution.items()}
         return dist
+
+    def size(self):
+        with self.lock:
+            return len(self.buffer)
+
+class TrainingItem:
+    def __init__(self, inputs, targets, is_td=False):
+        self.inputs = inputs
+        self.targets = targets
+        self.is_td = is_td
+
+class NeuralNetworkTrainer:
+    def __init__(self):
+        self.internal_model, self.combined_model = self._create_alphazero_model()
+
+        self.training_queue = queue.Queue()
+        self.running = True
+        self.model_lock = threading.Lock()
+
+        self.experience_buffer = ExperienceBuffer(max_size=20000)
+        self.replay_batch_size = 128
+        self.train_counter = 0
+        self.replay_frequency = 5
+        self.last_was_train = 0
+        self.game_counter = 0
+        self.game_end = False
+
+        self.game_input_buffer = []
+        self.game_value_buffer = []
+        self.game_buffer_lock = threading.Lock()
+
+        self.initial_lr = 0.001
+        self.min_lr = 0.00001
+
+        self.value_predictions = []
+
+        self._load_model()
+
+        self._convert_to_coreml()
+
+        self.training_thread = threading.Thread(target=self._training_worker)
+        self.training_thread.daemon = True
+        self.training_thread.start()
+
+    def value_entropy_loss(self, y_true, y_pred):
+        mse = tf.keras.losses.mean_squared_error(y_true, y_pred)
+
+        eps = 1e-5
+        variance_penalty = 0.001 * tf.reduce_mean(1.0 / (tf.abs(y_pred) + eps))
+
+        y_pred_flat = tf.reshape(y_pred, [-1])
+        histogram = tf.histogram_fixed_width(y_pred_flat, [-1.0, 1.0], nbins=10)
+        histogram = tf.cast(histogram, tf.float32) / tf.reduce_sum(tf.cast(histogram, tf.float32))
+        entropy = -tf.reduce_sum(histogram * tf.math.log(histogram + eps))
+
+        entropy_penalty = 0.1 * (1.0 / (entropy + eps))
+
+        return mse + variance_penalty + entropy_penalty
+
+    def _residual_block(self, x, filters):
+        shortcut = x
+
+        x = Conv2D(filters, (3, 3), padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
+        x = BatchNormalization()(x)
+        x = LeakyReLU(alpha=0.1)(x)
+
+        x = Conv2D(filters, (3, 3), padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
+        x = BatchNormalization()(x)
+
+        x = Add()([x, shortcut])
+        x = LeakyReLU(alpha=0.1)(x)
+
+        return x
+
+    def _create_alphazero_model(self):
+        input_layer = Input(shape=(TOTAL_INPUT,), name='input')
+        x = Reshape((ROW_SIZE, ROW_SIZE, INPUT_SQUARE_DEPTH))(input_layer)
+
+        x = Conv2D(128, (2, 2), activation='sigmoid', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
+        x = BatchNormalization()(x)
+
+        x = Conv2D(256, (3, 3), activation='sigmoid', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
+        x = BatchNormalization()(x)
+        x = LeakyReLU(alpha=0.1)(x)
+
+        x = Conv2D(512, (4, 4), activation='sigmoid', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
+        x = BatchNormalization()(x)
+        x = LeakyReLU(alpha=0.1)(x)
+
+
+        x = self._residual_block(x, 512)
+        x = self._residual_block(x, 512)
+        x = Dropout(0.3)(x)
+
+        x = self._residual_block(x, 512)
+        x = self._residual_block(x, 512)
+        x = Dropout(0.3)(x)
+
+        x = self._residual_block(x, 512)
+        x = self._residual_block(x, 512)
+        x = Dropout(0.3)(x)
+
+        x = self._residual_block(x, 512)
+        x = self._residual_block(x, 512)
+        x = Dropout(0.3)(x)
+
+        x = self._residual_block(x, 512)
+        x = self._residual_block(x, 512)
+        x = Dropout(0.3)(x)
+
+        x = self._residual_block(x, 512)
+        x = self._residual_block(x, 512)
+        x = Dropout(0.3)(x)
+
+        x = self._residual_block(x, 512)
+        x = self._residual_block(x, 512)
+        x = Dropout(0.3)(x)
+
+        x = self._residual_block(x, 512)
+        x = self._residual_block(x, 512)
+        x = Dropout(0.3)(x)
+
+        policy_hidden = Conv2D(256, (1, 1), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
+        policy_hidden = BatchNormalization()(policy_hidden)
+        policy_hidden = LeakyReLU(alpha=0.1)(policy_hidden)
+        policy_hidden = Flatten()(policy_hidden)
+        policy_hidden = Dense(512, activation='sigmoid', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(policy_hidden)
+        policy_hidden = BatchNormalization()(policy_hidden)
+        policy_hidden = LeakyReLU(alpha=0.1)(policy_hidden)
+        policy_hidden = Dense(256, activation='sigmoid', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(policy_hidden)
+        policy_output = Dense(POLICY_SIZE, activation='softmax', name='policy_output')(policy_hidden)
+
+        value_hidden = Conv2D(256, (1, 1), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
+        value_hidden = BatchNormalization()(value_hidden)
+        value_hidden = LeakyReLU(alpha=0.1)(value_hidden)
+        value_hidden = Flatten()(value_hidden)
+        value_hidden = Dense(256, activation='sigmoid', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(value_hidden)
+        value_hidden = BatchNormalization()(value_hidden)
+        value_hidden = LeakyReLU(alpha=0.1)(value_hidden)
+        value_hidden = Dense(64, activation='sigmoid', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(value_hidden)
+        value_output = Dense(1, activation='tanh', name='value_output', 
+                             kernel_initializer=tf.keras.initializers.RandomNormal(mean=0.0, stddev=0.1))(value_hidden)
+
+        internal_model = Model(inputs=input_layer, outputs=[value_output, policy_output])
+
+        # Wrapper for CoreML conversion
+        combined_output = Concatenate(name='combined_output')([value_output, policy_output])
+        combined_model = Model(inputs=input_layer, outputs=combined_output)
+
+        internal_model.compile(
+                optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.0001),
+                loss={
+                    'value_output': self.value_entropy_loss,
+                    'policy_output': 'categorical_crossentropy'
+                    },
+                loss_weights={
+                    'value_output': 3.0,
+                    'policy_output': 1.0
+                    },
+                metrics={
+                    'value_output': 'mean_squared_error',
+                    'policy_output': 'accuracy'
+                    }
+                )
+
+        internal_model.summary()
+        combined_model.summary()
+
+        return internal_model, combined_model
+
+    def _load_model(self):
+        try:
+            self.internal_model = tf.keras.models.load_model('neurelnet_internal.h5', 
+                                                             custom_objects={
+                                                                 'value_entropy_loss': self.value_entropy_loss,
+                                                                 'LeakyReLU': LeakyReLU
+                                                                 })
+            input_layer = self.internal_model.input
+            value_output = self.internal_model.get_layer('value_output').output
+            policy_output = self.internal_model.get_layer('policy_output').output
+            combined_output = Concatenate(name='combined_output')([value_output, policy_output])
+            self.combined_model = Model(inputs=input_layer, outputs=combined_output)
+            print("Loaded existing model")
+        except (FileNotFoundError, OSError):
+            print("No existing model found, using new model")
+        except Exception as e:
+            print(f"Error loading model: {e}")
+
+    def _convert_to_coreml(self):
+        try:
+            coreml_model = ct.convert(
+                    self.combined_model, 
+                    inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))]
+                    )
+            coreml_model.save('neurelnet.mlpackage')
+            print("Converted and saved CoreML model")
+        except Exception as e:
+            print(f"Error converting to CoreML: {e}")
+
+    def save_models(self):
+        with self.model_lock:
+            try:
+                self.internal_model.save('neurelnet_internal.h5')
+                tf.keras.models.save_model(self.combined_model, 'neurelnet_combined.h5')
+                coreml_model = ct.convert(
+                        self.combined_model,
+                        inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))],
+                        )
+                coreml_model.save('neurelnet.mlpackage')
+                print("Saved models")
+            except Exception as e:
+                print(f"Error saving model: {e}")
+
+    def plot_value_distribution(self, values, filename='value_distribution.png'):
+        plt.figure(figsize=(10, 6))
+        plt.hist(values, bins=20, alpha=0.7)
+        plt.title('Distribution of Value Predictions')
+        plt.xlabel('Value')
+        plt.ylabel('Frequency')
+        plt.axvline(x=0, color='r', linestyle='--')
+        plt.grid(True, alpha=0.3)
+        plt.savefig(filename)
+        plt.close()
+
+    def process_game_end(self):
+        with self.game_buffer_lock:
+            if len(self.game_input_buffer) > 0:
+                self.game_counter += 1
+                inputs = np.vstack(self.game_input_buffer)
+                targets = np.vstack(self.game_value_buffer)
+                self.game_input_buffer.clear()
+                self.game_value_buffer.clear()
+
+                self.training_queue.put(TrainingItem(inputs, targets))
+
+                print(f"Game {self.game_counter} queued for processing")
+
+    def adjust_learning_rate(self):
+        current_lr = max(self.initial_lr * (0.975 ** (self.train_counter // 1000)), self.min_lr)
+        with self.model_lock:
+            tf.keras.backend.set_value(self.internal_model.optimizer.learning_rate, current_lr)
+        print(f"Learning rate adjusted to {current_lr}")
+
+    def train_on_replay_buffer(self, num_batches=50):
+        if self.experience_buffer.size() < self.replay_batch_size:
+            print("Not enough samples in buffer for replay training")
+            return
+
+        print(f"Training on experience buffer ({num_batches} batches)...")
+        for _ in range(num_batches):
+            print(f"Training batch {_ + 1}/{num_batches}")
+            replay_inputs, replay_targets = self.experience_buffer.sample(self.replay_batch_size)
+            if replay_inputs is None:
+                break
+
+            replay_value_targets = replay_targets[:, 0:1]
+            replay_policy_targets = replay_targets[:, 1:TOTAL_OUTPUT]
+
+            with self.model_lock:
+                self.internal_model.train_on_batch(
+                        x=replay_inputs, 
+                        y={'value_output': replay_value_targets, 'policy_output': replay_policy_targets}
+                        )
+
+    def test_model_performance(self):
+        if self.experience_buffer.size() < self.replay_batch_size:
+            print("Not enough samples in buffer for testing")
+            return
+
+        test_inputs, test_targets = self.experience_buffer.sample(self.replay_batch_size)
+        if test_inputs is None:
+            return
+
+        test_value_targets = test_targets[:, 0:1]
+        test_policy_targets = test_targets[:, 1:TOTAL_OUTPUT]
+
+        with self.model_lock:
+            losses = self.internal_model.evaluate(
+                    x=test_inputs, 
+                    y={'value_output': test_value_targets, 'policy_output': test_policy_targets},
+                    verbose=0
+                    )
+            print(f"Test losses: {losses}")
+
+            predictions = self.internal_model.predict(test_inputs, verbose=0)
+            value_preds = predictions[0].flatten()
+
+        avg_abs_value = np.mean(np.abs(value_preds))
+        print(f"Test value stats - Mean abs: {avg_abs_value:.4f}, Range: {np.min(value_preds):.4f} to {np.max(value_preds):.4f}")
+
+        # self.plot_value_distribution(value_preds, f'test_values_{self.train_counter}.png')
+
+    def signal_game_end(self):
+        self.game_end = True
+        self.process_game_end()
+
+    def predict(self, inputs):
+        self.last_was_train += 1
+
+        if self.game_end and len(self.game_input_buffer) > 0:
+            self.process_game_end()
+            self.game_end = False
+
+        with self.model_lock:
+            combined_output = self.combined_model.predict(inputs, verbose=0)
+        value_pred = combined_output[0][0]
+
+        self.value_predictions.append(value_pred)
+
+        if len(self.value_predictions) % 100 == 0:
+            recent_preds = self.value_predictions[-100:]
+            avg_abs_value = np.mean(np.abs(recent_preds))
+            print(f"Recent value prediction stats - Mean abs: {avg_abs_value:.4f}")
+
+            if avg_abs_value < 0.01:
+                print("WARNING: Possible model collapse detected - values too close to zero")
+
+            if len(self.value_predictions) % 1000 == 0:
+                # self.plot_value_distribution(self.value_predictions[-1000:], 
+                                             # f'value_dist_{len(self.value_predictions)}.png')
+                print(f"Buffer distribution: {self.experience_buffer.get_distribution_stats()}")
+
+        # print(f"Value prediction: {value_pred}")
+
+        return combined_output[0]
+
+    def train(self, inputs, targets):
+        self.game_end = False
+        self.last_was_train += 1
+
+        with self.game_buffer_lock:
+            self.game_input_buffer.append(inputs)
+            self.game_value_buffer.append(targets)
+
+        self.experience_buffer.add(inputs, targets)
+
+        self.training_queue.put(TrainingItem(inputs, targets, is_td=False))
+
+    def train_td(self, inputs, targets):
+        self.training_queue.put(TrainingItem(inputs, targets, is_td=True))
+
+    def shutdown(self):
+        """Shutdown the training thread"""
+        self.running = False
+        if self.training_thread.is_alive():
+            self.training_thread.join(timeout=5.0)
+        self.save_models()
+
+    def _training_worker(self):
+        print("Training worker thread started")
+        use_queue = True
+
+        while self.running:
+            try:
+                if use_queue:
+                    try:
+                        if self.training_queue.qsize() >= 150:
+                            for _ in range(128):
+                                item = self.training_queue.get(timeout=1.0)
+                                self._process_training_item(item)
+                                self.training_queue.task_done()
+                    except queue.Empty:
+                        if self.experience_buffer.size() >= self.replay_batch_size:
+                            self.train_on_replay_buffer(1)
+                else:
+                    if self.experience_buffer.size() >= self.replay_batch_size:
+                        self.train_on_replay_buffer(4)
+                    else:
+                        time.sleep(0.1)
+
+                use_queue = not use_queue
+
+            except Exception as e:
+                print(f"Error in training worker: {e}")
+                time.sleep(1.0)
+
+    def _process_training_item(self, item):
+        if item.is_td:
+            value_targets = item.targets[:, 0:1]
+            with self.model_lock:
+                policy_outputs = self.internal_model.predict(item.inputs, verbose=0)[1]
+                self.internal_model.train_on_batch(
+                    x=item.inputs, 
+                    y={'value_output': value_targets, 'policy_output': policy_outputs}
+                )
+                inverse_inputs = -item.inputs
+                inverse_value_targets = -value_targets
+                self.internal_model.train_on_batch(
+                    x=inverse_inputs, 
+                    y={'value_output': inverse_value_targets, 'policy_output': policy_outputs}
+                )
+        else:
+            inputs = item.inputs
+            targets = item.targets
+
+            if len(inputs.shape) == 2 and inputs.shape[0] == 1:
+                inverse_inputs = -inputs.copy()
+                inverse_targets = targets.copy()
+                inverse_targets[0][0] = -targets[0][0]
+                batch_inputs = np.vstack((inputs, inverse_inputs))
+                batch_targets = np.vstack((targets, inverse_targets))
+            else:
+                batch_inputs = inputs
+                batch_targets = targets
+
+            value_targets = batch_targets[:, 0:1]
+            policy_targets = batch_targets[:, 1:TOTAL_OUTPUT]
+
+            with self.model_lock:
+                self.internal_model.train_on_batch(
+                    x=batch_inputs,
+                    y={'value_output': value_targets, 'policy_output': policy_targets}
+                )
+        self.train_counter += 1
+        if self.train_counter % 2500 == 0:
+            self.adjust_learning_rate()
+        if self.train_counter % 250 == 0:
+            print(f"Saving model at training step {self.train_counter}")
+            self.save_models()
+            if self.train_counter % 1000 == 0:
+                self.test_model_performance()
+
 
 def recv_all(conn, n):
     data = b''
@@ -114,445 +543,169 @@ def wait_for_ack(conn):
         return False
     return True
 
-def value_entropy_loss(y_true, y_pred):
-    mse = tf.keras.losses.mean_squared_error(y_true, y_pred)
+def handle_client(conn, addr, trainer):
+    print(f"Connection from {addr}")
+    try:
+        while True:
+            print(f"[{addr}] Waiting for request...")
+            header = receive_data(conn)
+            if header is None:
+                print(f"[{addr}] Client closed connection or partial header read")
+                break
 
-    eps = 1e-5
-    variance_penalty = 0.01 * tf.reduce_mean(1.0 / (tf.abs(y_pred) + eps))
+            send_ack(conn)
 
-    y_pred_flat = tf.reshape(y_pred, [-1])
-    y_pred_flat = tf.abs(y_pred_flat)
-    histogram = tf.histogram_fixed_width(y_pred_flat, [0.0, 1.0], nbins=10)
-    histogram = tf.cast(histogram, tf.float32) / tf.reduce_sum(tf.cast(histogram, tf.float32))
-    entropy = -tf.reduce_sum(histogram * tf.math.log(histogram + eps))
+            request_type = header.decode('utf-8', errors='ignore').rstrip('\x00')
+            print(f"[{addr}] Received request type: {request_type}")
 
-    entropy_penalty = 0.1 * (1.0 / (entropy + eps))
+            if request_type == 'predict':
+                size_bytes = receive_data(conn)
+                if size_bytes is None:
+                    print(f"[{addr}] Failed to read input_size prefix")
+                    break
+                send_ack(conn)
 
-    return mse + variance_penalty + entropy_penalty
+                input_size = struct.unpack('i', size_bytes)[0]
+                if input_size != TOTAL_INPUT:
+                    print(f"[{addr}] Input size mismatch ({input_size} != {TOTAL_INPUT})")
+                    conn.sendall(struct.pack('i', 0))
+                    continue
 
-def residual_block(x, filters):
-    shortcut = x
+                raw = receive_data(conn)
+                if raw is None:
+                    print(f"[{addr}] Incomplete input data")
+                    break
+                send_ack(conn)
 
-    x = Conv2D(filters, (3, 3), padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
-    x = BatchNormalization()(x)
-    x = LeakyReLU(alpha=0.1)(x)
+                inputs = np.frombuffer(raw, dtype=np.float64).reshape(1, -1)
 
-    x = Conv2D(filters, (3, 3), padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
-    x = BatchNormalization()(x)
+                prediction = trainer.predict(inputs)
 
-    x = Add()([x, shortcut])
-    x = LeakyReLU(alpha=0.1)(x)
+                prediction_bytes = struct.pack('!66f', *prediction)
+                conn.sendall(prediction_bytes)
 
-    return x
+                if not wait_for_ack(conn):
+                    print(f"[{addr}] Failed to receive ACK after sending prediction")
+                    break
 
-def create_alphazero_model():
-    input_layer = Input(shape=(TOTAL_INPUT,), name='input')
-    x = Reshape((ROW_SIZE, ROW_SIZE, INPUT_SQUARE_DEPTH))(input_layer)
+                print(f"[{addr}] Prediction cycle completed successfully")
 
-    x = Conv2D(128, (3, 3), activation='sigmoid', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
-    x = BatchNormalization()(x)
+            elif request_type == 'train':
+                batch = 1
 
-    x = Conv2D(256, (3, 3), activation='sigmoid', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
-    x = BatchNormalization()(x)
+                raw_inputs = receive_data(conn)
+                if raw_inputs is None:
+                    print(f"[{addr}] Incomplete training inputs")
+                    break
+                send_ack(conn)
 
-    x = residual_block(x, 256)
-    x = Dropout(0.25)(x)
-    x = residual_block(x, 256)
-    x = Dropout(0.25)(x)
-    x = residual_block(x, 256)
-    x = Dropout(0.25)(x)
-    x = residual_block(x, 256)
-    x = Dropout(0.25)(x)
-    x = residual_block(x, 256)
-    x = Dropout(0.25)(x)
-    x = residual_block(x, 256)
-    x = Dropout(0.25)(x)
-    x = residual_block(x, 256)
-    x = Dropout(0.25)(x)
-    x = residual_block(x, 256)
-    x = Dropout(0.25)(x)
-    x = residual_block(x, 256)
-    x = Dropout(0.25)(x)
-    x = residual_block(x, 256)
-    x = Dropout(0.25)(x)
-    x = residual_block(x, 256)
-    x = Dropout(0.25)(x)
-    x = residual_block(x, 256)
+                raw_targets = receive_data(conn)
+                if raw_targets is None:
+                    print(f"[{addr}] Incomplete training targets")
+                    break
 
-    policy_hidden = Conv2D(256, (1, 1), padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
-    policy_hidden = BatchNormalization()(policy_hidden)
-    policy_hidden = LeakyReLU(alpha=0.1)(policy_hidden)
-    policy_hidden = Flatten()(policy_hidden)
-    policy_hidden = Dense(512, kernel_regularizer=tf.keras.regularizers.l2(0.0005))(policy_hidden)
-    policy_output = Dense(POLICY_SIZE, activation='softmax', name='policy_output')(policy_hidden)
+                inputs = np.frombuffer(raw_inputs, dtype=np.float64).reshape(batch, TOTAL_INPUT)
+                targets = np.frombuffer(raw_targets, dtype=np.float64).reshape(batch, TOTAL_OUTPUT)
+                value_target = targets[0][0]
+                print(f"[{addr}] Training value target: {value_target}")
 
-    value_hidden = Conv2D(256, (1, 1), padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
-    value_hidden = BatchNormalization()(value_hidden)
-    value_hidden = LeakyReLU(alpha=0.1)(value_hidden)
-    value_hidden = Flatten()(value_hidden)
-    value_hidden = Dense(512, kernel_regularizer=tf.keras.regularizers.l2(0.0005))(value_hidden)
-    value_output = Dense(1, activation='tanh', name='value_output', 
-                         kernel_initializer=tf.keras.initializers.RandomNormal(mean=0.0, stddev=0.1))(value_hidden)
+                trainer.train(inputs, targets)
 
-    internal_model = Model(inputs=input_layer, outputs=[value_output, policy_output])
+                send_ack(conn)
+                print(f"[{addr}] Training data queued successfully")
 
-    # Wrapper for CoreML conversion
-    combined_output = Concatenate(name='combined_output')([value_output, policy_output])
-    combined_model = Model(inputs=input_layer, outputs=combined_output)
+            elif request_type == 'trainTD':
+                batch = 1
 
-    # Compile the internal model for training
-    internal_model.compile(
-            optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.0001),
-            loss={
-                'value_output': value_entropy_loss,
-                'policy_output': 'categorical_crossentropy'
-                },
-            loss_weights={
-                'value_output': 3.0,  # Higher weight on value head
-                'policy_output': 1.0
-                },
-            metrics={
-                'value_output': 'mean_squared_error',
-                'policy_output': 'accuracy'
-                }
-            )
+                raw_inputs = receive_data(conn)
+                if raw_inputs is None:
+                    print(f"[{addr}] Incomplete training inputs")
+                    break
+                send_ack(conn)
 
-    internal_model.summary()
-    combined_model.summary()
+                raw_targets = receive_data(conn)
+                if raw_targets is None:
+                    print(f"[{addr}] Incomplete training targets")
+                    break
 
-    return internal_model, combined_model
+                inputs = np.frombuffer(raw_inputs, dtype=np.float64).reshape(batch, TOTAL_INPUT)
+                targets = np.frombuffer(raw_targets, dtype=np.float64).reshape(batch, TOTAL_OUTPUT)
 
-def plot_value_distribution(values, filename='value_distribution.png'):
-    plt.figure(figsize=(10, 6))
-    plt.hist(values, bins=20, alpha=0.7)
-    plt.title('Distribution of Value Predictions')
-    plt.xlabel('Value')
-    plt.ylabel('Frequency')
-    plt.axvline(x=0, color='r', linestyle='--')
-    plt.grid(True, alpha=0.3)
-    plt.savefig(filename)
-    plt.close()
+                trainer.train_td(inputs, targets)
 
+                send_ack(conn)
+                print(f"[{addr}] TD Training data queued successfully")
+
+            elif request_type == 'game_end':
+                # Signal that a game has ended
+                trainer.signal_game_end()
+                send_ack(conn)
+                print(f"[{addr}] Game end signal processed")
+
+            else:
+                print(f"[{addr}] Unknown request: {request_type}")
+                break
+    except Exception as e:
+        print(f"[{addr}] Error handling client: {e}")
+    finally:
+        conn.close()
+        print(f"[{addr}] Connection closed")
 
 def main():
-    internal_model, combined_model = create_alphazero_model()
+    # Create the neural network trainer
+    trainer = NeuralNetworkTrainer()
     print("AlphaZero-style model ready, listening for connections...")
 
-    experience_buffer = ExperienceBuffer(max_size=20000)
-    replay_batch_size = 128
-    train_counter = 0
-    replay_frequency = 5
-    last_was_train = 0
-    game_counter = 0
-    game_end = False
-
-    game_input_buffer = []
-    game_value_buffer = []
-
-    value_predictions = []
-
-    initial_lr = 0.001
-    min_lr = 0.00001
-
-    try:
-        internal_model = tf.keras.models.load_model('neurelnet_internal.h5', 
-                                                    custom_objects={
-                                                        'value_entropy_loss': value_entropy_loss,
-                                                        'LeakyReLU': LeakyReLU
-                                                        })
-        input_layer = internal_model.input
-        value_output = internal_model.get_layer('value_output').output
-        policy_output = internal_model.get_layer('policy_output').output
-        combined_output = Concatenate(name='combined_output')([value_output, policy_output])
-        combined_model = Model(inputs=input_layer, outputs=combined_output)
-        print("Loaded existing model")
-    except (FileNotFoundError, OSError):
-        print("No existing model found, using new model")
-    except Exception as e:
-        print(f"Error loading model: {e}")
-        return
-
-    try:
-        coreml_model = ct.convert(
-                combined_model, 
-                inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))]
-                )
-        coreml_model.save('neurelnet.mlpackage')
-        print("Converted and saved CoreML model")
-    except Exception as e:
-        print(f"Error converting to CoreML: {e}")
-        return
-
     HOST, PORT = 'localhost', 65432
+    active_threads = []
+    max_connections = 4  # Maximum number of simultaneous connections
+    
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server.bind((HOST, PORT))
         server.listen()
-        while True:
-            conn, addr = server.accept()
-            print(f"Connection from {addr}")
-            with conn:
-                while True:
-                    print("Waiting for request...")
-                    header = receive_data(conn)
-                    if header is None:
-                        print("Client closed connection or partial header read")
-                        break
-
-                    send_ack(conn)
-
-                    request_type = header.decode('utf-8', errors='ignore').rstrip('\x00')
-                    print(f"Received request type: {request_type}")
-
-                    if request_type == 'predict':
-                        if (game_end) and (len(game_input_buffer) > 0):
-                            game_counter += 1
-                            inputs = np.vstack(game_input_buffer)
-                            targets = np.vstack(game_value_buffer)
-                            game_input_buffer.clear()
-                            game_value_buffer.clear()
-                            value_targets = targets[:, 0:1]
-                            policy_targets = targets[:, 1:TOTAL_OUTPUT]
-                            internal_model.train_on_batch(
-                                    x=inputs, 
-                                    y={'value_output': value_targets, 'policy_output': policy_targets}
-                                    )
-                        if game_counter % 5 == 0 and game_counter > 25:
-                            last_was_train = 0
-                            print("Training on experience buffer short...")
-                            for i in range(10):
-                                print("Itration: ", i)
-                                if len(experience_buffer.buffer) < replay_batch_size * 10:
-                                    break
-                                replay_inputs, replay_targets = experience_buffer.sample(replay_batch_size)
-                                replay_value_targets = replay_targets[:, 0:1]
-                                replay_policy_targets = replay_targets[:, 1:TOTAL_OUTPUT]
-                                internal_model.train_on_batch(
-                                        x=replay_inputs, 
-                                        y={'value_output': replay_value_targets, 'policy_output': replay_policy_targets}
-                                        )
-                        size_bytes = receive_data(conn)
-                        if size_bytes is None:
-                            print("Failed to read input_size prefix")
-                            break
-                        send_ack(conn)
-
-                        input_size = struct.unpack('i', size_bytes)[0]
-                        if input_size != TOTAL_INPUT:
-                            print(f"Input size mismatch ({input_size} != {TOTAL_INPUT})")
-                            conn.sendall(struct.pack('i', 0))
-                            continue
-
-                        raw = receive_data(conn)
-                        if raw is None:
-                            print("Incomplete input data")
-                            break
-                        send_ack(conn)
-
-                        inputs = np.frombuffer(raw, dtype=np.float64).reshape(1, -1)
-
-                        combined_output = combined_model.predict(inputs, verbose=0)
-                        value_pred = combined_output[0][0]
-
-                        value_predictions.append(value_pred)
-
-                        if len(value_predictions) % 100 == 0:
-                            recent_preds = value_predictions[-100:]
-                            avg_abs_value = np.mean(np.abs(recent_preds))
-                            print(f"Recent value prediction stats - Mean abs: {avg_abs_value:.4f}")
-
-                            if avg_abs_value < 0.01:
-                                print("WARNING: Possible model collapse detected - values too close to zero")
-                            if len(value_predictions) % 1000 == 0:
-                                plot_value_distribution(value_predictions[-1000:], 
-                                                        f'value_dist_{len(value_predictions)}.png')
-                                print(f"Buffer distribution: {experience_buffer.get_distribution_stats()}")
-
-                        print(f"Value prediction: {value_pred}")
-
-                        prediction_bytes = struct.pack('!66f', *combined_output[0])
-                        conn.sendall(prediction_bytes)
-
-                        if not wait_for_ack(conn):
-                            print("Failed to receive ACK after sending prediction")
-                            break
-
-                        print("Prediction cycle completed successfully")
-
-                    elif request_type == 'train':
-                        game_end = True
-                        last_was_train = last_was_train + 1
-                        batch = 1
-
-                        raw_inputs = receive_data(conn)
-                        if raw_inputs is None:
-                            print("Incomplete training inputs")
-                            break
-                        send_ack(conn)
-
-                        inputs = np.frombuffer(raw_inputs, dtype=np.float64).reshape(batch, TOTAL_INPUT)
-                        game_input_buffer.append(inputs)
-
-                        # raw_outputs = receive_data(conn)
-                        # if raw_outputs is None:
-                        #     print("Incomplete training outputs")
-                        #     break
-                        # send_ack(conn)
-
-                        raw_targets = receive_data(conn)
-                        if raw_targets is None:
-                            print("Incomplete training targets")
-                            break
-
-                        targets = np.frombuffer(raw_targets, dtype=np.float64).reshape(batch, TOTAL_OUTPUT)
-                        game_value_buffer.append(targets)
-
-                        experience_buffer.add(inputs, targets)
-
-                        inverse_inputs = inputs.copy()
-                        inverse_inputs = -inverse_inputs
-                        inverse_targets = targets.copy()
-                        inverse_targets[0][0] = -targets[0][0] 
-
-                        batch_inputs = np.vstack((inputs, inverse_inputs))
-                        batch_targets = np.vstack((targets, inverse_targets))
-                        value_targets = batch_targets[:, 0:1]
-                        policy_targets = batch_targets[:, 1:TOTAL_OUTPUT]
-
-                        internal_model.train_on_batch(
-                                x=batch_inputs, 
-                                y={'value_output': value_targets, 'policy_output': policy_targets}
-                                )
-                        value_predictions.append(value_targets[0][0])
-                        value_predictions.append(value_targets[1][0])
-
-                        train_counter += 1
-
-                        if train_counter % 2500 == 0:
-                            current_lr = max(initial_lr * (0.975 ** (train_counter // 1000)), min_lr)
-                            tf.keras.backend.set_value(internal_model.optimizer.learning_rate, current_lr)
-                            print(f"Learning rate adjusted to {current_lr}")
-
-                        if train_counter % 250 == 0:
-                            # Save models
-                            try:
-                                internal_model.save('neurelnet_internal.h5')
-                                tf.keras.models.save_model(combined_model, 'neurelnet_combined.h5')
-                                coreml_model = ct.convert(
-                                        combined_model,
-                                        inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))],
-                                        )
-                                coreml_model.save('neurelnet.mlpackage')
-                                print("Saved models")
-                            except Exception as e:
-                                print(f"Error saving model: {e}")
-
-                        # if train_counter % replay_frequency == 0 and train_counter > 2500:
-                        #     replay_inputs, replay_targets = experience_buffer.sample(replay_batch_size)
-                        #
-                        #     replay_value_targets = replay_targets[:, 0:1]
-                        #     replay_policy_targets = replay_targets[:, 1:TOTAL_OUTPUT]
-                        #
-                        #     internal_model.train_on_batch(
-                        #             x=replay_inputs, 
-                        #             y={'value_output': replay_value_targets, 'policy_output': replay_policy_targets}
-                        #             )
-                        #
-                        if game_counter % 50 == 0 and game_counter > 0:
-                            print("Training on experience buffer...")
-                            for _ in range(250):
-                                if len(experience_buffer.buffer) < replay_batch_size:
-                                    break
-
-                                replay_inputs, replay_targets = experience_buffer.sample(replay_batch_size)
-                                replay_value_targets = replay_targets[:, 0:1]
-                                replay_policy_targets = replay_targets[:, 1:TOTAL_OUTPUT]
-
-                                internal_model.train_on_batch(
-                                        x=replay_inputs, 
-                                        y={'value_output': replay_value_targets, 'policy_output': replay_policy_targets}
-                                        )
-
-                            test_inputs, test_targets = experience_buffer.sample(replay_batch_size)
-                            test_value_targets = test_targets[:, 0:1]
-                            test_policy_targets = test_targets[:, 1:TOTAL_OUTPUT]
-                            losses = internal_model.evaluate(
-                                    x=test_inputs, 
-                                    y={'value_output': test_value_targets, 'policy_output': test_policy_targets},
-                                    verbose=0
-                                    )
-                            print(f"Test losses: {losses}")
-
-                            predictions = internal_model.predict(test_inputs, verbose=0)
-                            value_preds = predictions[0].flatten()
-                            avg_abs_value = np.mean(np.abs(value_preds))
-                            print(f"Test value stats - Mean abs: {avg_abs_value:.4f}, Range: {np.min(value_preds):.4f} to {np.max(value_preds):.4f}")
-
-                            plot_value_distribution(value_preds, f'test_values_{train_counter}.png')
-
-                        send_ack(conn)
-                        print("Training cycle completed successfully")
-
-                    elif request_type == 'trainTD':
-                        batch = 1
-
-                        raw_inputs = receive_data(conn)
-                        if raw_inputs is None:
-                            print("Incomplete training inputs")
-                            break
-                        send_ack(conn)
-
-                        # raw_outputs = receive_data(conn)
-                        # if raw_outputs is None:
-                        #     print("Incomplete training outputs")
-                        #     break
-                        # send_ack(conn)
-
-                        raw_targets = receive_data(conn)
-                        if raw_targets is None:
-                            print("Incomplete training targets")
-                            break
-
-                        targets = np.frombuffer(raw_targets, dtype=np.float64).reshape(batch, TOTAL_OUTPUT)
-                        inputs = np.frombuffer(raw_inputs, dtype=np.float64).reshape(batch, TOTAL_INPUT)
-
-                        value_targets = targets[:, 0:1]
-
-                        # Only train the value head - keep existing policy predictions
-                        policy_outputs = internal_model.predict(inputs, verbose=0)[1]
-
-                        internal_model.train_on_batch(
-                                x=inputs, 
-                                y={'value_output': value_targets, 'policy_output': policy_outputs},
-                                )
-
-                        inverse_inputs = -inputs
-                        inverse_value_targets = -value_targets
-
-                        internal_model.train_on_batch(
-                                x=inverse_inputs, 
-                                y={'value_output': inverse_value_targets, 'policy_output': policy_outputs},
-                                )
-
-                        send_ack(conn)
-                        print("TD Training cycle completed successfully")
-
-                    else:
-                        print(f"Unknown request: {request_type}")
-                        break
-
-                print("Connection closed, saving model...")
-                try:
-                    internal_model.save('neurelnet_internal.h5')
-                    tf.keras.models.save_model(combined_model, 'neurelnet_combined.h5')
-                    coreml_model = ct.convert(
-                            combined_model,
-                            inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))],
-                            )
-                    coreml_model.save('neurelnet.mlpackage')
-                except Exception as e:
-                    print(f"Error saving model: {e}")
-                print("Waiting for next client...")
+        
+        # Set a timeout for accept() to allow checking for KeyboardInterrupt
+        server.settimeout(1.0)
+        
+        try:
+            while True:
+                # Clean up completed threads
+                active_threads = [t for t in active_threads if t.is_alive()]
+                
+                # Check if we have room for new connections
+                if len(active_threads) < max_connections:
+                    try:
+                        conn, addr = server.accept()
+                        # Create and start a new thread for this client
+                        client_thread = threading.Thread(
+                            target=handle_client,
+                            args=(conn, addr, trainer),
+                            daemon=True
+                        )
+                        client_thread.start()
+                        active_threads.append(client_thread)
+                        print(f"New client thread started. Active connections: {len(active_threads)}/{max_connections}")
+                    except socket.timeout:
+                        # This is expected due to the timeout on accept()
+                        pass
+                    except Exception as e:
+                        print(f"Error accepting connection: {e}")
+                else:
+                    # Wait a bit before checking again
+                    time.sleep(0.1)
+                    
+        except KeyboardInterrupt:
+            print("Server shutting down...")
+        finally:
+            # Wait for client threads to finish (with timeout)
+            for thread in active_threads:
+                thread.join(timeout=2.0)
+                
+            # Shutdown the trainer
+            print("Shutting down trainer and saving model...")
+            trainer.shutdown()
+            print("Server shutdown complete")
 
 if __name__ == '__main__':
     main()

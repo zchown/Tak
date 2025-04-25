@@ -17,7 +17,8 @@
 #include  "accelerateNeuralNet.h"
 #include "../lib/arenaAllocator.h"
 
-#define CPUCT (1.0) // exploration constant
+// exploration constant sqrt(2)
+#define CPUCT (1.4142135623730951)
 
 #define MONTECARLO_TABLE_SIZE (1 << 25)
 

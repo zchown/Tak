@@ -130,6 +130,7 @@ void pythonTrain(int sock, double* inputs, double* outputs, int targetCount, dou
     /* sendData(sock, outputs, OUTPUT_SIZE * sizeof(double)); */
 
     sendData(sock, targets, OUTPUT_SIZE * sizeof(double));
+    /* printf("SENT: %lf\n", targets[0]); */
 }
 
 void pythonTrainTD(int sock, double* inputs, double* outputs, int targetCount, double* targets, int dataSize) {
@@ -148,3 +149,7 @@ void closeConnection(int sock) {
     printf("Connection closed\n");
 }
 
+void pythonGameEnd(int sock) {
+    char header[] = "game_end";
+    sendData(sock, header, strlen(header) + 1);
+}

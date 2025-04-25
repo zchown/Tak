@@ -29,7 +29,9 @@ const char* generateMove(const char* gameStateJson, int time) {
     
     /* Move move = iterativeDeepeningSearch(state, time); */
 
+    /* double* temp = malloc(7 * TOTAL_SQUARES * sizeof(double)); */
     Move move = monteCarloGraphSearch(state, &net, false, 0, NULL);
+    /* free(temp); */
     char* moveStr = moveToString(&move);
     freeGameState(state);
     printf("Move: %s\n", moveStr);
@@ -56,12 +58,10 @@ void handleMessage(const char* msg) {
             prevSwap = swapFlag;
 
             if(transpositionTable) {
-                freeTranspositionTable(transpositionTable);
-                transpositionTable = NULL;
+                clearTranspositionTable(transpositionTable);
             }
             if (monteCarloTable) {
-                freeMonteCarloTable(monteCarloTable);
-                monteCarloTable = NULL;
+                clearMonteCarloTable(monteCarloTable);
             }
         }
 
