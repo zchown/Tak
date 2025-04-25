@@ -3,12 +3,20 @@
 Move killerMoves[MAX_DEPTH][KILLER_MOVES];
 int historyHeuristic[NUM_COLORS][TOTAL_SQUARES][TOTAL_SQUARES];
 TranspositionTable* transpositionTable = NULL;
+MoveList** moveLists = NULL;
 
 Move iterativeDeepeningSearch(GameState* state, int timeLimit) {
     if (!transpositionTable) {
-        /* transpositionTable = malloc(sizeof(TranspositionEntry) * TRANSPOSITION_TABLE_SIZE); */
         transpositionTable = createTranspositionTable();
         setupNN();
+    }
+    
+    if (!moveLists) {
+        moveLists = malloc(sizeof(MoveList*) * MAX_DEPTH);
+        for (int i = 0; i < MAX_DEPTH; i++) {
+            moveLists[i] = createMoveList(512);
+        }
+        printf("Move lists created\n");
     }
 
     if (state->turnNumber < 3) {
@@ -41,6 +49,7 @@ Move iterativeDeepeningSearch(GameState* state, int timeLimit) {
         stats.maxDepth = depth;
 
         Move currentBestMove = negaMaxRoot(state, depth, &timeUp, startTime, timeLimit, &stats);
+        /* printSearchStats(&stats); */
 
         bestMove = currentBestMove;
         hasValidMove = true;
@@ -61,7 +70,9 @@ Move negaMaxRoot(GameState* state, int depth, bool* timeUp, double startTime, in
     Move bestMove = {0};
     int bestScore = BLACK_ROAD_WIN;
 
-    GeneratedMoves* gm = generateAllMoves(state, 512);
+    /* printf("Searching depth %d\n", depth); */
+    generateAllMoves(state, moveLists[depth]);
+    MoveList* gm = moveLists[depth];
     sortMoves(state, gm->moves, gm->numMoves);
 
     stats->generatedMoves += gm->numMoves;
@@ -76,6 +87,7 @@ Move negaMaxRoot(GameState* state, int depth, bool* timeUp, double startTime, in
     int curDepth = depth;
 
     for (u32 i = 0; i < count && !(*timeUp); i++) {
+        /* printf("Move %d: %s\n", i, moveToString(&moves[i])); */
         if (timeLimit > 0 && (getTimeMs() - startTime) >= timeLimit) {
             *timeUp = true;
             break;
@@ -90,6 +102,7 @@ Move negaMaxRoot(GameState* state, int depth, bool* timeUp, double startTime, in
         }
 
         makeMoveNoChecks(state, &moves[i], false);
+        /* printMove(&moves[i]); */
         int cur = -negaMax(state, curDepth - 1, bestScore, WHITE_ROAD_WIN, -color, timeUp, startTime, timeLimit, count, (depth > 3), stats);
 
         if (depth > 3 && i >= 4) {
@@ -117,28 +130,31 @@ Move negaMaxRoot(GameState* state, int depth, bool* timeUp, double startTime, in
 
     }
 
-    freeGeneratedMoves(gm);
     /* printf("Best move: %s, Score: %d\n", moveToString(&bestMove), bestScore); */
     return bestMove;
 }
 
 int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* timeUp, double startTime, int timeLimit, u32 prevMoves, bool doReducedDepth, SearchStatistics* stats) {
+    /* printf("NegaMax: depth %d, alpha %d, beta %d, color %d\n", depth, alpha, beta, color); */
     const TranspositionEntry* te = lookupTranspositionTable(transpositionTable, state->hash);
     if (te) {
-        switch (te->type) {
-            case EXACT: {
-
-                            stats->transpositionCutOffs++;
-                            return te->score;
-                        }
-            case UNDER: if (te->score <= alpha) {
-                            stats->transpositionCutOffs++;
-                            return alpha; break;
-                        }
-            case OVER: if (te->score >= beta) {
-                           stats->transpositionCutOffs++;
-                           return beta; break;
-                       }
+        if (te->depth >= depth) {
+            switch (te->type) {
+                case EXACT: {
+                                stats->transpositionCutOffs++;
+                                return te->score;
+                            }
+                case UNDER: if (te->score <= alpha) {
+                                stats->transpositionCutOffs++;
+                                return alpha; break;
+                            }
+                case OVER: if (te->score >= beta) {
+                               stats->transpositionCutOffs++;
+                               return beta; break;
+                           }
+            }
+        } else {
+            stats->ttStats.misses++;
         }
     }
 
@@ -186,9 +202,9 @@ int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* t
         return eval;
     }
 
-    GeneratedMoves* gm = generateAllMoves(state, prevMoves);
+    generateAllMoves(state, moveLists[depth]);
+    MoveList* gm = moveLists[depth];
     sortMoves(state, gm->moves, gm->numMoves);
-
     stats->generatedMoves += gm->numMoves;
 
     Move* moves = gm->moves;
@@ -255,8 +271,6 @@ int negaMax(GameState* state, int depth, int alpha, int beta, int color, bool* t
             break;
         }
     }
-
-    freeGeneratedMoves(gm);
 
     EstimationType type = (bestScore <= alpha) ? OVER : (bestScore >= beta) ? UNDER : EXACT;
     updateTranspositionTable(transpositionTable, state->hash, bestScore, type, bestMove, depth);

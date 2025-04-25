@@ -27,8 +27,7 @@
 #define Q_EPSILON (0.5)
 
 extern GraphNN* graphN;
-
-extern GraphNN* graphNN;
+extern MoveList* monteCarloMoves;
 
 typedef enum {
     MC_WIN,

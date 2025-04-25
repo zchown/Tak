@@ -3,6 +3,7 @@
 TranspositionTable* createTranspositionTable(void) {
     TranspositionTable* table = calloc(1, sizeof(TranspositionTable));
     table->entries = calloc(TRANSPOSITION_TABLE_SIZE, sizeof(TranspositionEntry));
+    table->size = TRANSPOSITION_TABLE_SIZE;
     return table;
 }
 

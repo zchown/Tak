@@ -9,7 +9,8 @@ typedef enum {SUCCESS, INVALID_MOVE, INVALID_POSITION, INVALID_DIRECTION, INVALI
 typedef struct {
     Move* moves;
     u32 numMoves;
-} GeneratedMoves;
+    int capacity;
+} MoveList;
 
 
 MoveResult checkMove(GameState* state, const Move* move);
@@ -20,13 +21,17 @@ GameState* makeMoveNoChecks(GameState* state, const Move* move, bool doHistory);
 MoveResult undoMoveChecks(GameState* state, const Move* move);
 GameState* undoMoveNoChecks(GameState* state, const Move* move, bool doHistory);
 
-GeneratedMoves* generateAllMoves(const GameState* state, u32 prevMoves);
-void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Move* moves, u32* totalMoves);
+int generateAllMoves(const GameState* state, MoveList* moveList);
+int generateSlidesInDir(const GameState* state, Position pos, Direction dir, MoveList* moveList);
 
 int countAllMoves(const GameState* state);
 
 // Utility functions
 u8 numSteps(const GameState* state, Position pos, Direction dir);
-void freeGeneratedMoves(GeneratedMoves* moves);
+
+MoveList* createMoveList(u32 numMoves);
+void freeMoveList(MoveList* moves);
+void addMoveToList(MoveList* moveList, Move move);
+void clearMoveList(MoveList* moveList);
 
 #endif // MOVES_H

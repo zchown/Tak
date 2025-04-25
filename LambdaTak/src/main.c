@@ -5,7 +5,8 @@
 #include "../ai/monteCarloGraphSearch.h"
 
 int main() {
-    /* GameState* state = parseTPS("[TPS x6/x6/x6/x6/x6/x6 0 1]"); */
+    initZobristTable();
+    GameState* state = parseTPS("[TPS x6/x6/x6/x6/x6/x6 0 1]");
     /*  */
     /* int layerSizes[] = {(7 * TOTAL_SQUARES), (7 * TOTAL_SQUARES), (7 * TOTAL_SQUARES), 252, 252, 252, 64, 64, 32, 32, 16, 16, 8, 4, 1}; */
     /* int numLayers = 15; */
@@ -16,10 +17,10 @@ int main() {
     /* while(true) { */
     /*     monteCarloTreeSearch(state, 1000, &net); */
     /* } */
-    /* runPerft(state, 5); */
+    runPerft(state, 6);
     /* return 0; */
 
-    initZobristTable();
+
     return runAI();
 }
 

@@ -2,38 +2,23 @@
 
 DenseNeuralNet net;
 
-u64 perft(GameState* state, int depth, int currentDepth, u64 nodes, u32 prevMoves) {
+u64 perft(GameState* state, int depth, int currentDepth, u64 nodes, MoveListList* moves) {
 
-    double* gv = gameStateToVector(state);
-    for (int i = 0; i < 7 * 36; i++) {
-        if (gv[i] != state->gameVector[i]) {
-            printf("Mismatch at index %d: %f vs %f\n", i, gv[i], state->gameVector[i]);
-            exit(1);
-        }
-    }
-    free(gv);
-
-    GeneratedMoves* moves;
     if (currentDepth == depth) {
-        feedForwardDense(&net, (7 * 36), state->gameVector, 0, false);
-        /* evaluate(state); */
-        return 1;
-        /* GeneratedMoves* moves = generateAllMoves(state, prevMoves); */
-        /* u64 numMoves = moves->numMoves; */
-        /* freeGeneratedMoves(moves); */
-        /* return numMoves; */
+        generateAllMoves(state, moves->moves[currentDepth]);
+        return moves->moves[currentDepth]->numMoves;
     } 
     else if (checkGameResult(state) != CONTINUE) {
         return 0;
     }
-    moves = generateAllMoves(state, prevMoves);
 
-    for (int i = 0; i < moves->numMoves; i++) {
-        makeMoveNoChecks(state, &moves->moves[i], false);
-        nodes += perft(state, depth, currentDepth + 1, 0, moves->numMoves);
-        undoMoveNoChecks(state, &moves->moves[i], false);
+    generateAllMoves(state, moves->moves[currentDepth]);
+
+    for (int i = 0; i < moves->moves[currentDepth]->numMoves; i++) {
+        makeMoveNoChecks(state, &moves->moves[currentDepth]->moves[i], false);
+        nodes += perft(state, depth, currentDepth + 1, 0, moves);
+        undoMoveNoChecks(state, &moves->moves[currentDepth]->moves[i], false);
     }
-    freeGeneratedMoves(moves);
     return nodes;
 }
 
@@ -47,16 +32,23 @@ void runPerft(GameState* state, int maxDepth) {
 
     int layerSizes[] = {(7 * TOTAL_SQUARES), (7 * TOTAL_SQUARES), (7 * TOTAL_SQUARES), 252, 252, 252, 64, 64, 32, 32, 16, 16, 8, 4, 1};
     int numLayers = 15;
-    net = createDenseNeuralNet(layerSizes, numLayers, Relu);
+    /* net = createDenseNeuralNet(layerSizes, numLayers, Relu); */
 
-    loadDenseNeuralNet(&net, "n_models/tak_model.weights_large");
+    /* loadDenseNeuralNet(&net, "n_models/tak_model.weights_large"); */
+
+    MoveListList* moveList = malloc(sizeof(MoveListList));
+    moveList->moves = malloc(maxDepth * sizeof(MoveList*));
+    for (int i = 0; i < maxDepth; i++) {
+        moveList->moves[i] = createMoveList(512);
+        moveList->numLists = maxDepth;
+    }
 
 
     GameState* copy;
     for (int i = 0; i < maxDepth; i++) {
         copy = copyGameState(state);
         clock_t start = clock();
-        nodes[i] = perft(copy, i, 0, 0, 512);
+        nodes[i] = perft(copy, i, 0, 0, moveList);
         clock_t end = clock();
         times[i] = end - start;
         printf("Depth %d: %llu nodes, %f seconds, %f Mnps\n", i + 1, nodes[i], (double)times[i] / CLOCKS_PER_SEC, (double)nodes[i] / ((double)times[i] / CLOCKS_PER_SEC) / 1000000);

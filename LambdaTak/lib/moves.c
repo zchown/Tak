@@ -295,40 +295,22 @@ GameState* undoMoveNoChecks(GameState* state, const Move* move, bool doHistory) 
     return state;
 }
 
-GeneratedMoves* generateAllMoves(const GameState* state, u32 prevMoves) {
-    if (state->result != CONTINUE) return NULL;
-    GeneratedMoves* toReturn = malloc(sizeof(GeneratedMoves));
-    if (state->turnNumber <= 2) {
-        Move* moves = malloc(36 * sizeof(Move));
-        if (!moves) {
-            printf("Memory allocation failed for moves array\n");
-            free(toReturn);
-            return NULL;
-        }
+int generateAllMoves(const GameState* state, MoveList* moveList) {
+    clearMoveList(moveList);
+    if (state->result != CONTINUE) return 1;
 
+    if (state->turnNumber <= 2) {
         u8 totalMoves = 0;
 #pragma unroll
         for (u8 j = 0; j < TOTAL_SQUARES; j++) {
             if (state->emptySquares & (1ULL << j)) {
-                moves[totalMoves++] = createPlaceMove(j, oppositeColor(state->turn), FLAT);
+                addMoveToList(moveList, createPlaceMove(j, oppositeColor(state->turn), STANDING));
             }
         }
 
-        toReturn->moves = moves;
-        toReturn->numMoves = totalMoves;
-        return toReturn;
+        return 0;
     }
 
-    // https://theses.liacs.nl/pdf/LaurensBeljaards2017Tak.pdf
-    // assumption we wont ever add that many moves at one time to a position
-    Move* moves = malloc((prevMoves + 512)* sizeof(Move));
-    if (!moves) {
-        printf("Memory allocation failed for moves array\n");
-        free(toReturn);
-        return NULL;
-    }
-
-    u32 totalMoves = 0;
     const Reserves* res = (state->turn == WHITE) ? &state->player1 : &state->player2;
     Color turn = state->turn;
 
@@ -346,14 +328,11 @@ GeneratedMoves* generateAllMoves(const GameState* state, u32 prevMoves) {
 
         if (state->emptySquares & (1ULL << j)) {
             if (res->stones > 0) {
-                moves[totalMoves] = createPlaceMove(j, turn, FLAT);
-                totalMoves++;
-                moves[totalMoves] = createPlaceMove(j, turn, STANDING);
-                totalMoves++;
+                addMoveToList(moveList, createPlaceMove(j, turn, FLAT));
+                addMoveToList(moveList, createPlaceMove(j, turn, STANDING));
             }
             if (res->caps > 0) {
-                moves[totalMoves] = createPlaceMove(j, turn, CAP);
-                totalMoves++;
+                addMoveToList(moveList, createPlaceMove(j, turn, CAP));
             }
         }
     }
@@ -364,31 +343,29 @@ GeneratedMoves* generateAllMoves(const GameState* state, u32 prevMoves) {
 #pragma unroll
         for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < numControlled; i++) {
             Position pos = controlledPositions[i];
-            generateSlidesInDir(state, pos, LEFT, moves, &totalMoves);
+            generateSlidesInDir(state, pos, LEFT, moveList);
         }
 #pragma unroll
         for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < numControlled; i++) {
             Position pos = controlledPositions[i];
-            generateSlidesInDir(state, pos, RIGHT, moves, &totalMoves);
+            generateSlidesInDir(state, pos, RIGHT, moveList);
         }
 #pragma unroll
         for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < numControlled; i++) {
             Position pos = controlledPositions[i];
-            generateSlidesInDir(state, pos, UP, moves, &totalMoves);
+            generateSlidesInDir(state, pos, UP, moveList);
         }
 #pragma unroll
         for (u8 i = chunk; i < chunk + CHUNK_SIZE && i < numControlled; i++) {
             Position pos = controlledPositions[i];
-            generateSlidesInDir(state, pos, DOWN, moves, &totalMoves);
+            generateSlidesInDir(state, pos, DOWN, moveList);
         }
     }
 
-    toReturn->moves = moves;
-    toReturn->numMoves = totalMoves;
-    return toReturn;
+    return 0;
 }
 
-void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Move* moves, u32* totalMoves) {
+int generateSlidesInDir(const GameState* state, Position pos, Direction dir, MoveList* moveList) {
     Square* sq = readSquare(state->board, pos);
     u8 maxCount = (sq->numPieces < MAX_PICKUP) ? sq->numPieces : MAX_PICKUP;
     Color turn = state->turn;
@@ -400,15 +377,15 @@ void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Mo
             u32 numberOfSlides = COUNT_VAL_SEQ(curCount, steps);
             const u16* sequences = DROP_SEQUENCE(curCount, steps);
             for (u8 i = 0; i < numberOfSlides; i++) {
-                moves[*totalMoves] = createSlideMove(turn, pos, dir, curCount, sequences[i], NO_CRUSH);
-                (*totalMoves)++;
+                addMoveToList(moveList, 
+                    createSlideMove(turn, pos, dir, curCount, sequences[i], NO_CRUSH));
             }
         }
     }
 
     // Determine if we have a crush situation
     Position crushPos = slidePosition(pos, dir, steps + 1);
-    if (!VALID_POSITION(crushPos)) return;
+    if (!VALID_POSITION(crushPos)) return 0;
     Square* crushSq = readSquare(board, crushPos);
     Crush canCrush = 
         (SQ_HEAD(sq).stone == CAP) && 
@@ -419,20 +396,19 @@ void generateSlidesInDir(const GameState* state, Position pos, Direction dir, Mo
 
     if (canCrush == CRUSH) {
         if (steps == 0 || maxCount == 1) {
-            moves[*totalMoves] = createSlideMove(turn, pos, dir, 1, 1, CRUSH);
-            (*totalMoves)++;
-            return;
+            addMoveToList(moveList, createSlideMove(turn, pos, dir, 1, 1, CRUSH));
+            return 0;
         }
         for (u8 curCount = steps + 1; curCount <= maxCount; curCount++) {
             const u16* sequences = DROP_SEQUENCE_CRUSH(curCount, steps);
             u8 i = 0;
             while (sequences[i] != 0) {
-                moves[*totalMoves] = createSlideMove(turn, pos, dir, curCount, sequences[i], CRUSH);
-                (*totalMoves)++;
+                addMoveToList(moveList, createSlideMove(turn, pos, dir, curCount, sequences[i], CRUSH));
                 i++;
             }
         }
     }
+    return 0;
 }
 
 #pragma inline
@@ -465,13 +441,6 @@ u8 numSteps(const GameState* state, Position pos, Direction dir) {
         steps++;
     }
     return steps;
-}
-
-#pragma inline
-void freeGeneratedMoves(GeneratedMoves* moves) {
-    if (!moves) return;
-    free(moves->moves);
-    free(moves);
 }
 
 int countAllSlidesInDir(const GameState* state, Position pos, Direction dir) {
@@ -569,3 +538,48 @@ int countAllMoves(const GameState* state) {
 
     return totalMoves;
 }
+
+MoveList* createMoveList(u32 numMoves) {
+    MoveList* moveList = malloc(sizeof(MoveList));
+    if (!moveList) {
+        printf("Memory allocation failed for move list\n");
+        return NULL;
+    }
+    moveList->moves = malloc(numMoves * sizeof(Move));
+    if (!moveList->moves) {
+        printf("Memory allocation failed for moves array\n");
+        free(moveList);
+        return NULL;
+    }
+    moveList->numMoves = 0;
+    moveList->capacity = numMoves;
+    return moveList;
+}
+
+void freeMoveList(MoveList* moves) {
+    if (moves) {
+        free(moves->moves);
+        free(moves);
+    }
+}
+
+inline void addMoveToList(MoveList* moveList, Move move) {
+    if (moveList->numMoves < moveList->capacity) {
+        moveList->moves[moveList->numMoves++] = move;
+    } else {
+        Move* newMoves = realloc(moveList->moves, (moveList->capacity * 2) * sizeof(Move));
+        if (newMoves) {
+            moveList->moves = newMoves;
+            moveList->capacity *= 2;
+            moveList->moves[moveList->numMoves++] = move;
+        } else {
+            printf("Memory allocation failed for moves array\n");
+        }
+    }
+}
+
+inline void clearMoveList(MoveList* moveList) {
+    moveList->numMoves = 0;
+    memset(moveList->moves, 0, moveList->capacity * sizeof(Move));
+}
+

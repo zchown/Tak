@@ -7,12 +7,13 @@
 #include <time.h>
 #include <math.h>
 
-#define MAX_DEPTH 500
+#define MAX_DEPTH 100
 #define KILLER_MOVES 2
 #include <math.h>
 
 extern Move killerMoves[MAX_DEPTH][KILLER_MOVES];
 extern int historyHeuristic[NUM_COLORS][TOTAL_SQUARES][TOTAL_SQUARES];
+extern MoveList** moveLists;
 
 extern TranspositionTable* transpositionTable;
 

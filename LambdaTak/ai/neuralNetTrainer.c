@@ -95,6 +95,7 @@ int trainEpisode(Trainer* trainer, int episodeNum, int sock) {
     /* double** pastOutputs = (double**)malloc(1000 * sizeof(double*)); */
     double** pastValues = (double**)malloc(1000 * sizeof(double*));
     int numPastStates = 0;
+    MoveList* moves = createMoveList(512);
 
     int numMoves = 512;
     while (checkGameResult(state) == CONTINUE) {
@@ -116,7 +117,7 @@ int trainEpisode(Trainer* trainer, int episodeNum, int sock) {
         /* pastOutputs[numPastStates] = outputs; */
         pastValues[numPastStates] = malloc(OUTPUT_SIZE * sizeof(double));
 
-        GeneratedMoves* moves = generateAllMoves(state, numMoves);
+        generateAllMoves(state, moves);
         numMoves = moves->numMoves;
 
         int random = rand() % 10;
@@ -124,7 +125,7 @@ int trainEpisode(Trainer* trainer, int episodeNum, int sock) {
         move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
 
         makeMoveNoChecks(state, &move, false);
-        freeGeneratedMoves(moves);
+        freeMoveList(moves);
 
         numPastStates++;
     }
@@ -257,6 +258,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
     /* double** pastOutputs = (double**)malloc(1000 * sizeof(double*)); */
     double** pastValues = (double**)malloc(1000 * sizeof(double*));
     int numPastStates = 0;
+    MoveList* moves = createMoveList(512);
 
     int numMoves = 512;
     while (checkGameResult(state) == CONTINUE) {
@@ -278,7 +280,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         /* pastOutputs[numPastStates] = outputs; */
         pastValues[numPastStates] = malloc(OUTPUT_SIZE * sizeof(double));
 
-        GeneratedMoves* moves = generateAllMoves(state, numMoves);
+        generateAllMoves(state, moves);
         /* printf("Got moves\n"); */
         Move move = moves->moves[0];
 
@@ -300,7 +302,6 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
             } 
         }
         makeMoveNoChecks(state, &move, false);
-        freeGeneratedMoves(moves);
 
         numPastStates++;
     }
@@ -364,6 +365,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
     /* free(pastOutputs); */
     free(pastValues);
     freeGameState(state);
+    freeMoveList(moves);
 
     printf("numPastStates: %d, Final reward: %.4f, Result: %d\n", numPastStates, finalReward, toReturn);
     return toReturn;

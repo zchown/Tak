@@ -5,7 +5,12 @@
 #include "../ai/neuralNetworks.h"
 #include "../ai/eval.h"
 
-u64 perft(GameState* state, int depth, int currentDepth, u64 nodes, u32 prevMoves);
+typedef struct {
+    MoveList** moves;
+    int numLists;
+} MoveListList;
+
+u64 perft(GameState* state, int depth, int currentDepth, u64 nodes, MoveListList* moves);
 
 void runPerft(GameState* state, int maxDepth);
 

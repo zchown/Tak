@@ -19,7 +19,7 @@ void toOutput(const SearchProb* prob, double value, double* output);
 
 double probFromSearchProb(const SearchProb* prob, const Move* move);
 
-void probsFromSearchProb(const SearchProb* prob, const GeneratedMoves* moves, double* probs);
+void probsFromSearchProb(const SearchProb* prob, const MoveList* moves, double* probs);
 
 SearchProb outputToSearchProb(const double* output);
 

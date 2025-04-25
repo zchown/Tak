@@ -49,7 +49,7 @@ double probFromSearchProb(const SearchProb* prob, const Move* move) {
     return 0.0;
 }
 
-void probsFromSearchProb(const SearchProb* prob, const GeneratedMoves* moves, double* probs) {
+void probsFromSearchProb(const SearchProb* prob, const MoveList* moves, double* probs) {
     double total = 0.0;
     for (int i = 0; i < moves->numMoves; i++) {
         probs[i] = probFromSearchProb(prob, &moves->moves[i]);

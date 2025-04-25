@@ -2,11 +2,15 @@
 
 GraphNN* graphNN = NULL;
 MonteCarloTable* monteCarloTable = NULL;
+MoveList* monteCarloMoves = NULL;
 
 Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingMode, int sock, double* probs) {
     /* printf("Monte Carlo Graph Search\n"); */
     if (!monteCarloTable) {
         monteCarloTable = createMonteCarloTable();
+    }
+    if (!monteCarloMoves) {
+        monteCarloMoves = createMoveList(512);
     }
 
     // prevent arena from running out of memory
@@ -69,9 +73,9 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     if (trainingMode) {
         if (root->numEdges == 0) {
             // Fallback if no edges
-            GeneratedMoves* moves = generateAllMoves(state, 1024);
+            generateAllMoves(state, monteCarloMoves);
+            MoveList* moves = monteCarloMoves;
             Move move = moves->numMoves > 0 ? moves->moves[0] : (Move){0};
-            freeGeneratedMoves(moves);
             printf("No valid moves in training mode, fallback\n");
             return move;
         }
@@ -95,11 +99,11 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
                     /* moveToString(&root->edges[i]->move), (float)root->edges[i]->n); */
             addToSearchProb(&prob, root->edges[i]->move, (float)root->edges[i]->n);
         }
-        GeneratedMoves* moves = generateAllMoves(state, 1024);
+        /* * moves = generateAllMoves(state, 1024); */
         /* printf("Total: %f\n", total); */
         toOutput(&prob, root->value, probs);
         /* printf("Probs: "); */
-        freeGeneratedMoves(moves);
+        /* freeGeneratedMoves(moves); */
 
         if (total <= 0) {  // No visits
             int selected = rand() % root->numEdges;
@@ -183,9 +187,10 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
          /* * move)); */ 
         return bestEdge->move;
     } else {
-        GeneratedMoves* moves = generateAllMoves(state, 1024);
+        /* GeneratedMoves* moves = generateAllMoves(state, 1024); */
+        generateAllMoves(state, monteCarloMoves);
+        MoveList* moves = monteCarloMoves;
         Move move = moves->numMoves > 0 ? moves->moves[0] : (Move){0};
-        freeGeneratedMoves(moves);
         printf("No valid moves, random fallback\n");
         return move;
     }
@@ -268,7 +273,8 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
     if (!node->isExpanded && !node->isTerminal) {
         /* printf("Expanding node\n"); */
         node->isExpanded = true;
-        GeneratedMoves* moves = generateAllMoves(state, 1024);
+        generateAllMoves(state, monteCarloMoves);
+        MoveList* moves = monteCarloMoves;
         int moveNum = moves->numMoves;
         stats->totalEdges += moveNum;
 
@@ -365,7 +371,6 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
             }
             undoMoveNoChecks(state, &moves->moves[i], false);
         }
-        freeGeneratedMoves(moves);
         result.value = node->value;
     }
 
@@ -570,7 +575,7 @@ MonteCarloTable* createMonteCarloTable(void) {
         free(table);
         return NULL;
     }
-    table->allocator = createArenaAllocator(6ULL * 1024 * 1024 * 1024);
+    table->allocator = createArenaAllocator(10ULL * 1024 * 1024 * 1024);
     if (!table->allocator.memory) {
         printf("Failed to allocate memory for Monte Carlo table allocator\n");
         free(table->entries);
