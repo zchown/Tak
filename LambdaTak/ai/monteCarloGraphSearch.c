@@ -3,8 +3,10 @@
 GraphNN* graphNN = NULL;
 MonteCarloTable* monteCarloTable = NULL;
 MoveList* monteCarloMoves = NULL;
+static int reload = 0;
 
 Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingMode, int sock, double* probs) {
+    reload++;
     /* printf("Monte Carlo Graph Search\n"); */
     if (!monteCarloTable) {
         monteCarloTable = createMonteCarloTable();
@@ -15,25 +17,28 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
 
     // prevent arena from running out of memory
     // only happens with really long games
-    if ((monteCarloTable->allocator.used * 1.5) >= (monteCarloTable->allocator.size)) {
+    if ((monteCarloTable->allocator.used * 2) >= (monteCarloTable->allocator.size)) {
         resetArena(&monteCarloTable->allocator);
     }
 
     if (!graphNN) {
-        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlpackage", 7 * 36, 1);
+        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlmodelc", 7 * 36, 66);
         if (!graphNN) {
             fprintf(stderr, "Failed to load graph neural network\n");
             return (Move){0};
         }
-    } else if (trainingMode) {
+    } else if (trainingMode && reload > 200) {
         // Reset the graphNN for training mode
+        printf("Reloading graph neural network\n");
+        reload = 0;
         freeGraphNN(graphNN);
-        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlpackage", 7 * 36, 1);
+        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlmodelc", 7 * 36, 66);
         if (!graphNN) {
             fprintf(stderr, "Failed to load graph neural network\n");
             return (Move){0};
         }
     }
+    /* printf("Graph neural network loaded\n"); */
 
     MCGSStats stats = createMonteCarloStats();
     clock_t startTime = clock();
@@ -42,9 +47,9 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     MCGSNode* root = entry->node;
 
 
-    int numIterations = 1 << 11;
+    int numIterations = 1 << 12;
     if (trainingMode) {
-        numIterations = 1 << 11;
+        numIterations = 1 << 12;
     }
     for (int i = 0; i < numIterations; i++) {
         /* printf("Iteration %d\n", i); */
@@ -207,16 +212,22 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
     int i = 0;
     while (node->isExpanded && !node->isTerminal) {
         i++;
-        if (i > 100) {
-            printf("Infinite loop detected\n");
+        if (i > 32) {
+            /* printf("Infinite loop detected\n"); */
             break;
         }
         /* printf("Node: %p, Value: %f, Visits: %d\n", node, node->value, node->numVisits); */
         MCGSEdge* e = selectBestEdge(node, &result.trajectory);
         if (!e) break;
-        addToTrajectory(&result.trajectory, node, e);
+                addToTrajectory(&result.trajectory, node, e);
 
         makeMoveNoChecks(state, &e->move, false);
+
+        if (!e->target) {
+            ZobristKey hash = state->hash;
+            MonteCarloTableEntry* entry = lookupAndCreate(table, hash);
+            e->target = entry->node;
+        }
 
         // Add early terminal check
         Result gameResult = checkGameResult(state);
@@ -280,13 +291,14 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
 
         // Evaluate with single‑head network
         double* in = gameStateToVector(state);
-        /* double* out = feedForwardDense(net, 7 * 36 * 3, in, 0.0, true); */
-        double* out = malloc(66 * sizeof(double));
+        double out[66] = {0};
         predictGraphNN(graphNN, in, out);
-        printf("Predicted value: %f\n", out[0]);
-        for (int i = 0; i < 66; i++) {
-            printf("%f ", out[i]);
-        }
+        /* if (out[0] != 0.0) { */
+            printf("Predicted value: %f\n", out[0]);
+        /* } */
+        /* for (int i = 0; i < 66; i++) { */
+        /*     printf("%f ", out[i]); */
+        /* } */
         node->value = out[0];
         if (trainingMode) {
             // apply noise
@@ -296,12 +308,8 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
                 out[i + 1] = out[i + 1] + noise;
             }
         }
-        /* printf("Value: %f\n", node->value); */
-        /* printf("Value: %f\n", node->value); */
         SearchProb probs = outputToSearchProb(out);
-        /* printf("Value: %f\n", node->value); */
         free(in);
-        free(out);
 
         node->numEdges = moveNum;
         node->unknownChildren = moveNum;
@@ -579,7 +587,7 @@ MonteCarloTable* createMonteCarloTable(void) {
         free(table);
         return NULL;
     }
-    table->allocator = createArenaAllocator(10ULL * 1024 * 1024 * 1024);
+    table->allocator = createArenaAllocator(6ULL * 1024 * 1024 * 1024);
     if (!table->allocator.memory) {
         printf("Failed to allocate memory for Monte Carlo table allocator\n");
         free(table->entries);

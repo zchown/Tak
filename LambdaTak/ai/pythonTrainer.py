@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, Flatten, Reshape, Input, Conv3D, Conv2D, MaxPooling2D
-from tensorflow.keras.layers import MaxPooling3D, Dropout, BatchNormalization, Concatenate, LeakyReLU, Add
+from tensorflow.keras.layers import MaxPooling3D, Dropout, BatchNormalization, LeakyReLU, Add
 import random
 from collections import deque
 import matplotlib.pyplot as plt
@@ -101,7 +101,7 @@ class TrainingItem:
 
 class NeuralNetworkTrainer:
     def __init__(self):
-        self.internal_model, self.combined_model = self._create_alphazero_model()
+        self.model = self._create_unified_model()
 
         self.training_queue = queue.Queue()
         self.running = True
@@ -132,154 +132,104 @@ class NeuralNetworkTrainer:
         self.training_thread.daemon = True
         self.training_thread.start()
 
-    def value_entropy_loss(self, y_true, y_pred):
-        mse = tf.keras.losses.mean_squared_error(y_true, y_pred)
+    def custom_loss(self, y_true, y_pred):
+        # Split the predictions and targets
+        value_true = y_true[:, 0:1]
+        policy_true = y_true[:, 1:]
+
+        value_pred = y_pred[:, 0:1]
+        policy_pred = y_pred[:, 1:]
 
         eps = 1e-5
-        variance_penalty = 0.001 * tf.reduce_mean(1.0 / (tf.abs(y_pred) + eps))
+        mse = tf.reduce_mean(tf.square(value_true - value_pred))
+        variance_penalty = 0.001 * tf.reduce_mean(1.0 / (tf.abs(value_pred) + eps))
 
-        y_pred_flat = tf.reshape(y_pred, [-1])
+        y_pred_flat = tf.reshape(value_pred, [-1])
         histogram = tf.histogram_fixed_width(y_pred_flat, [-1.0, 1.0], nbins=10)
         histogram = tf.cast(histogram, tf.float32) / tf.reduce_sum(tf.cast(histogram, tf.float32))
         entropy = -tf.reduce_sum(histogram * tf.math.log(histogram + eps))
-
         entropy_penalty = 0.1 * (1.0 / (entropy + eps))
 
-        return mse + variance_penalty + entropy_penalty
+        value_loss = mse + variance_penalty + entropy_penalty
+
+        policy_loss = tf.keras.losses.categorical_crossentropy(policy_true, policy_pred)
+
+        return 3.0 * value_loss + 1.0 * policy_loss
 
     def _residual_block(self, x, filters):
         shortcut = x
 
-        x = Conv2D(filters, (3, 3), padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
-        # x = BatchNormalization()(x)
-        # x = LeakyReLU(alpha=0.1)(x)
+        x = Conv2D(filters, (3, 3), padding='same')(x)
+        x = BatchNormalization()(x)
+        x = LeakyReLU(alpha=0.1)(x)
 
-        x = Conv2D(filters, (3, 3), padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
-        # x = BatchNormalization()(x)
+        x = Conv2D(filters, (3, 3), padding='same')(x)
+        x = BatchNormalization()(x)
+        x = LeakyReLU(alpha=0.1)(x)
 
-        # x = Add()([x, shortcut])
-        # x = LeakyReLU(alpha=0.1)(x)
+        x = Add()([x, shortcut])
+        x = LeakyReLU(alpha=0.1)(x)
 
         return x
 
-    def _create_alphazero_model(self):
+    def _create_unified_model(self):
         input_layer = Input(shape=(TOTAL_INPUT,), name='input')
+
         x = Reshape((ROW_SIZE, ROW_SIZE, INPUT_SQUARE_DEPTH))(input_layer)
-
-        x = Conv2D(128, (2, 2), activation='sigmoid', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
+        x = Conv2D(128, (2, 2), activation='sigmoid', padding='same')(x)
         x = BatchNormalization()(x)
 
-        x = Conv2D(256, (3, 3), activation='sigmoid', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
-        x = BatchNormalization()(x)
-        x = LeakyReLU(alpha=0.1)(x)
-
-        x = Conv2D(512, (4, 4), activation='sigmoid', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
+        x = Conv2D(256, (3, 3), activation='sigmoid', padding='same')(x)
         x = BatchNormalization()(x)
         x = LeakyReLU(alpha=0.1)(x)
 
+        x = Conv2D(512, (3, 3), activation='sigmoid', padding='same')(x)
+        x = BatchNormalization()(x)
+        x = LeakyReLU(alpha=0.1)(x)
 
-        x = self._residual_block(x, 512)
-        x = self._residual_block(x, 512)
-        x = Dropout(0.3)(x)
+        # Residual blocks
+        for _ in range(8):
+            x = self._residual_block(x, 512)
+            x = self._residual_block(x, 512)
+            x = Dropout(0.3)(x)
 
-        x = self._residual_block(x, 512)
-        x = self._residual_block(x, 512)
-        x = Dropout(0.3)(x)
+        x = Conv2D(512, (1, 1), activation='relu', padding='same')(x)
+        x = BatchNormalization()(x)
+        x = LeakyReLU(alpha=0.1)(x)
+        x = Dense(512, activation='relu')(x)
+        x = Dense(256, activation='relu')(x)
+        x = Dense(128, activation='relu')(x)
+        combined_output = Dense(TOTAL_OUTPUT, activation='tanh')(input_layer)
 
-        x = self._residual_block(x, 512)
-        x = self._residual_block(x, 512)
-        x = Dropout(0.3)(x)
+        model = Model(inputs=input_layer, outputs=combined_output)
 
-        x = self._residual_block(x, 512)
-        x = self._residual_block(x, 512)
-        x = Dropout(0.3)(x)
-
-        x = self._residual_block(x, 512)
-        x = self._residual_block(x, 512)
-        x = Dropout(0.3)(x)
-
-        x = self._residual_block(x, 512)
-        x = self._residual_block(x, 512)
-        x = Dropout(0.3)(x)
-
-        x = self._residual_block(x, 512)
-        x = self._residual_block(x, 512)
-        x = Dropout(0.3)(x)
-
-        x = self._residual_block(x, 512)
-        x = self._residual_block(x, 512)
-        x = Dropout(0.3)(x)
-
-        policy_hidden = Conv2D(256, (1, 1), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
-        policy_hidden = BatchNormalization()(policy_hidden)
-        policy_hidden = LeakyReLU(alpha=0.1)(policy_hidden)
-        policy_hidden = Flatten()(policy_hidden)
-        policy_hidden = Dense(512, activation='sigmoid', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(policy_hidden)
-        policy_hidden = BatchNormalization()(policy_hidden)
-        policy_hidden = LeakyReLU(alpha=0.1)(policy_hidden)
-        policy_hidden = Dense(256, activation='sigmoid', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(policy_hidden)
-        policy_output = Dense(POLICY_SIZE, activation='softmax', name='policy_output')(policy_hidden)
-
-        value_hidden = Conv2D(256, (1, 1), activation='relu', padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
-        value_hidden = BatchNormalization()(value_hidden)
-        value_hidden = LeakyReLU(alpha=0.1)(value_hidden)
-        value_hidden = Flatten()(value_hidden)
-        value_hidden = Dense(256, activation='sigmoid', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(value_hidden)
-        value_hidden = BatchNormalization()(value_hidden)
-        value_hidden = LeakyReLU(alpha=0.1)(value_hidden)
-        value_hidden = Dense(64, activation='sigmoid', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(value_hidden)
-        value_output = Dense(1, activation='tanh', name='value_output', 
-                             kernel_initializer=tf.keras.initializers.RandomNormal(mean=0.0, stddev=0.1))(value_hidden)
-
-        internal_model = Model(inputs=input_layer, outputs=[value_output, policy_output])
-
-        # Wrapper for CoreML conversion
-        combined_output = Concatenate(name='combined_output')([value_output, policy_output])
-        combined_model = Model(inputs=input_layer, outputs=combined_output)
-
-        internal_model.compile(
-                optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.0001),
-                loss={
-                    'value_output': self.value_entropy_loss,
-                    'policy_output': 'categorical_crossentropy'
-                    },
-                loss_weights={
-                    'value_output': 3.0,
-                    'policy_output': 1.0
-                    },
-                metrics={
-                    'value_output': 'mean_squared_error',
-                    'policy_output': 'accuracy'
-                    }
+        model.compile(
+                optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.01),
+                loss=self.custom_loss,
+                metrics=['mean_squared_error']
                 )
 
-        internal_model.summary()
-        combined_model.summary()
+        model.summary()
 
-        return internal_model, combined_model
+        return model
 
     def _load_model(self):
         try:
-            self.internal_model = tf.keras.models.load_model('neurelnet_internal.h5', 
-                                                             custom_objects={
-                                                                 'value_entropy_loss': self.value_entropy_loss,
-                                                                 'LeakyReLU': LeakyReLU
-                                                                 })
-            input_layer = self.internal_model.input
-            value_output = self.internal_model.get_layer('value_output').output
-            policy_output = self.internal_model.get_layer('policy_output').output
-            combined_output = Concatenate(name='combined_output')([value_output, policy_output])
-            self.combined_model = Model(inputs=input_layer, outputs=combined_output)
-            print("Loaded existing model")
+            self.model = tf.keras.models.load_model('neurelnet_unified.h5', 
+                                                    custom_objects={
+                                                        'custom_loss': self.custom_loss,
+                                                        'LeakyReLU': LeakyReLU
+                                                        })
+            print("Loaded existing unified model")
         except (FileNotFoundError, OSError):
-            print("No existing model found, using new model")
+            print("No existing unified model found, using new model")
         except Exception as e:
             print(f"Error loading model: {e}")
 
     def _convert_to_coreml(self):
         try:
             coreml_model = ct.convert(
-                    self.combined_model, 
+                    self.model, 
                     inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))]
                     )
             coreml_model.save('neurelnet.mlpackage')
@@ -290,10 +240,9 @@ class NeuralNetworkTrainer:
     def save_models(self):
         with self.model_lock:
             try:
-                self.internal_model.save('neurelnet_internal.h5')
-                tf.keras.models.save_model(self.combined_model, 'neurelnet_combined.h5')
+                self.model.save('neurelnet_unified.h5')
                 coreml_model = ct.convert(
-                        self.combined_model,
+                        self.model,
                         inputs=[ct.TensorType(shape=(1, TOTAL_INPUT))],
                         )
                 coreml_model.save('neurelnet.mlpackage')
@@ -328,7 +277,7 @@ class NeuralNetworkTrainer:
     def adjust_learning_rate(self):
         current_lr = max(self.initial_lr * (0.975 ** (self.train_counter // 1000)), self.min_lr)
         with self.model_lock:
-            tf.keras.backend.set_value(self.internal_model.optimizer.learning_rate, current_lr)
+            tf.keras.backend.set_value(self.model.optimizer.learning_rate, current_lr)
         print(f"Learning rate adjusted to {current_lr}")
 
     def train_on_replay_buffer(self, num_batches=50):
@@ -343,14 +292,8 @@ class NeuralNetworkTrainer:
             if replay_inputs is None:
                 break
 
-            replay_value_targets = replay_targets[:, 0:1]
-            replay_policy_targets = replay_targets[:, 1:TOTAL_OUTPUT]
-
             with self.model_lock:
-                self.internal_model.train_on_batch(
-                        x=replay_inputs, 
-                        y={'value_output': replay_value_targets, 'policy_output': replay_policy_targets}
-                        )
+                self.model.train_on_batch(x=replay_inputs, y=replay_targets)
 
     def test_model_performance(self):
         if self.experience_buffer.size() < self.replay_batch_size:
@@ -361,19 +304,12 @@ class NeuralNetworkTrainer:
         if test_inputs is None:
             return
 
-        test_value_targets = test_targets[:, 0:1]
-        test_policy_targets = test_targets[:, 1:TOTAL_OUTPUT]
-
         with self.model_lock:
-            losses = self.internal_model.evaluate(
-                    x=test_inputs, 
-                    y={'value_output': test_value_targets, 'policy_output': test_policy_targets},
-                    verbose=0
-                    )
+            losses = self.model.evaluate(x=test_inputs, y=test_targets, verbose=0)
             print(f"Test losses: {losses}")
 
-            predictions = self.internal_model.predict(test_inputs, verbose=0)
-            value_preds = predictions[0].flatten()
+            predictions = self.model.predict(test_inputs, verbose=0)
+            value_preds = predictions[:, 0].flatten()
 
         avg_abs_value = np.mean(np.abs(value_preds))
         print(f"Test value stats - Mean abs: {avg_abs_value:.4f}, Range: {np.min(value_preds):.4f} to {np.max(value_preds):.4f}")
@@ -392,8 +328,11 @@ class NeuralNetworkTrainer:
             self.game_end = False
 
         with self.model_lock:
-            combined_output = self.combined_model.predict(inputs, verbose=0)
-        value_pred = combined_output[0][0]
+            combined_output = self.model.predict(inputs, verbose=0)
+
+        # Extract the first row from the batch prediction
+        prediction = combined_output[0]
+        value_pred = prediction[0]
 
         self.value_predictions.append(value_pred)
 
@@ -412,7 +351,7 @@ class NeuralNetworkTrainer:
 
         # print(f"Value prediction: {value_pred}")
 
-        return combined_output[0]
+        return prediction
 
     def train(self, inputs, targets):
         self.game_end = False
@@ -449,36 +388,44 @@ class NeuralNetworkTrainer:
                                 item = self.training_queue.get(timeout=1.0)
                                 self._process_training_item(item)
                                 self.training_queue.task_done()
+                            use_queue = False
                     except queue.Empty:
                         if self.experience_buffer.size() >= self.replay_batch_size:
-                            self.train_on_replay_buffer(1)
+                            self.train_on_replay_buffer(4)
+                        sleep(0.1)
                 else:
                     if self.experience_buffer.size() >= self.replay_batch_size:
                         self.train_on_replay_buffer(4)
-                    else:
-                        time.sleep(0.1)
+                        use_queue = True
 
-                use_queue = not use_queue
 
             except Exception as e:
                 print(f"Error in training worker: {e}")
                 time.sleep(1.0)
 
     def _process_training_item(self, item):
+        print(f"Processing training item: {item.is_td}")
         if item.is_td:
+            # For TD learning with the unified model
             value_targets = item.targets[:, 0:1]
             with self.model_lock:
-                policy_outputs = self.internal_model.predict(item.inputs, verbose=0)[1]
-                self.internal_model.train_on_batch(
-                    x=item.inputs, 
-                    y={'value_output': value_targets, 'policy_output': policy_outputs}
-                )
+                predictions = self.model.predict(item.inputs, verbose=0)
+
+                # Create a combined target where we keep the predicted policy but update the value
+                td_targets = predictions.copy()
+                td_targets[:, 0:1] = value_targets
+
+                self.model.train_on_batch(x=item.inputs, y=td_targets)
+
+                # Process inverse inputs for symmetry
                 inverse_inputs = -item.inputs
                 inverse_value_targets = -value_targets
-                self.internal_model.train_on_batch(
-                    x=inverse_inputs, 
-                    y={'value_output': inverse_value_targets, 'policy_output': policy_outputs}
-                )
+
+                inverse_predictions = self.model.predict(inverse_inputs, verbose=0)
+                inverse_td_targets = inverse_predictions.copy()
+                inverse_td_targets[:, 0:1] = inverse_value_targets
+
+                self.model.train_on_batch(x=inverse_inputs, y=inverse_td_targets)
         else:
             inputs = item.inputs
             targets = item.targets
@@ -493,14 +440,9 @@ class NeuralNetworkTrainer:
                 batch_inputs = inputs
                 batch_targets = targets
 
-            value_targets = batch_targets[:, 0:1]
-            policy_targets = batch_targets[:, 1:TOTAL_OUTPUT]
-
             with self.model_lock:
-                self.internal_model.train_on_batch(
-                    x=batch_inputs,
-                    y={'value_output': value_targets, 'policy_output': policy_targets}
-                )
+                self.model.train_on_batch(x=batch_inputs, y=batch_targets)
+
         self.train_counter += 1
         if self.train_counter % 2500 == 0:
             self.adjust_learning_rate()
@@ -654,35 +596,35 @@ def handle_client(conn, addr, trainer):
 def main():
     # Create the neural network trainer
     trainer = NeuralNetworkTrainer()
-    print("AlphaZero-style model ready, listening for connections...")
+    print("AlphaZero-style unified model ready, listening for connections...")
 
     HOST, PORT = 'localhost', 65432
     active_threads = []
     max_connections = 4  # Maximum number of simultaneous connections
-    
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server.bind((HOST, PORT))
         server.listen()
-        
+
         # Set a timeout for accept() to allow checking for KeyboardInterrupt
         server.settimeout(1.0)
-        
+
         try:
             while True:
                 # Clean up completed threads
                 active_threads = [t for t in active_threads if t.is_alive()]
-                
+
                 # Check if we have room for new connections
                 if len(active_threads) < max_connections:
                     try:
                         conn, addr = server.accept()
                         # Create and start a new thread for this client
                         client_thread = threading.Thread(
-                            target=handle_client,
-                            args=(conn, addr, trainer),
-                            daemon=True
-                        )
+                                target=handle_client,
+                                args=(conn, addr, trainer),
+                                daemon=True
+                                )
                         client_thread.start()
                         active_threads.append(client_thread)
                         print(f"New client thread started. Active connections: {len(active_threads)}/{max_connections}")
@@ -694,14 +636,14 @@ def main():
                 else:
                     # Wait a bit before checking again
                     time.sleep(0.1)
-                    
+
         except KeyboardInterrupt:
             print("Server shutting down...")
         finally:
             # Wait for client threads to finish (with timeout)
             for thread in active_threads:
                 thread.join(timeout=2.0)
-                
+
             # Shutdown the trainer
             print("Shutting down trainer and saving model...")
             trainer.shutdown()

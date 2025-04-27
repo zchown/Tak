@@ -29,7 +29,7 @@ int createGraph(const char* modelPath, bnns_graph_t* outGraph, bnns_graph_contex
     // Validate I/O count
     size_t num_inputs = BNNSGraphGetInputCount(*outGraph, NULL);
     size_t num_outputs = BNNSGraphGetOutputCount(*outGraph, NULL);
-    printf("Model requires: %zu inputs, %zu outputs\n", num_inputs, num_outputs);
+    /* printf("Model requires: %zu inputs, %zu outputs\n", num_inputs, num_outputs); */
 
     if (num_inputs != 1 || num_outputs != 1) {
         fprintf(stderr, "I/O count mismatch\n");
@@ -53,7 +53,8 @@ GraphNN* loadGraphNN(const char* modelPath, size_t inputSize, size_t outputSize)
     if (!nn) return NULL;
 
     char command[256];
-    sprintf(command, "xcrun coremlcompiler compile model.mlpackage .");
+    // hardcoded path to the model
+    sprintf(command, "xcrun coremlcompiler compile neurelnet.mlpackage .");
     int ret = system(command);
     if (ret != 0) {
         fprintf(stderr, "Model compilation failed\n");
@@ -79,7 +80,7 @@ GraphNN* loadGraphNN(const char* modelPath, size_t inputSize, size_t outputSize)
         return NULL;
     }
 
-    if (createGraph(modelPath, &nn->graph, &nn->context) != 0) {
+    if (createGraph("neurelnet.mlmodelc", &nn->graph, &nn->context) != 0) {
         free(nn->inputBuffer);
         free(nn->outputBuffer);
         free(nn);
