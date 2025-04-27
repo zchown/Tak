@@ -18,7 +18,7 @@
 #include "../lib/arenaAllocator.h"
 
 // exploration constant sqrt(2)
-#define CPUCT (1.4142135623730951)
+#define CPUCT (0.1)
 
 #define MONTECARLO_TABLE_SIZE (1 << 25)
 

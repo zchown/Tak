@@ -120,12 +120,9 @@ int trainEpisode(Trainer* trainer, int episodeNum, int sock) {
         generateAllMoves(state, moves);
         numMoves = moves->numMoves;
 
-        int random = rand() % 10;
-        Move move;
-        move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
+        Move move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
 
         makeMoveNoChecks(state, &move, false);
-        freeMoveList(moves);
 
         numPastStates++;
     }
@@ -171,6 +168,7 @@ int trainEpisode(Trainer* trainer, int episodeNum, int sock) {
     /* free(pastOutputs); */
     free(pastValues);
     freeGameState(state);
+    freeMoveList(moves);
 
     printf("numPastStates: %d, Final reward: %.4f\n", numPastStates, finalReward);
     return toReturn;
@@ -289,17 +287,11 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
             move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
 
             int random = rand() % 10;
-            if (random < 9) {
+            if (random < 8) {
                 move = iterativeDeepeningSearch(state, alphaBetaTime);
             } 
         } else {
-            /* move = monteCarloGraphSearch(state, trainer->net, false, sock, pastValues[numPastStates]); */
-            move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
-            int random = rand() % 10;
-            if (random < 6) {
-                /* move = iterativeDeepeningSearch(state, alphaBetaTime); */
-                move = monteCarloGraphSearch(state, trainer->net, false, sock, pastValues[numPastStates]);
-            } 
+            move = monteCarloGraphSearch(state, trainer->net, false, sock, pastValues[numPastStates]);
         }
         makeMoveNoChecks(state, &move, false);
 

@@ -223,11 +223,11 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
 
         makeMoveNoChecks(state, &e->move, false);
 
-        if (!e->target) {
-            ZobristKey hash = state->hash;
-            MonteCarloTableEntry* entry = lookupAndCreate(table, hash);
-            e->target = entry->node;
-        }
+        /* if (!e->target) { */
+        /*     ZobristKey hash = state->hash; */
+        /*     MonteCarloTableEntry* entry = lookupAndCreate(table, hash); */
+        /*     e->target = entry->node; */
+        /* } */
 
         // Add early terminal check
         Result gameResult = checkGameResult(state);
@@ -294,7 +294,7 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
         double out[66] = {0};
         predictGraphNN(graphNN, in, out);
         /* if (out[0] != 0.0) { */
-            printf("Predicted value: %f\n", out[0]);
+            /* printf("Predicted value: %f\n", out[0]); */
         /* } */
         /* for (int i = 0; i < 66; i++) { */
         /*     printf("%f ", out[i]); */
@@ -303,8 +303,8 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
         if (trainingMode) {
             // apply noise
             for (int i = 0; i < 61; i++) {
-                double noise = ((double)rand() / RAND_MAX) * 0.4;
-                noise -= 0.2;
+                double noise = ((double)rand() / RAND_MAX) * 0.2;
+                noise -= 0.1;
                 out[i + 1] = out[i + 1] + noise;
             }
         }

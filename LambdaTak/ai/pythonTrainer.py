@@ -205,7 +205,7 @@ class NeuralNetworkTrainer:
 
         model.compile(
                 optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.01),
-                loss=self.custom_loss,
+                loss="mean_squared_error",
                 metrics=['mean_squared_error']
                 )
 
@@ -215,11 +215,7 @@ class NeuralNetworkTrainer:
 
     def _load_model(self):
         try:
-            self.model = tf.keras.models.load_model('neurelnet_unified.h5', 
-                                                    custom_objects={
-                                                        'custom_loss': self.custom_loss,
-                                                        'LeakyReLU': LeakyReLU
-                                                        })
+            self.model = tf.keras.models.load_model('neurelnet_unified.h5', custom_objects={'custom_loss': self.custom_loss})
             print("Loaded existing unified model")
         except (FileNotFoundError, OSError):
             print("No existing unified model found, using new model")
