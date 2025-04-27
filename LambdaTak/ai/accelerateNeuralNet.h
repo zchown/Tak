@@ -5,6 +5,17 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
+
+static size_t aligned_size(size_t bytes) {
+    const size_t alignment = 64;
+    return ((bytes + alignment - 1) / alignment) * alignment;
+}
+
+void compile_logger(BNNSGraphMessageLevel level, 
+                    const char* msg, 
+                    const char* location, 
+                    bnns_user_message_data_t* data);
 
 typedef struct {
     bnns_graph_t graph;

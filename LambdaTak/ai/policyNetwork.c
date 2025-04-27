@@ -34,19 +34,20 @@ void toOutput(const SearchProb* prob, double value, double* output) {
 }
 
 double probFromSearchProb(const SearchProb* prob, const Move* move) {
+    double toReturn = 0.1;
     if (move->type == PLACE) {
         double squareProb = prob->squares[move->move.place.pos] / prob->place;
         double pieceProb = prob->pieceType[move->move.place.stone] / prob->place;
-        return squareProb * pieceProb;
+        toReturn = squareProb * pieceProb;
     } else if (move->type == SLIDE) {
         /* printf("direction: %d\n", move->move.slide.direction); */
         /* printf("count: %d\n", move->move.slide.count); */
         double squareProb = prob->squares[move->move.slide.startPos] / prob->slide;
         double dropProb = prob->drops[(move->move.slide.count) - 1][move->move.slide.direction] / prob->slide;
         /* printf("squareProb: %f, dropProb: %f\n", squareProb, dropProb); */
-        return squareProb * dropProb;
+        toReturn = squareProb * dropProb;
     }
-    return 0.0;
+    return (toReturn == 0.0) ? 0.1 : toReturn;
 }
 
 void probsFromSearchProb(const SearchProb* prob, const MoveList* moves, double* probs) {

@@ -264,8 +264,8 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
     while (checkGameResult(state) == CONTINUE) {
         double* inputs = gameStateToVector(state);
         /* double* outputs = pythonPredict(sock, inputs, (7 * 36)); */
-        /* printf("Got outputs\n"); */
-
+        /* printf("Value: %lf\n", outputs[0]); */
+        /*  */
         /* if (numPastStates > 0) { */
         /*     double* reward = malloc(OUTPUT_SIZE * sizeof(double)); */
         /*     memcpy(reward, pastValues[numPastStates - 1], OUTPUT_SIZE * sizeof(double)); */
@@ -274,7 +274,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
         /*         pythonTrainTD(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, reward, 7 * 36); */
         /*     } */
         /* } */
-
+        /*  */
 
         pastStates[numPastStates] = inputs;
         /* pastOutputs[numPastStates] = outputs; */

@@ -304,7 +304,7 @@ int generateAllMoves(const GameState* state, MoveList* moveList) {
 #pragma unroll
         for (u8 j = 0; j < TOTAL_SQUARES; j++) {
             if (state->emptySquares & (1ULL << j)) {
-                addMoveToList(moveList, createPlaceMove(j, oppositeColor(state->turn), STANDING));
+                addMoveToList(moveList, createPlaceMove(j, oppositeColor(state->turn), FLAT));
             }
         }
 
@@ -564,7 +564,7 @@ void freeMoveList(MoveList* moves) {
 }
 
 inline void addMoveToList(MoveList* moveList, Move move) {
-    if (moveList->numMoves < moveList->capacity) {
+    if (__builtin_expect(moveList->numMoves < moveList->capacity, 1)) {
         moveList->moves[moveList->numMoves++] = move;
     } else {
         Move* newMoves = realloc(moveList->moves, (moveList->capacity * 2) * sizeof(Move));
@@ -580,6 +580,5 @@ inline void addMoveToList(MoveList* moveList, Move move) {
 
 inline void clearMoveList(MoveList* moveList) {
     moveList->numMoves = 0;
-    memset(moveList->moves, 0, moveList->capacity * sizeof(Move));
 }
 

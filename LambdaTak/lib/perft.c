@@ -39,7 +39,7 @@ void runPerft(GameState* state, int maxDepth) {
     MoveListList* moveList = malloc(sizeof(MoveListList));
     moveList->moves = malloc(maxDepth * sizeof(MoveList*));
     for (int i = 0; i < maxDepth; i++) {
-        moveList->moves[i] = createMoveList(512);
+        moveList->moves[i] = createMoveList(2048);
         moveList->numLists = maxDepth;
     }
 

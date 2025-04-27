@@ -151,14 +151,14 @@ class NeuralNetworkTrainer:
         shortcut = x
 
         x = Conv2D(filters, (3, 3), padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
-        x = BatchNormalization()(x)
-        x = LeakyReLU(alpha=0.1)(x)
+        # x = BatchNormalization()(x)
+        # x = LeakyReLU(alpha=0.1)(x)
 
         x = Conv2D(filters, (3, 3), padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0005))(x)
-        x = BatchNormalization()(x)
+        # x = BatchNormalization()(x)
 
-        x = Add()([x, shortcut])
-        x = LeakyReLU(alpha=0.1)(x)
+        # x = Add()([x, shortcut])
+        # x = LeakyReLU(alpha=0.1)(x)
 
         return x
 
@@ -444,7 +444,7 @@ class NeuralNetworkTrainer:
             try:
                 if use_queue:
                     try:
-                        if self.training_queue.qsize() >= 150:
+                        if self.training_queue.qsize() > 160:
                             for _ in range(128):
                                 item = self.training_queue.get(timeout=1.0)
                                 self._process_training_item(item)

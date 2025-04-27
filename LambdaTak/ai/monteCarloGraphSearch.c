@@ -20,7 +20,7 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     }
 
     if (!graphNN) {
-        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlpackage/Data/com.apple.CoreML/model.mlmodel", 7 * 36, 1);
+        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlpackage", 7 * 36, 1);
         if (!graphNN) {
             fprintf(stderr, "Failed to load graph neural network\n");
             return (Move){0};
@@ -28,7 +28,7 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     } else if (trainingMode) {
         // Reset the graphNN for training mode
         freeGraphNN(graphNN);
-        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlpackage/Data/com.apple.CoreML/model.mlmodel", 7 * 36, 1);
+        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlpackage", 7 * 36, 1);
         if (!graphNN) {
             fprintf(stderr, "Failed to load graph neural network\n");
             return (Move){0};
@@ -42,9 +42,9 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     MCGSNode* root = entry->node;
 
 
-    int numIterations = 1 << 12;
+    int numIterations = 1 << 11;
     if (trainingMode) {
-        numIterations = 1 << 12;
+        numIterations = 1 << 11;
     }
     for (int i = 0; i < numIterations; i++) {
         /* printf("Iteration %d\n", i); */
@@ -199,7 +199,7 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
 SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
         DenseNeuralNet* net, MCGSNode* root,
         MCGSStats* stats, int sock, bool trainingMode) {
-    SelectExpandResult result;
+    SelectExpandResult result = {0};
     result.trajectory = createTrajectory(64);
     result.value = 0.0;
     MCGSNode* node = root;
@@ -208,7 +208,7 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
     while (node->isExpanded && !node->isTerminal) {
         i++;
         if (i > 100) {
-            /* printf("Infinite loop detected\n"); */
+            printf("Infinite loop detected\n");
             break;
         }
         /* printf("Node: %p, Value: %f, Visits: %d\n", node, node->value, node->numVisits); */
@@ -283,6 +283,10 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
         /* double* out = feedForwardDense(net, 7 * 36 * 3, in, 0.0, true); */
         double* out = malloc(66 * sizeof(double));
         predictGraphNN(graphNN, in, out);
+        printf("Predicted value: %f\n", out[0]);
+        for (int i = 0; i < 66; i++) {
+            printf("%f ", out[i]);
+        }
         node->value = out[0];
         if (trainingMode) {
             // apply noise
