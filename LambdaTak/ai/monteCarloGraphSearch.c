@@ -18,6 +18,7 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     // prevent arena from running out of memory
     // only happens with really long games
     if ((monteCarloTable->allocator.used * 2) >= (monteCarloTable->allocator.size)) {
+        printf("Resetting arena\n");
         resetArena(&monteCarloTable->allocator);
     }
 
@@ -47,9 +48,9 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     MCGSNode* root = entry->node;
 
 
-    int numIterations = 1 << 12;
+    int numIterations = 1 << 13;
     if (trainingMode) {
-        numIterations = 1 << 12;
+        numIterations = 1 << 10;
     }
     for (int i = 0; i < numIterations; i++) {
         /* printf("Iteration %d\n", i); */
@@ -303,8 +304,8 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
         if (trainingMode) {
             // apply noise
             for (int i = 0; i < 61; i++) {
-                double noise = ((double)rand() / RAND_MAX) * 0.2;
-                noise -= 0.1;
+                double noise = ((double)rand() / RAND_MAX) * 0.1;
+                noise -= 0.05;
                 out[i + 1] = out[i + 1] + noise;
             }
         }

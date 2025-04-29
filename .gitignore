@@ -8,6 +8,9 @@ LambdaTak/build-debug/*
 LambdaTak/build-release/*
 LambdaTak/neurelnet.h5
 LambdaTak/neurelnet.mlpackage/*
+LambdaTak/neurelnet.mlmodelc/*
+LambdaTak/neurelnet_unified.h5
+writeup.tex
 *.weights*
 test1.ptn
 .hpc/

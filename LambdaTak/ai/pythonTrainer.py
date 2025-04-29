@@ -132,30 +132,6 @@ class NeuralNetworkTrainer:
         self.training_thread.daemon = True
         self.training_thread.start()
 
-    def custom_loss(self, y_true, y_pred):
-        # Split the predictions and targets
-        value_true = y_true[:, 0:1]
-        policy_true = y_true[:, 1:]
-
-        value_pred = y_pred[:, 0:1]
-        policy_pred = y_pred[:, 1:]
-
-        eps = 1e-5
-        mse = tf.reduce_mean(tf.square(value_true - value_pred))
-        variance_penalty = 0.001 * tf.reduce_mean(1.0 / (tf.abs(value_pred) + eps))
-
-        y_pred_flat = tf.reshape(value_pred, [-1])
-        histogram = tf.histogram_fixed_width(y_pred_flat, [-1.0, 1.0], nbins=10)
-        histogram = tf.cast(histogram, tf.float32) / tf.reduce_sum(tf.cast(histogram, tf.float32))
-        entropy = -tf.reduce_sum(histogram * tf.math.log(histogram + eps))
-        entropy_penalty = 0.1 * (1.0 / (entropy + eps))
-
-        value_loss = mse + variance_penalty + entropy_penalty
-
-        policy_loss = tf.keras.losses.categorical_crossentropy(policy_true, policy_pred)
-
-        return 3.0 * value_loss + 1.0 * policy_loss
-
     def _residual_block(self, x, filters):
         shortcut = x
 
@@ -176,30 +152,30 @@ class NeuralNetworkTrainer:
         input_layer = Input(shape=(TOTAL_INPUT,), name='input')
 
         x = Reshape((ROW_SIZE, ROW_SIZE, INPUT_SQUARE_DEPTH))(input_layer)
-        x = Conv2D(128, (2, 2), activation='sigmoid', padding='same')(x)
-        x = BatchNormalization()(x)
 
-        x = Conv2D(256, (3, 3), activation='sigmoid', padding='same')(x)
+        # x = Conv2D(256, (3, 3), activation='sigmoid', padding='same')(x)
+        # x = BatchNormalization()(x)
+        # x = LeakyReLU(alpha=0.1)(x)
+        #
+        # x = Conv2D(512, (3, 3), activation='sigmoid', padding='same')(x)
+        # x = BatchNormalization()(x)
+        # x = LeakyReLU(alpha=0.1)(x)
+
+        x = Conv2D(128, (3, 3), activation='sigmoid', padding='same')(x)
         x = BatchNormalization()(x)
         x = LeakyReLU(alpha=0.1)(x)
 
-        x = Conv2D(512, (3, 3), activation='sigmoid', padding='same')(x)
-        x = BatchNormalization()(x)
-        x = LeakyReLU(alpha=0.1)(x)
-
-        # Residual blocks
-        for _ in range(8):
-            x = self._residual_block(x, 512)
-            x = self._residual_block(x, 512)
+        for _ in range(4):
+            x = self._residual_block(x, 128)
+            x = self._residual_block(x, 128)
             x = Dropout(0.3)(x)
 
-        x = Conv2D(512, (1, 1), activation='relu', padding='same')(x)
+        x = Conv2D(16, (1, 1), activation='sigmoid', padding='same')(x)
         x = BatchNormalization()(x)
         x = LeakyReLU(alpha=0.1)(x)
-        x = Dense(512, activation='relu')(x)
-        x = Dense(256, activation='relu')(x)
-        x = Dense(128, activation='relu')(x)
-        combined_output = Dense(TOTAL_OUTPUT, activation='tanh')(input_layer)
+        x = Flatten()(x)
+        # x = Dense(2048, activation='relu')(x)
+        combined_output = Dense(TOTAL_OUTPUT, activation='tanh')(x)
 
         model = Model(inputs=input_layer, outputs=combined_output)
 
@@ -215,7 +191,7 @@ class NeuralNetworkTrainer:
 
     def _load_model(self):
         try:
-            self.model = tf.keras.models.load_model('neurelnet_unified.h5', custom_objects={'custom_loss': self.custom_loss})
+            self.model = tf.keras.models.load_model('neurelnet_unified.h5')
             print("Loaded existing unified model")
         except (FileNotFoundError, OSError):
             print("No existing unified model found, using new model")
@@ -326,7 +302,6 @@ class NeuralNetworkTrainer:
         with self.model_lock:
             combined_output = self.model.predict(inputs, verbose=0)
 
-        # Extract the first row from the batch prediction
         prediction = combined_output[0]
         value_pred = prediction[0]
 
@@ -402,18 +377,15 @@ class NeuralNetworkTrainer:
     def _process_training_item(self, item):
         print(f"Processing training item: {item.is_td}")
         if item.is_td:
-            # For TD learning with the unified model
             value_targets = item.targets[:, 0:1]
             with self.model_lock:
                 predictions = self.model.predict(item.inputs, verbose=0)
 
-                # Create a combined target where we keep the predicted policy but update the value
                 td_targets = predictions.copy()
                 td_targets[:, 0:1] = value_targets
 
                 self.model.train_on_batch(x=item.inputs, y=td_targets)
 
-                # Process inverse inputs for symmetry
                 inverse_inputs = -item.inputs
                 inverse_value_targets = -value_targets
 
@@ -590,32 +562,27 @@ def handle_client(conn, addr, trainer):
         print(f"[{addr}] Connection closed")
 
 def main():
-    # Create the neural network trainer
     trainer = NeuralNetworkTrainer()
     print("AlphaZero-style unified model ready, listening for connections...")
 
     HOST, PORT = 'localhost', 65432
     active_threads = []
-    max_connections = 4  # Maximum number of simultaneous connections
+    max_connections = 4
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server.bind((HOST, PORT))
         server.listen()
 
-        # Set a timeout for accept() to allow checking for KeyboardInterrupt
         server.settimeout(1.0)
 
         try:
             while True:
-                # Clean up completed threads
                 active_threads = [t for t in active_threads if t.is_alive()]
 
-                # Check if we have room for new connections
                 if len(active_threads) < max_connections:
                     try:
                         conn, addr = server.accept()
-                        # Create and start a new thread for this client
                         client_thread = threading.Thread(
                                 target=handle_client,
                                 args=(conn, addr, trainer),
@@ -625,22 +592,18 @@ def main():
                         active_threads.append(client_thread)
                         print(f"New client thread started. Active connections: {len(active_threads)}/{max_connections}")
                     except socket.timeout:
-                        # This is expected due to the timeout on accept()
                         pass
                     except Exception as e:
                         print(f"Error accepting connection: {e}")
                 else:
-                    # Wait a bit before checking again
                     time.sleep(0.1)
 
         except KeyboardInterrupt:
             print("Server shutting down...")
         finally:
-            # Wait for client threads to finish (with timeout)
             for thread in active_threads:
                 thread.join(timeout=2.0)
 
-            # Shutdown the trainer
             print("Shutting down trainer and saving model...")
             trainer.shutdown()
             print("Server shutdown complete")

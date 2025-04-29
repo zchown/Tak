@@ -1,4 +1,5 @@
 #include "neuralNetTrainer.h"
+#include "policyNetwork.h"
 
 Trainer* createTrainer(DenseNeuralNet* net, double learningRateUpdate, double minLearningRate, double learningRate, int saveInterval, double discountFactor) {
     Trainer* trainer = (Trainer*)malloc(sizeof(Trainer));
@@ -286,12 +287,23 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
             // run monte carlo anyway so we can get the policy values
             move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
 
-            int random = rand() % 10;
-            if (random < 8) {
+            /* int random = rand() % 10; */
+            if (state->turnNumber > 5) {
+
+                double value = pastValues[numPastStates][0];
+                SearchProb probs = outputToSearchProb(pastValues[numPastStates]);
+                addToSearchProb(&probs, move, -0.25);
                 move = iterativeDeepeningSearch(state, alphaBetaTime);
+                /* printf("Move: %s\n", moveToString(&move)); */
+                /* printf("Value: %lf\n", value); */
+                /* printf("Probs: "); */
+                addToSearchProb(&probs, move, 1.0);
+                /* printf("added move"); */
+                toOutput(&probs, value, pastValues[numPastStates]);
+                /* printf("Probs from search prob: "); */
             } 
         } else {
-            move = monteCarloGraphSearch(state, trainer->net, false, sock, pastValues[numPastStates]);
+            move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
         }
         makeMoveNoChecks(state, &move, false);
 
