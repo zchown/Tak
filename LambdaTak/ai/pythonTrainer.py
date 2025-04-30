@@ -13,11 +13,12 @@ import threading
 import queue
 import time
 
-TOTAL_INPUT = 6 * 6 * 7
-INPUT_SQUARES = 36
-ROW_SIZE = 6
-INPUT_SQUARE_DEPTH = 7
-INPUT_PIECE_TYPES = 3
+BOARD_SIZE = 6
+STACK_DEPTH = BOARD_SIZE + 1
+BITBOARD_PLANES = 5
+TURN_PLANES = 1
+INPUT_CHANNELS = STACK_DEPTH + BITBOARD_PLANES + TURN_PLANES
+TOTAL_INPUT = BOARD_SIZE * BOARD_SIZE * (STACK_DEPTH + BITBOARD_PLANES + TURN_PLANES)
 POLICY_SIZE = 65
 TOTAL_OUTPUT = 66
 
@@ -159,36 +160,34 @@ class NeuralNetworkTrainer:
         self.training_thread.start()
 
     def _residual_block(self, x, filters):
-        # shortcut = x
+        shortcut = x
 
         x = Conv2D(filters, (3, 3), padding='same', activation='sigmoid', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
-        # x = BatchNormalization()(x)
+        x = BatchNormalization()(x)
         x = LeakyReLU(alpha=0.1)(x)
 
         x = Conv2D(filters, (3, 3), padding='same', activation='sigmoid', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
-        # x = BatchNormalization()(x)
+        x = BatchNormalization()(x)
 
-        # x = Add()([x, shortcut])
+        x = Add()([x, shortcut])
         x = LeakyReLU(alpha=0.1)(x)
 
         return x
 
     def _create_unified_model(self):
         inputs = Input(shape=(TOTAL_INPUT,), name='input')
-        x = Reshape((ROW_SIZE, ROW_SIZE, INPUT_SQUARE_DEPTH), name='reshape')(inputs)
+        x = Reshape((BOARD_SIZE, BOARD_SIZE, INPUT_CHANNELS), name='reshape')(inputs)
 
         x = Conv2D(256, (3, 3), padding='same', name='conv_init', activation='sigmoid', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
-        # x = BatchNormalization(name='bn_init')(x)
+        x = BatchNormalization(name='bn_init')(x)
         x = LeakyReLU(alpha=0.1, name='act_init')(x)
 
         x = self._residual_block(x, 256)
-        x = Dropout(0.3)(x)
         x = self._residual_block(x, 256)
-        x = Dropout(0.3)(x)
+        x = Dropout(0.25)(x)
         x = self._residual_block(x, 256)
-        x = Dropout(0.3)(x)
         x = self._residual_block(x, 256)
-        x = Dropout(0.3)(x)
+        x = Dropout(0.25)(x)
 
         x = Conv2D(256, (1, 1), padding='same', name='conv_final', activation='sigmoid', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
         x = Flatten(name='flatten_shared')(x)

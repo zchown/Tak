@@ -22,6 +22,8 @@
 #define STONES_PER_PLAYER 30
 #define CAPS_PER_PLAYER 1
 
+#define FEATURE_SIZE 468
+
 // precomputed bitboards from sorcery
 #define ROW1 0x000000000000003F // top edge
 #define ROW2 0x0000000000000FC0
@@ -132,7 +134,6 @@ typedef struct GameHistory {
 } GameHistory;
 
 typedef struct {
-    double gameVector[TOTAL_SQUARES * (BOARD_SIZE + 1)];
     GameHistory* history;
     Reserves player1;
     Reserves player2;
@@ -226,7 +227,6 @@ void printBitboard(Bitboard bitboard);
 
 // for neural networks
 double* gameStateToVector(const GameState* state);
-void updateSquareVector(GameState* state, int squareIndex);
 
 #endif // BOARD_H
 

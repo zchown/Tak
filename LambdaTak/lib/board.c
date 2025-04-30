@@ -22,12 +22,6 @@ GameState* createGameState(void) {
     state->capstones = 0;
     state->hash = computeBoardHash(state);
 
-    double* gv = gameStateToVector(state);
-    for (int i = 0; i < 7 * 36; i++) {
-        state->gameVector[i] = gv[i];
-    }
-    free(gv);
-
     return state;
 }
 
@@ -54,10 +48,6 @@ GameState* copyGameState(const GameState* state) {
     newState->player2 = state->player2;
     newState->result = state->result;
     newState->history = copyHistory(state->history);
-
-    for (int i = 0; i < (7 * 36); i++) {
-        newState->gameVector[i] = state->gameVector[i];
-    }
 
     newState->whiteControlled = state->whiteControlled;
     newState->blackControlled = state->blackControlled;
@@ -848,56 +838,43 @@ void printBitboard(Bitboard board) {
 }
 
 double* gameStateToVector(const GameState* state) {
-    const int vecSize = TOTAL_SQUARES * (BOARD_SIZE + 1);
+    const int stackPlanes = BOARD_SIZE + 1;
+    const int boardPlaneCount = TOTAL_SQUARES * stackPlanes;
+    const int turnCount = 1;
+    const int bitboardPlanes = 5;
+    const int vecSize = (boardPlaneCount + turnCount + bitboardPlanes) * TOTAL_SQUARES;
+    // (7 + 1 + 5) * 36 = 468
 
     double* vector = (double*)calloc(vecSize, sizeof(double));
-    if (!vector) return NULL; 
+    if (!vector) return NULL;
 
     for (int i = 0; i < TOTAL_SQUARES; i++) {
         const Square* sq = &state->board->squares[i];
-
-        for (int j = 0; j < sq->numPieces && j < (BOARD_SIZE + 1); j++) {
+        for (int j = 0; j < sq->numPieces && j < stackPlanes; j++) {
             double val = 1.0 - ((sq->pieces[j].stone + 1) / 4.0);
-            // branchless
-            double colorUpdate = sq->pieces[j].color * -1.0;
-            /* printf("%d ", i * (BOARD_SIZE + 1) + j); */
-            vector[i * (BOARD_SIZE + 1) + j] = val + colorUpdate;
+            double colorAdj = (sq->pieces[j].color == BLACK ? 1.0 : -1.0);
+            vector[i * stackPlanes + j] = val + colorAdj;
+        }
+    }
+
+    int offset = boardPlaneCount;
+
+    vector[offset++] = (state->turn == BLACK ? 1.0 : 0.0);
+
+    Bitboard boards[bitboardPlanes] = {
+        state->whiteControlled,
+        state->blackControlled,
+        state->emptySquares,
+        state->standingStones,
+        state->capstones
+    };
+    for (int p = 0; p < bitboardPlanes; p++) {
+        Bitboard bb = boards[p];
+        for (int sq = 0; sq < TOTAL_SQUARES; sq++) {
+            double bitVal = ((bb >> sq) & 1ULL) ? 1.0 : 0.0;
+            vector[offset + p * TOTAL_SQUARES + sq] = bitVal;
         }
     }
 
     return vector;
-}
-
-void updateSquareVector(GameState *state, int squareIndex) {
-    if (!state || !state->board) return;
-    Square *sq = &state->board->squares[squareIndex];
-    int curIndex = sq->numPieces - 1;
-    int baseIdx = squareIndex * (BOARD_SIZE + 1);
-    for (int j = 0; j < (BOARD_SIZE + 1); j++) {
-        double val = 0.0;
-        if (curIndex >= 0) {
-            // Determine base value from the stone type.
-            if (sq->pieces[curIndex].stone == FLAT) {
-                val = 0.8;
-            } else if (sq->pieces[curIndex].stone == STANDING) {
-                val = 0.6;
-            } else { // CAP
-                val = 0.0;
-            }
-            // Adjust value if the piece is black.
-            if (sq->pieces[curIndex].color == BLACK) {
-                val = 1.0 - val;
-            }
-            curIndex--;
-        } else {
-            val = 0.0;
-        }
-        state->gameVector[baseIdx + j] = val;
-    }
-
-    double* gv = gameStateToVector(state);
-    for (int i = 0; i < 7 * 36; i++) {
-        state->gameVector[i] = gv[i];
-    }
-    free(gv);
 }

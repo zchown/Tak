@@ -143,7 +143,7 @@ int trainEpisode(Trainer* trainer, int episodeNum, int sock) {
     if (numPastStates > 0) {
         pastValues[numPastStates - 1][0] = finalReward;
         /* pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, pastValues[numPastStates - 1], 7 * 36); */
-        pythonTrain(sock, pastStates[numPastStates - 1], NULL, 1, pastValues[numPastStates - 1], 7 * 36);
+        pythonTrain(sock, pastStates[numPastStates - 1], NULL, 66, pastValues[numPastStates - 1], FEATURE_SIZE);
     }
 
     for (int i = numPastStates - 2; i >= 0; i--) {
@@ -256,7 +256,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
     int numMoves = 512;
     while (checkGameResult(state) == CONTINUE) {
         double* inputs = gameStateToVector(state);
-        /* double* outputs = pythonPredict(sock, inputs, (7 * 36)); */
+        /* double* outputs = pythonPredict(sock, inputs, (7 *7 * 36 36)); */
         /* printf("Value: %lf\n", outputs[0]); */
         /*  */
         /* if (numPastStates > 0) { */
@@ -332,7 +332,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
                 /* pastOutputs[numPastStates - 1], &finalReward, trainer->learningRate); */
         pastValues[numPastStates - 1][0] = finalReward;
         /* pythonTrain(sock, pastStates[numPastStates - 1], pastOutputs[numPastStates - 1], 1, pastValues[numPastStates - 1], 7 * 36); */
-        pythonTrain(sock, pastStates[numPastStates - 1], NULL, 1, pastValues[numPastStates - 1], 7 * 36);
+        pythonTrain(sock, pastStates[numPastStates - 1], NULL, 1, pastValues[numPastStates - 1], FEATURE_SIZE);
 
     }
 
@@ -349,7 +349,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
 
         /* backpropagateDense(trainer->net, pastStates[i], pastOutputs[i], &targetValue, trainer->learningRate * decay); */
         /* pythonTrain(sock, pastStates[i], pastOutputs[i], 1, pastValues[i], 7 * 36); */
-        pythonTrain(sock, pastStates[i], NULL, 1, pastValues[i], 7 * 36);
+        pythonTrain(sock, pastStates[i], NULL, 1, pastValues[i], FEATURE_SIZE);
     }
 
     pythonGameEnd(sock);

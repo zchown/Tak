@@ -98,9 +98,6 @@ GameState* parseTPS(const char* tps) {
     updateReserves(state);
     updateBitboards(state);
     state->hash = computeBoardHash(state);
-    double* vec = gameStateToVector(state);
-    memcpy(state->gameVector, vec, sizeof(double) * 198);
-    free(vec);
     /* printBoard(state->board); */
     return state;
 }

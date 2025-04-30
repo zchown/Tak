@@ -43,7 +43,7 @@ int evaluate(GameState* state) {
 }
 
 int evaluateWithNN(GameState* state) {
-    double* result = feedForwardDense(&net, 7 * 36, gameStateToVector(state), 0.0, false);
+    double* result = feedForwardDense(&net, FEATURE_SIZE, gameStateToVector(state), 0.0, false);
     return (int)(result[0] * 10000);
 }
 
