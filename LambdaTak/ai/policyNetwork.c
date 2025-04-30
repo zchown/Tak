@@ -31,6 +31,15 @@ void toOutput(const SearchProb* prob, double value, double* output) {
             output[3 + NUM_PIECE_TYPES + TOTAL_SQUARES + i * 5 + j] = (double) prob->drops[i][j];
         }
     }
+
+    // clamp values to [-1, 1]
+    for (int i = 0; i < 66; i++) {
+        if (output[i] > 1.0) {
+            output[i] = 1.0;
+        } else if (output[i] < -1.0) {
+            output[i] = -1.0;
+        }
+    }
 }
 
 double probFromSearchProb(const SearchProb* prob, const Move* move) {

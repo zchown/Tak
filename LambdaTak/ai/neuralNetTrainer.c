@@ -20,20 +20,14 @@ double calculateReward(int result, int numMoves, int maxMoves) {
     double baseReward;
     switch (result) {
         case ROAD_WHITE:
-            baseReward = 1.0;
-            break;
         case FLAT_WHITE:
-            baseReward = 0.9;
+            baseReward = 0.99;
             break;
         case ROAD_BLACK:
-            baseReward = -1.0;
-            break;
         case FLAT_BLACK:
-            baseReward = -0.9;
+            baseReward = -0.99;
             break;
         case DRAW:
-            baseReward = 0.0;
-            break;
         default:
             baseReward = 0.0;
             break;
@@ -288,7 +282,7 @@ int trainEpisodeAlphaBeta(Trainer* trainer, int episodeNum, bool agentPlaysWhite
             move = monteCarloGraphSearch(state, trainer->net, true, sock, pastValues[numPastStates]);
 
             /* int random = rand() % 10; */
-            if (state->turnNumber > 5) {
+            if (state->turnNumber > 4) {
 
                 double value = pastValues[numPastStates][0];
                 SearchProb probs = outputToSearchProb(pastValues[numPastStates]);

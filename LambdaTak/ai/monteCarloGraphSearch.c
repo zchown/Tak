@@ -23,7 +23,7 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     }
 
     if (!graphNN) {
-        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlmodelc", 7 * 36, 66);
+        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlpackage", 7 * 36, 66, 65, 1);
         if (!graphNN) {
             fprintf(stderr, "Failed to load graph neural network\n");
             return (Move){0};
@@ -33,7 +33,7 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
         printf("Reloading graph neural network\n");
         reload = 0;
         freeGraphNN(graphNN);
-        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlmodelc", 7 * 36, 66);
+        graphNN = loadGraphNN("~/ComputerScience/Tak/LambdaTak/neurelnet.mlpackage", 7 * 36, 66, 65, 1);
         if (!graphNN) {
             fprintf(stderr, "Failed to load graph neural network\n");
             return (Move){0};
@@ -50,7 +50,7 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
 
     int numIterations = 1 << 13;
     if (trainingMode) {
-        numIterations = 1 << 10;
+        numIterations = 1 << 9;
     }
     for (int i = 0; i < numIterations; i++) {
         /* printf("Iteration %d\n", i); */
@@ -294,9 +294,7 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
         double* in = gameStateToVector(state);
         double out[66] = {0};
         predictGraphNN(graphNN, in, out);
-        /* if (out[0] != 0.0) { */
-            /* printf("Predicted value: %f\n", out[0]); */
-        /* } */
+        /* printf("Predicted value: %f\n", out[0]); */
         /* for (int i = 0; i < 66; i++) { */
         /*     printf("%f ", out[i]); */
         /* } */

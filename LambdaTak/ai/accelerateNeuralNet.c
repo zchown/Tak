@@ -1,5 +1,9 @@
 #include "accelerateNeuralNet.h"
 
+static size_t aligned_size(size_t size) {
+    return (size + 63) & ~63;  // 64-byte alignment
+}
+
 void compile_logger(BNNSGraphMessageLevel level, 
         const char* msg, 
         const char* location, 
@@ -26,13 +30,12 @@ int createGraph(const char* modelPath, bnns_graph_t* outGraph, bnns_graph_contex
         return 1;
     }
 
-    // Validate I/O count
     size_t num_inputs = BNNSGraphGetInputCount(*outGraph, NULL);
     size_t num_outputs = BNNSGraphGetOutputCount(*outGraph, NULL);
-    /* printf("Model requires: %zu inputs, %zu outputs\n", num_inputs, num_outputs); */
+    printf("Model requires: %zu inputs, %zu outputs\n", num_inputs, num_outputs);
 
-    if (num_inputs != 1 || num_outputs != 1) {
-        fprintf(stderr, "I/O count mismatch\n");
+    if (num_inputs != 1 || num_outputs != 3) {
+        fprintf(stderr, "I/O count mismatch - expected 1 input, 3 outputs\n");
         BNNSGraphCompileOptionsDestroy(options);
         return 1;
     }
@@ -48,13 +51,13 @@ int createGraph(const char* modelPath, bnns_graph_t* outGraph, bnns_graph_contex
     return 0;
 }
 
-GraphNN* loadGraphNN(const char* modelPath, size_t inputSize, size_t outputSize) {
+GraphNN* loadGraphNN(const char* modelPath, size_t inputSize, 
+                    size_t combinedOutputSize, size_t policyOutputSize, size_t valueOutputSize) {
     GraphNN* nn = malloc(sizeof(GraphNN));
     if (!nn) return NULL;
 
     char command[256];
-    // hardcoded path to the model
-    sprintf(command, "xcrun coremlcompiler compile neurelnet.mlpackage .");
+    sprintf(command, "xcrun coremlcompiler compile %s .", modelPath);
     int ret = system(command);
     if (ret != 0) {
         fprintf(stderr, "Model compilation failed\n");
@@ -63,8 +66,6 @@ GraphNN* loadGraphNN(const char* modelPath, size_t inputSize, size_t outputSize)
     }
 
     const size_t input_bytes = inputSize * sizeof(float);
-    const size_t output_bytes = outputSize * sizeof(float);
-
     nn->inputBuffer = aligned_alloc(64, aligned_size(input_bytes));
     if (!nn->inputBuffer) {
         fprintf(stderr, "Input buffer alloc failed (%zu bytes)\n", input_bytes);
@@ -72,48 +73,89 @@ GraphNN* loadGraphNN(const char* modelPath, size_t inputSize, size_t outputSize)
         return NULL;
     }
 
-    nn->outputBuffer = aligned_alloc(64, aligned_size(output_bytes));
-    if (!nn->outputBuffer) {
-        fprintf(stderr, "Output buffer alloc failed (%zu bytes)\n", output_bytes);
+    const size_t combined_bytes = combinedOutputSize * sizeof(float);
+    nn->combinedOutputBuffer = aligned_alloc(64, aligned_size(combined_bytes));
+    if (!nn->combinedOutputBuffer) {
+        fprintf(stderr, "Combined output buffer alloc failed (%zu bytes)\n", combined_bytes);
         free(nn->inputBuffer);
+        free(nn);
+        return NULL;
+    }
+
+    const size_t policy_bytes = policyOutputSize * sizeof(float);
+    nn->policyOutputBuffer = aligned_alloc(64, aligned_size(policy_bytes));
+    if (!nn->policyOutputBuffer) {
+        fprintf(stderr, "Policy output buffer alloc failed (%zu bytes)\n", policy_bytes);
+        free(nn->inputBuffer);
+        free(nn->combinedOutputBuffer);
+        free(nn);
+        return NULL;
+    }
+
+    const size_t value_bytes = valueOutputSize * sizeof(float);
+    nn->valueOutputBuffer = aligned_alloc(64, aligned_size(value_bytes));
+    if (!nn->valueOutputBuffer) {
+        fprintf(stderr, "Value output buffer alloc failed (%zu bytes)\n", value_bytes);
+        free(nn->inputBuffer);
+        free(nn->combinedOutputBuffer);
+        free(nn->policyOutputBuffer);
         free(nn);
         return NULL;
     }
 
     if (createGraph("neurelnet.mlmodelc", &nn->graph, &nn->context) != 0) {
         free(nn->inputBuffer);
-        free(nn->outputBuffer);
+        free(nn->combinedOutputBuffer);
+        free(nn->policyOutputBuffer);
+        free(nn->valueOutputBuffer);
         free(nn);
         return NULL;
     }
 
     nn->inputSize = inputSize;
-    nn->outputSize = outputSize;
+    nn->combinedOutputSize = combinedOutputSize;
+    nn->policyOutputSize = policyOutputSize;
+    nn->valueOutputSize = valueOutputSize;
+    nn->totalOutputSize = combinedOutputSize + policyOutputSize + valueOutputSize;
+
     return nn;
 }
 
 int predictGraphNN(GraphNN* nn, const double* input, double* output) {
-    bnns_graph_argument_t args[2];
+    bnns_graph_argument_t args[4];
 
     bnns_graph_shape_t in_shape = {.rank = 1, .shape = &(uint64_t){nn->inputSize}};
-    args[1].data_ptr = nn->inputBuffer;
-    args[1].data_ptr_size = nn->inputSize * sizeof(float);
+    args[3].data_ptr = nn->inputBuffer;
+    args[3].data_ptr_size = nn->inputSize * sizeof(float);
 
-    bnns_graph_shape_t out_shape = {.rank = 1, .shape = &(uint64_t){nn->outputSize}};
-    args[0].data_ptr = nn->outputBuffer;
-    args[0].data_ptr_size = nn->outputSize * sizeof(float);
+    bnns_graph_shape_t combined_shape = {.rank = 1, .shape = &(uint64_t){nn->combinedOutputSize}};
+    args[0].data_ptr = nn->combinedOutputBuffer;
+    args[0].data_ptr_size = nn->combinedOutputSize * sizeof(float);
 
-    // Convert input
+    bnns_graph_shape_t policy_shape = {.rank = 1, .shape = &(uint64_t){nn->policyOutputSize}};
+    args[1].data_ptr = nn->policyOutputBuffer;
+    args[1].data_ptr_size = nn->policyOutputSize * sizeof(float);
+
+    bnns_graph_shape_t value_shape = {.rank = 1, .shape = &(uint64_t){nn->valueOutputSize}};
+    args[2].data_ptr = nn->valueOutputBuffer;
+    args[2].data_ptr_size = nn->valueOutputSize * sizeof(float);
+
     for (size_t i = 0; i < nn->inputSize; i++) {
         nn->inputBuffer[i] = (float)input[i];
     }
 
-    int ret = BNNSGraphContextExecute(nn->context, NULL, 2, args, 0, NULL);
-    if (ret != 0) return ret;
+    int ret = BNNSGraphContextExecute(nn->context, NULL, 4, args, 0, NULL);
+    if (ret != 0) {
+        fprintf(stderr, "Graph execution failed with error code: %d\n", ret);
+        return ret;
+    }
 
-    // Convert output
-    for (size_t i = 0; i < nn->outputSize; i++) {
-        output[i] = nn->outputBuffer[i];
+    size_t outputIndex = 0;
+
+    output[outputIndex++] = tanh(nn->combinedOutputBuffer[0]);
+
+    for (size_t i = 1; i < nn->combinedOutputSize; i++) {
+        output[outputIndex++] = tanh(nn->combinedOutputBuffer[i]);
     }
 
     return 0;
@@ -122,7 +164,9 @@ int predictGraphNN(GraphNN* nn, const double* input, double* output) {
 void freeGraphNN(GraphNN* nn) {
     if (nn) {
         free(nn->inputBuffer);
-        free(nn->outputBuffer);
+        free(nn->combinedOutputBuffer);
+        free(nn->policyOutputBuffer);
+        free(nn->valueOutputBuffer);
         BNNSGraphContextDestroy(nn->context);
         free(nn);
     }
