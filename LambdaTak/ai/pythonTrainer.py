@@ -31,10 +31,10 @@ def value_entropy_loss(y_true, y_pred):
 
     y_flat = tf.reshape(y_pred, [-1])
     y_flat = tf.abs(y_flat)
-    hist  = tf.histogram_fixed_width(y_flat, [0.0, 1.0], nbins=10)
+    hist  = tf.histogram_fixed_width(y_flat, [-1.0, 1.0], nbins=10)
     probs = tf.cast(hist, tf.float32) / tf.reduce_sum(tf.cast(hist, tf.float32))
     entropy = -tf.reduce_sum(probs * tf.math.log(probs + eps))
-    ent_pen = 0.5 * (1.0 / (entropy + eps))
+    ent_pen = 0.1 * (1.0 / (entropy + eps))
 
     return mse + var_pen + ent_pen
 
@@ -128,6 +128,7 @@ class TrainingItem:
 
 class NeuralNetworkTrainer:
     def __init__(self):
+        tf.keras.utils.get_custom_objects().update({'custom_loss': value_entropy_loss})
         self.model = self._create_unified_model()
 
         self.training_queue = queue.Queue()
@@ -162,13 +163,11 @@ class NeuralNetworkTrainer:
     def _residual_block(self, x, filters):
         shortcut = x
 
-        x = Conv2D(filters, (3, 3), padding='same', activation='sigmoid', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
-        x = BatchNormalization()(x)
-        x = LeakyReLU(alpha=0.1)(x)
-
-        x = Conv2D(filters, (3, 3), padding='same', activation='sigmoid', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
+        x = Conv2D(filters, (3, 3), padding='same', activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.0001))(x)
         x = BatchNormalization()(x)
 
+        x = Conv2D(filters, (3, 3), padding='same', kernel_regularizer=tf.keras.regularizers.l2(0.0001))(x)
+        x = BatchNormalization()(x)
         x = Add()([x, shortcut])
         x = LeakyReLU(alpha=0.1)(x)
 
@@ -178,19 +177,31 @@ class NeuralNetworkTrainer:
         inputs = Input(shape=(TOTAL_INPUT,), name='input')
         x = Reshape((BOARD_SIZE, BOARD_SIZE, INPUT_CHANNELS), name='reshape')(inputs)
 
-        x = Conv2D(256, (3, 3), padding='same', name='conv_init', activation='sigmoid', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
-        x = BatchNormalization(name='bn_init')(x)
-        x = LeakyReLU(alpha=0.1, name='act_init')(x)
+        # x = Conv2D(128, (2, 2), padding='same', name='conv_init', activation='sigmoid', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
+        # x = BatchNormalization(name='bn_init')(x)
+        # x = LeakyReLU(alpha=0.1, name='act_init')(x)
+
+        x = Conv2D(256, (3, 3), padding='same', name='conv_init2', activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.0001))(x)
+        x = BatchNormalization(name='bn_init2')(x)
+        # x = LeakyReLU(alpha=0.1, name='act_init2')(x)
+        x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding='same', name='pooling1')(x)
 
         x = self._residual_block(x, 256)
+        x = Dropout(0.15)(x)
         x = self._residual_block(x, 256)
-        x = Dropout(0.25)(x)
+        x = Dropout(0.15)(x)
         x = self._residual_block(x, 256)
+        x = Dropout(0.15)(x)
         x = self._residual_block(x, 256)
-        x = Dropout(0.25)(x)
+        x = Dropout(0.15)(x)
 
-        x = Conv2D(256, (1, 1), padding='same', name='conv_final', activation='sigmoid', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
+        x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same', name='pooling3')(x)
+
+        x = Conv2D(256, (1, 1), padding='same', name='conv_final', activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.0001))(x)
         x = Flatten(name='flatten_shared')(x)
+        x = Dense(1024, name='dense_shared', activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.0001))(x)
+        x = BatchNormalization(name='bn_final')(x)
+        # x = LeakyReLU(alpha=0.1, name='act_final')(x)
 
         combined_out = Dense(1 + POLICY_SIZE, name='combined_head')(x)
 
@@ -202,8 +213,8 @@ class NeuralNetworkTrainer:
 
         losses = {
                 # 'combined_head': "mean_absolute_error",
-                'policy_head': 'categorical_crossentropy',
-                'value_head': value_entropy_loss,
+                'policy_head': tf.keras.losses.KLDivergence(),
+                'value_head': "custom_loss",
                 }
 
         loss_weights = {
@@ -212,10 +223,10 @@ class NeuralNetworkTrainer:
                 }
 
         model.compile(
-                optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.00001, clipnorm=0.5),
+                optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.00001, clipnorm=0.2),
                 loss=losses,
                 loss_weights=loss_weights,
-                metrics={'policy_head': 'mean_absolute_error', 'value_head': 'accuracy'}
+                metrics={'policy_head': tf.keras.metrics.KLDivergence(), 'value_head': 'accuracy'}
                 )
 
         model.summary()
@@ -279,10 +290,11 @@ class NeuralNetworkTrainer:
                 print(f"Game {self.game_counter} queued for processing")
 
     def adjust_learning_rate(self):
-        current_lr = max(self.initial_lr * (0.975 ** (self.train_counter // 1000)), self.min_lr)
-        with self.model_lock:
-            tf.keras.backend.set_value(self.model.optimizer.learning_rate, current_lr)
-        print(f"Learning rate adjusted to {current_lr}")
+        pass
+        # current_lr = max(self.initial_lr * (0.975 ** (self.train_counter // 100)), self.min_lr)
+        # with self.model_lock:
+        #     tf.keras.backend.set_value(self.model.optimizer.learning_rate, current_lr)
+        # print(f"Learning rate adjusted to {current_lr}")
 
     def train_on_replay_buffer(self, num_batches=50):
         if self.experience_buffer.size() < self.replay_batch_size:

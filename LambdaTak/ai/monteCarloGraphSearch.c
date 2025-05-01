@@ -28,7 +28,7 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
             fprintf(stderr, "Failed to load graph neural network\n");
             return (Move){0};
         }
-    } else if (trainingMode ) {
+    } else if (trainingMode && reload > 20) {
         // Reset the graphNN for training mode
         printf("Reloading graph neural network\n");
         reload = 0;
