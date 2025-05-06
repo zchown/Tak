@@ -5,6 +5,8 @@ Tak is a two-player abstract strategy game inspired by Patrick Rothfuss's Kingki
 
 For comprehensive rules and strategy guides, visit the official US Tak Association: [ustak.org](https://ustak.org/)
 
+A full project write up can be found here https://medium.com/@zanchown/writing-an-ai-player-for-the-game-tak-4ab5c7d17b68
+
 ## Project Components
 
 This repository contains three integrated projects:
