@@ -234,7 +234,7 @@ class NeuralNetworkTrainer:
 
     def _load_model(self):
         try:
-            self.model = tf.keras.models.load_model('neurelnet_unified.h5')
+            self.model.load_weights('neurelnet_unified.h5')
             print("Loaded existing unified model")
         except (FileNotFoundError, OSError):
             print("No existing unified model found, using new model")

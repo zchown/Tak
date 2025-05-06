@@ -17,7 +17,7 @@
 #include  "accelerateNeuralNet.h"
 #include "../lib/arenaAllocator.h"
 
-#define CPUCT (0.05)
+#define CPUCT (0.1)
 
 #define MONTECARLO_TABLE_SIZE (1 << 25)
 

@@ -28,7 +28,7 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
             fprintf(stderr, "Failed to load graph neural network\n");
             return (Move){0};
         }
-    } else if (trainingMode && reload > 20) {
+    } else if (trainingMode && reload > 200) {
         // Reset the graphNN for training mode
         printf("Reloading graph neural network\n");
         reload = 0;
@@ -48,9 +48,9 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     MCGSNode* root = entry->node;
 
 
-    int numIterations = 1 << 13;
+    int numIterations = 1 << 12;
     if (trainingMode) {
-        numIterations = 1 << 9;
+        numIterations = 1 << 10;
     }
     for (int i = 0; i < numIterations; i++) {
         /* printf("Iteration %d\n", i); */
@@ -73,8 +73,8 @@ Move monteCarloGraphSearch(GameState* state, DenseNeuralNet* net, bool trainingM
     clock_t endTime = clock();
     stats.executionTimeMs =
         ((double)(endTime - startTime) / CLOCKS_PER_SEC) * 1000;
-    /* printMCGSStats(&stats); */
-    /* printTopMoves(root, 10); */
+    printMCGSStats(&stats);
+    printTopMoves(root, 10);
 
     if (trainingMode) {
         if (root->numEdges == 0) {
@@ -294,7 +294,7 @@ SelectExpandResult selectExpand(MonteCarloTable* table, GameState* state,
         double* in = gameStateToVector(state);
         double out[66] = {0};
         predictGraphNN(graphNN, in, out);
-        printf("Predicted value: %f\n", out[0]);
+        /* printf("Predicted value: %f\n", out[0]); */
         /* for (int i = 0; i < 66; i++) { */
         /*     printf("%f ", out[i]); */
         /* } */
@@ -586,7 +586,7 @@ MonteCarloTable* createMonteCarloTable(void) {
         free(table);
         return NULL;
     }
-    table->allocator = createArenaAllocator(6ULL * 1024 * 1024 * 1024);
+    table->allocator = createArenaAllocator(10ULL * 1024 * 1024 * 1024);
     if (!table->allocator.memory) {
         printf("Failed to allocate memory for Monte Carlo table allocator\n");
         free(table->entries);

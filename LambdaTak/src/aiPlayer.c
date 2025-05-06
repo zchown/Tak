@@ -29,8 +29,11 @@ const char* generateMove(const char* gameStateJson, int time) {
     
     /* Move move = iterativeDeepeningSearch(state, time); */
 
+
     double* temp = malloc(7 * TOTAL_SQUARES * sizeof(double));
-    Move move = monteCarloGraphSearch(state, &net, true, 0, temp);
+    int random = rand() % 50;
+    bool trainingMode = random > 40;
+    Move move = monteCarloGraphSearch(state, &net, trainingMode, 0, temp);
     free(temp);
     char* moveStr = moveToString(&move);
     freeGameState(state);

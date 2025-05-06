@@ -195,7 +195,7 @@ int squareLoop(GameState* state) {
                     } else {
                         score += 15 * RESERVE_BONUS;
                     }
-                }
+               }
 
                 score -= IMMOBILITY_PENALTY * square->numPieces *
                     (__builtin_popcountll(neighbours & wallCaps));
